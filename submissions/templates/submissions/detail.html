@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags%}
+
+{% block title %}
+
+|{{ submission }}
+
+{% endblock title %}
+
+    {% block content %}
+        <form action="/submissions/{{ submission.pk }}/" method="post">
+            {% csrf_token %}
+            {{ grading_form|crispy }}
+            <input class="btn btn-primary" type="submit" value="Submit">
+        </form>
+        
+
+        <div class="row">
+            <div class="col-sm-9">
+                <h2>{{ submission.assignment }} - {{ submission.student }}</h2>
+                <h5 class="text-muted">Attempt {{ submission.attempt }}</h5>
+                <br>
+                <figure style="overflow-y: scroll; display: grid; height: 80vh;">
+                    <img src="{{ submission.file.url }}" alt="{{ submission.file.name }}" class="img-responsive" style="width:100%; max-height:100vh;">
+                </figure>
+            </div>
+            <div class="col-sm-3">
+                <div class="row" >
+                    
+                    <div class="col-xs-12" style="height:20%;">
+                        <h2> Grade </h2>  
+                        <div class="input-group mb-3">
+                                
+                            <input autofocus placeholder="?" type="number" id="floatingGradeInput1" step="1" class="form-control" value="{{ submission.grade }}" aria-label="Grade" aria-describedby="basic-addon1" style="max-width:80px;">
+
+                            <span class="input-group-text"> / {{ submission.assignment.max_score }}</span>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                    
+                    <div class="col-xs-12" style="height:70%;">
+                        <div class="form-outline mt-5">
+                            <h2> Comments</h2>
+                            {% comment %} <label for="comment" class="invisible">Comments</label> {% endcomment %}
+                            <textarea class="form-control" id="comment" rows="7" style="height:100px; margin-right: 0.1em;"></textarea>
+                            <button type="submit" class="btn btn-primary mt-3">Submit</button>
+                        </div>
+                    </div>
+
+                    <div class="col-xs-12" style="height:70%;">
+                        <div class="form-outline mt-5">
+                            <h2> File</h2>
+                            {% comment %} <label for="comment" class="invisible">Comments</label> {% endcomment %}
+                            <input type="file" class="form-control-file" id="subFileUploadInput" style="margin-right: 0.1em;">
+                            <button type="submit" class="btn btn-primary mt-3">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endblock content %}

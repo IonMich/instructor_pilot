@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags%}
+
+{% block content %}
+
+{% comment %} crispy form {% endcomment %}
+
+
+This is a message: {{ message }}
+
+<hr>
+
+<form action="" method="POST">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-primary mt-3">Search</button>
+</form>
+<br>
+{% if doc_df is not None %}
+
+    {{doc_df|safe}}
+
+{% else %}
+    <h3>No results found</h3>
+{% endif %}
+
+{% endblock content %}
+
