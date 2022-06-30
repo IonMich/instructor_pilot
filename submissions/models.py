@@ -42,14 +42,19 @@ class Submission(models.Model):
         blank=True,
         related_name="%(app_label)s_%(class)s_graded_by",
         related_query_name="%(app_label)s_%(class)ss")
+    
+    graded_at = models.DateTimeField(
+        null=True,
+        blank=True)
 
     grader_comments = models.TextField(
         null=True,
         blank=True)
-    
-    date_graded = models.DateTimeField(
+
+    comment_files = models.FileField(
         null=True,
         blank=True)
+
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
@@ -67,16 +72,14 @@ class Submission(models.Model):
             raise ValidationError("Submission must be associated with an attempt.")
         if self.attempt < 1:
             raise ValidationError("Submission attempt must be greater than 0.")
-        if self.attempt > self.assignment.max_attempts:
-            raise ValidationError("Submission attempt must be less than or equal to the maximum attempts.")
         if self.grade is not None and self.grade < 0:
             raise ValidationError("Submission grade must be greater than or equal to 0.")
-        if self.grade is not None and self.grade > self.assignment.max_grade:
+        if self.grade is not None and self.grade > self.assignment.max_score:
             raise ValidationError("Submission grade must be less than or equal to the maximum grade.")
         if self.graded_by is None:
             raise ValidationError("Submission must be associated with a grader.")
-        if self.date_graded is None:
-            raise ValidationError("Submission must be associated with a date graded.")
+        if self.graded_at is None:
+            raise ValidationError("Submission must be associated with a graded_at datatime.")
     
 
     class Meta:

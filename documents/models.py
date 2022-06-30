@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils import timezone
-from .utils import generate_code
 from django.shortcuts import reverse
 import uuid
 

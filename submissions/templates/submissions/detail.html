@@ -3,60 +3,66 @@
 
 {% block title %}
 
-|{{ submission }}
+| {{ submission }}
 
 {% endblock title %}
 
-    {% block content %}
-        <form action="/submissions/{{ submission.pk }}/" method="post">
-            {% csrf_token %}
-            {{ grading_form|crispy }}
-            <input class="btn btn-primary" type="submit" value="Submit">
-        </form>
-        
+{% block content %}
+    {% comment %} <form action="/submissions/{{ submission.pk }}/" method="post">
+        {% csrf_token %}
+        {{ grading_form|crispy }}
+        <input class="btn btn-primary" type="submit" value="Submit">
+    </form> {% endcomment %}
 
-        <div class="row">
-            <div class="col-sm-9">
-                <h2>{{ submission.assignment }} - {{ submission.student }}</h2>
-                <h5 class="text-muted">Attempt {{ submission.attempt }}</h5>
-                <br>
-                <figure style="overflow-y: scroll; display: grid; height: 80vh;">
-                    <img src="{{ submission.file.url }}" alt="{{ submission.file.name }}" class="img-responsive" style="width:100%; max-height:100vh;">
-                </figure>
-            </div>
-            <div class="col-sm-3">
-                <div class="row" >
-                    
-                    <div class="col-xs-12" style="height:20%;">
-                        <h2> Grade </h2>  
-                        <div class="input-group mb-3">
-                                
-                            <input autofocus placeholder="?" type="number" id="floatingGradeInput1" step="1" class="form-control" value="{{ submission.grade }}" aria-label="Grade" aria-describedby="basic-addon1" style="max-width:80px;">
 
-                            <span class="input-group-text"> / {{ submission.assignment.max_score }}</span>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary">Submit</button>
-                    </div>
-                    
-                    <div class="col-xs-12" style="height:70%;">
-                        <div class="form-outline mt-5">
-                            <h2> Comments</h2>
-                            {% comment %} <label for="comment" class="invisible">Comments</label> {% endcomment %}
-                            <textarea class="form-control" id="comment" rows="7" style="height:100px; margin-right: 0.1em;"></textarea>
-                            <button type="submit" class="btn btn-primary mt-3">Submit</button>
-                        </div>
-                    </div>
-
-                    <div class="col-xs-12" style="height:70%;">
-                        <div class="form-outline mt-5">
-                            <h2> File</h2>
-                            {% comment %} <label for="comment" class="invisible">Comments</label> {% endcomment %}
-                            <input type="file" class="form-control-file" id="subFileUploadInput" style="margin-right: 0.1em;">
-                            <button type="submit" class="btn btn-primary mt-3">Submit</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div class="row">
+        <div class="col-sm-9">
+            <h2>{{ submission.assignment }} - {{ submission.student }}</h2>
+            <h5 class="text-muted">Attempt {{ submission.attempt }}</h5>
+            <br>
+            <figure style="overflow-y: scroll; display: grid; height: 80vh;">
+                <img src="{{ submission.file.url }}" alt="{{ submission.file.name }}" class="img-responsive" style="width:100%; max-height:100vh;">
+            </figure>
         </div>
-    {% endblock content %}
+        <div class="col-sm-3">
+            <form action="/submissions/{{ submission.pk }}/" method="post">
+                {% csrf_token %}
+                <div class="row" >                    
+                    <div class="col-xs-12 mb-5" style="height:30%;">
+                        
+                        {{ grading_form.non_field_errors }}
+                        <div class="form-outline">
+                            {{ grading_form.grade.errors }}
+                            <label for="{{ grading_form.grade.id_for_label }}" style="font-size:26px;">Grade</label>
+                            <div class="input-group">
+                                
+                                <input autofocus placeholder="?" name="grade" type="number" id="{{ grading_form.grade.id_for_label }}" step="1" class="form-control" value="{{ submission.grade }}" aria-label="Grade" style="max-width:80px;">
+                                
+                                <span class="input-group-text"> / {{ submission.assignment.max_score }}</span>
+                            </div>
+                            {% comment %} {{ form.grade }} {% endcomment %}
+                        </div>
+                    </div>
+                    <div class="col-xs-12 mb-5" style="height:70%;">
+                        <div class="form-outline">
+                            {{ grading_form.grader_comments.errors }}
+                            <label for="{{ grading_form.grader_comments.id_for_label }}" style="font-size:26px;">Comment</label>
+                            <textarea name="grader_comments" class="form-control" value="{{submission.grader_comments}}" id="{{ grading_form.grader_comments.id_for_label }}" rows="7"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 mb-3" style="height:70%;">
+                        <div class="form-outline">
+                            {{ grading_form.comment_files.errors }}
+                            <label for="{{ grading_form.comment_files.id_for_label }}" style="font-size:26px;">File</label>
+                            <input type="file" name="comment_files" class="form-control" id="{{ grading_form.comment_files.id_for_label }}">
+                        </div>
+                    </div>
+                    <div class="col-xs-12" style="height:70%;">
+                        <input class="btn btn-primary" type="submit" value="Update">
+                    </div>
+                    
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock content %}

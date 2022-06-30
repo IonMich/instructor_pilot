@@ -4,6 +4,7 @@ from .models import PaperSubmission, CanvasQuizSubmission, ScantronSubmission
 from .forms import SubmissionSearchForm, GradingForm
 import pandas as pd
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 import random
 
 def _random1000():
@@ -67,14 +68,31 @@ def submission_list_view(request):
 
 
 def submission_detail_view(request, pk):
-    grading_form = GradingForm(request.POST or None)
-    print(grading_form)
     submission = get_object_or_404(PaperSubmission, pk=pk)
     print(submission.assignment)
+    print("request.user: ", request.user)
     if request.method == 'POST':
+        submission.graded_at = timezone.now()
+        submission.graded_by = request.user
+        # get all data from request.POST
+        print(request.FILES)
+        for key, value in request.POST.items():
+            print(key, value)
+        grading_form = GradingForm(request.POST,request.FILES,instance=submission)
+        # print("new grading form", grading_form)
         if grading_form.is_valid():
             print("form is valid")
             submission.grade = grading_form.cleaned_data.get('grade')
+            print(grading_form.cleaned_data)
+            print("submission.grade", submission.grade)
+            print("submission.graded_at", submission.graded_at)
+            print("submission.graded_by", submission.graded_by)
+            submission.grader_comments = grading_form.cleaned_data.get('grader_comments')
+            submission.comment_files = grading_form.cleaned_data.get('comment_files')
             submission.save()
             return render(request, 'submissions/detail.html', {'submission': submission})
+        else:
+            print("form is not valid")
+    else:
+        grading_form = GradingForm(None)
     return render(request, 'submissions/detail.html', {'submission': submission, 'grading_form': grading_form})

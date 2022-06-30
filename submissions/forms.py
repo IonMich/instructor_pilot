@@ -34,27 +34,13 @@ class SubmissionSearchForm(forms.Form):
     include_makeups = forms.BooleanField(initial=True, required=False)
 
 class GradingForm(forms.ModelForm):
-    grade = forms.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        required=False
-        )
-    comment = forms.CharField(
-        max_length=1000,
-        required=False,
-        )
-
-    file = forms.FileField(
-        required=False,
-        )
-
     class Meta:
         model = PaperSubmission
-        fields = ['grade', 'comment', 'file']
-        widgets = {
-            'grade': forms.TextInput(attrs={'type': 'number', 'step': '1'}),
-            'comment': forms.Textarea(attrs={'rows': '3'}),
-            'file': forms.FileInput(),
-        }
+        fields = ['grade', 'grader_comments', 'comment_files']
+        # widgets = {
+        #     'grade': forms.TextInput(attrs={'type': 'number', 'step': '1'}),
+        #     'grader_comments': forms.Textarea(attrs={'rows': '3'}),
+        #     'comment_files': forms.FileInput(),
+        # }
         
     
