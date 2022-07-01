@@ -36,11 +36,10 @@ class SubmissionSearchForm(forms.Form):
 class GradingForm(forms.ModelForm):
     class Meta:
         model = PaperSubmission
-        fields = ['grade', 'grader_comments', 'comment_files']
+        fields = ['student', 'question_grades', 'grader_comments', 'comment_files']
         # widgets = {
         #     'grade': forms.TextInput(attrs={'type': 'number', 'step': '1'}),
         #     'grader_comments': forms.Textarea(attrs={'rows': '3'}),
         #     'comment_files': forms.FileInput(),
         # }
         
-    

@@ -8,52 +8,76 @@
 {% endblock title %}
 
 {% block content %}
-    {% comment %} <form action="/submissions/{{ submission.pk }}/" method="post">
-        {% csrf_token %}
-        {{ grading_form|crispy }}
-        <input class="btn btn-primary" type="submit" value="Submit">
-    </form> {% endcomment %}
-
 
     <div class="row">
-        <div class="col-sm-9">
-            <h2>{{ submission.assignment }} - {{ submission.student }}</h2>
+        <div class="col-sm-12 w-100">
             <h5 class="text-muted">Attempt {{ submission.attempt }}</h5>
-            <br>
-            <figure style="overflow-y: scroll; display: grid; height: 80vh;">
-                <img src="{{ submission.file.url }}" alt="{{ submission.file.name }}" class="img-responsive" style="width:100%; max-height:100vh;">
+        </div>
+        
+        <div id="list-pages" class="col-sm-1 list-group mb-4">
+            {% for image in submission.submissions_papersubmissionimage_related.all%} 
+                <a class="list-group-item list-group-item-action" href="#page-{{forloop.counter}}">Page {{forloop.counter}}</a>
+            {% endfor %}
+        </div>
+
+        <div class="col-sm-8">    
+            <figure>
+                <div data-bs-spy="scroll" data-bs-target="#list-pages" style="height:80vh; position:relative; overflow-y:scroll;" data-bs-offset="200" class="scrollspy-example" tabindex="0">
+                {% for image in submission.submissions_papersubmissionimage_related.all%}  
+                    <h4 id="page-{{forloop.counter}}"></h4>
+                    <img src="{{ image.image.url }}" class="img-fluid" alt="{{ image.image.name }}" style="max-width:95%">
+                {% endfor %}
+                </div> 
             </figure>
         </div>
+
         <div class="col-sm-3">
             <form action="/submissions/{{ submission.pk }}/" method="post">
                 {% csrf_token %}
                 <div class="row" >                    
                     <div class="col-xs-12 mb-5" style="height:30%;">
-                        
-                        {{ grading_form.non_field_errors }}
-                        <div class="form-outline">
-                            {{ grading_form.grade.errors }}
-                            <label for="{{ grading_form.grade.id_for_label }}" style="font-size:26px;">Grade</label>
-                            <div class="input-group">
-                                
-                                <input autofocus placeholder="?" name="grade" type="number" id="{{ grading_form.grade.id_for_label }}" step="1" class="form-control" value="{{ submission.grade }}" aria-label="Grade" style="max-width:80px;">
-                                
-                                <span class="input-group-text"> / {{ submission.assignment.max_score }}</span>
+                        {% if grading_form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ grading_form.non_field_errors }}
                             </div>
+                        {% endif %}
+                        <div class="form-group">
+                            <select class="form-select w-auto" name="student" id="id_student">
+                                {% for section in submission.assignment.course.sections.all %}
+                                    {% for student in section.students.all %}
+                                        {% if student.pk == submission.student.pk %}
+                                            <option value="{{ student.pk }}" selected>{{student}} ({{student.uni_id}})</option>
+                                        {% else %}
+                                            <option value="{{ student.pk }}">{{student}} ({{student.uni_id}})</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-outline">
+                            {{ grading_form.question_grades.errors }}
+                            {% for q_grade, q_max_grade in grades_zipped %} 
+                                <label class="mt-3" for="id_grade_question_{{forloop.counter}}" style="font-size:20px;">Question {{forloop.counter}}</label>
+                                <div class="input-group mt-2">
+                                    <input autofocus placeholder="?" name="grade_{{forloop.counter}}" type="number" id="id_grade_question_{{forloop.counter}}" step="1" class="form-control" value="{{ q_grade }}" style="max-width:80px;">
+                                    <span class="input-group-text mt"> / {{ q_max_grade }}</span>
+                                </div>
+                            {% endfor %}
                             {% comment %} {{ form.grade }} {% endcomment %}
                         </div>
                     </div>
                     <div class="col-xs-12 mb-5" style="height:70%;">
                         <div class="form-outline">
                             {{ grading_form.grader_comments.errors }}
-                            <label for="{{ grading_form.grader_comments.id_for_label }}" style="font-size:26px;">Comment</label>
-                            <textarea name="grader_comments" class="form-control" value="{{submission.grader_comments}}" id="{{ grading_form.grader_comments.id_for_label }}" rows="7"></textarea>
+                            <label for="{{ grading_form.grader_comments.id_for_label }}" style="font-size:20px;">Comment</label>
+                            <textarea name="grader_comments" class="form-control" id="{{ grading_form.grader_comments.id_for_label }}" rows="7">{{submission.grader_comments}}</textarea>
                         </div>
                     </div>
+                    
                     <div class="col-xs-12 mb-3" style="height:70%;">
                         <div class="form-outline">
                             {{ grading_form.comment_files.errors }}
-                            <label for="{{ grading_form.comment_files.id_for_label }}" style="font-size:26px;">File</label>
+                            <label for="{{ grading_form.comment_files.id_for_label }}" style="font-size:20px;">File</label>
                             <input type="file" name="comment_files" class="form-control" id="{{ grading_form.comment_files.id_for_label }}">
                         </div>
                     </div>
@@ -65,4 +89,5 @@
             </form>
         </div>
     </div>
+
 {% endblock content %}
