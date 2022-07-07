@@ -13,14 +13,17 @@ class Student(models.Model):
         blank=True, 
         unique=True)
     uni_id = models.CharField(max_length=20,unique=True)
-    phone_number = models.CharField(max_length=100)
+    phone_number = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     university = models.ForeignKey(
         University,
         on_delete=models.CASCADE,
         related_name="students")
-    section = models.ManyToManyField(
+    sections = models.ManyToManyField(
         Section,
         blank=True,
         related_name="students")

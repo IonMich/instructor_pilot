@@ -23,8 +23,29 @@
             {% endif %}
               <div class="card-body">
                 <h5 class="card-title">
-                  {{obj.student.first_name}} {{obj.student.last_name}} ({{obj.student.uni_id}})</h5>
-                <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+                  {% if obj.student %}
+                  <h5 class="card-title"> 
+                    {% if obj.classification_type == "D"%}
+                    <span class="badge bg-primary">{{obj.classification_type}}</span> 
+                    
+                    {% elif obj.classification_type == "M"%}
+                    <span class="badge bg-warning">{{obj.classification_type}}</span> 
+
+                    {% elif obj.classification_type == "W"%}
+                    <span class="badge bg-info text-dark">{{obj.classification_type}}</span> 
+                    
+                    {% else %}
+                    <span class="badge bg-danger">?</span> 
+                    {% endif %}
+                    
+                    {{obj.student.first_name}} {{obj.student.last_name}} ({{obj.student.uni_id}})
+                    
+                  </h5>
+                  {% else %}
+                  <h5 class="card-title text-muted"> <i>No Student</i></h5>
+                  {% endif %}
+                  
+                  <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
                 <a href="{{obj.get_absolute_url}}" class="stretched-link"></a>
               </div>
               <div class="card-footer" style="background: linear-gradient({{random_num|dj_iter}}deg, #e3dfd1, #d4cced);">

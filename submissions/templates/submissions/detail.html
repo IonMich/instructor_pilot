@@ -10,9 +10,10 @@
 {% block content %}
 
     <div class="row">
-        <div class="col-sm-12 w-100">
+        <div class="col-sm-6 w-50">
             <h5 class="text-muted">Attempt {{ submission.attempt }}</h5>
         </div>
+        <div class="col-sm-6 w-50" id="output">scrollTop: 0</div>
         
         <div id="list-pages" class="col-sm-1 list-group mb-4">
             {% for image in submission.submissions_papersubmissionimage_related.all%} 
@@ -22,10 +23,10 @@
 
         <div class="col-sm-8">    
             <figure>
-                <div data-bs-spy="scroll" data-bs-target="#list-pages" style="height:80vh; position:relative; overflow-y:scroll;" data-bs-offset="200" class="scrollspy-example" tabindex="0">
+                <div data-bs-spy="scroll" id="div-imgs" data-bs-target="#list-pages" style="height:80vh; position:relative; overflow-y:scroll;" data-bs-offset="200" class="scrollspy-example"  tabindex="0">
                 {% for image in submission.submissions_papersubmissionimage_related.all%}  
                     <h4 id="page-{{forloop.counter}}"></h4>
-                    <img src="{{ image.image.url }}" class="img-fluid" alt="{{ image.image.name }}" style="max-width:95%">
+                    <img id="img-{{forloop.counter}}" src="{{ image.image.url }}" class="img-fluid" alt="{{ image.image.name }}" style="max-width:95% ">
                 {% endfor %}
                 </div> 
             </figure>
@@ -43,27 +44,46 @@
                         {% endif %}
                         <div class="form-group">
                             <select class="form-select w-auto" name="student" id="id_student">
+                                {% if submission.student is None %}
+                                    <option value="" selected disabled hidden>Select Student</option>
+                                {% else %}
+                                    <option value="{{ submission.student.pk }}">{{ submission.student }} ({{submission.student.uni_id}})</option>
+                                {% endif %}
                                 {% for section in submission.assignment.course.sections.all %}
                                     {% for student in section.students.all %}
-                                        {% if student.pk == submission.student.pk %}
-                                            <option value="{{ student.pk }}" selected>{{student}} ({{student.uni_id}})</option>
-                                        {% else %}
+                                        {% if student.pk != submission.student.pk %}
                                             <option value="{{ student.pk }}">{{student}} ({{student.uni_id}})</option>
                                         {% endif %}
                                     {% endfor %}
                                 {% endfor %}
                             </select>
+                            {% if submission.student is not None %}
+                                {% if submission.classification_type == "D"%}
+                                <span class="badge bg-primary">{{submission.classification_type}}</span> 
+                                
+                                {% elif submission.classification_type == "M"%}
+                                <span class="badge bg-warning">{{submission.classification_type}}</span> 
+            
+                                {% elif submission.classification_type == "W"%}
+                                <span class="badge bg-info text-dark">{{submission.classification_type}}</span> 
+                                
+                                {% else %}
+                                <span class="badge bg-danger">?</span> 
+                                {% endif %}
+                            {% endif %}
                         </div>
                         <div class="form-outline">
-                            {{ grading_form.question_grades.errors }}
                             {% for q_grade, q_max_grade in grades_zipped %} 
                                 <label class="mt-3" for="id_grade_question_{{forloop.counter}}" style="font-size:20px;">Question {{forloop.counter}}</label>
                                 <div class="input-group mt-2">
-                                    <input autofocus placeholder="?" name="grade_{{forloop.counter}}" type="number" id="id_grade_question_{{forloop.counter}}" step="1" class="form-control" value="{{ q_grade }}" style="max-width:80px;">
+                                    {% if q_grade is None %}
+                                        <input placeholder="?" name="grade_{{forloop.counter}}" type="number" id="id_grade_question_{{forloop.counter}}" step="1" class="form-control" value="" style="max-width:80px;">
+                                    {% else %}
+                                        <input onClick="this.select();" placeholder="?" name="grade_{{forloop.counter}}" type="number" id="id_grade_question_{{forloop.counter}}" step="1" class="form-control" value="{{ q_grade }}" style="max-width:80px;">
+                                    {% endif %}
                                     <span class="input-group-text mt"> / {{ q_max_grade }}</span>
                                 </div>
                             {% endfor %}
-                            {% comment %} {{ form.grade }} {% endcomment %}
                         </div>
                     </div>
                     <div class="col-xs-12 mb-5" style="height:70%;">
@@ -89,5 +109,94 @@
             </form>
         </div>
     </div>
+
+    <div class="row justify-content-center">
+        <div class="col-sm-12 btn-group w-auto">
+            {% comment %} go to previous submission {% endcomment %}
+            <a class="btn btn-outline-primary" href="/submissions/{{ submission.pk }}/previous/">Previous</a>
+            {% comment %} go to next submission {% endcomment %}
+            <a class="btn btn-outline-primary" href="/submissions/{{ submission.pk }}/next/">Next</a>
+        </div>
+    </div>
+
+{% comment %} bind key ">" to next submission view {% endcomment %}
+<script>
+    $(document).ready(function(){
+        $('body').bind('keydown', function(e) {
+            if (e.which == 39) {
+                window.location.href = "/submissions/{{ submission.pk }}/next/";
+            }
+        });
+    });
+</script>
+
+{% comment %} bind left arrow to previous submission view {% endcomment %}
+<script>
+    $(document).ready(function(){
+        $('body').bind('keydown', function(e) {
+            if (e.which == 37) {
+                window.location.href = "/submissions/{{ submission.pk }}/previous/";
+            }
+        });
+    });
+</script>
+
+{% comment %} when page is fully loaded focus on the first question {% endcomment %}
+
+
+<script>
+        
+        
+    let imgdiv = document.querySelector("#div-imgs");
+    const output = document.querySelector("#output");
+
+    imgdiv.addEventListener("scroll", event => {
+        output.textContent = `scrollTop: ${imgdiv.scrollTop}`;
+    });
+
+    const loadImage = src =>
+        new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                resolve(img);
+                console.log("img loaded");
+            };
+            img.onerror = reject;
+            img.src = src;
+        });
+    
+    const imageUrls = [
+        {% for image in submission.submissions_papersubmissionimage_related.all %}
+            "{{ image.image.url }}",
+        {% endfor %}
+      ];
+
+    Promise.all(imageUrls.map(loadImage)).then(images => {
+        images.forEach((image, i) => {
+            console.log(image, `\nloaded? ${image.complete}`);
+        });
+        grade_box = document.querySelector("#id_grade_question_1");
+        grade_box.addEventListener("focus", event => {
+            console.log(imgdiv.offsetHeight);
+            grade_box.select();
+            imgdiv.scrollTo({
+                top:imgdiv.offsetHeight*4/3, 
+                left:0, 
+                behavior: "smooth"
+            });
+        });
+        grade_box2 = document.querySelector("#id_grade_question_2");
+        grade_box2.addEventListener("focus", event => {
+            console.log(imgdiv.offsetHeight);
+            grade_box2.select();
+            imgdiv.scrollTo({
+                top:imgdiv.offsetHeight*2, 
+                left:0, 
+                behavior: "smooth"
+            });
+        });
+        $('#id_grade_question_1').focus();
+    });
+</script>
 
 {% endblock content %}

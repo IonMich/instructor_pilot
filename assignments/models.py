@@ -39,4 +39,7 @@ class Assignment(models.Model):
         self.max_score = sum(float(g) for g in q_max_grades)
         return super().save(*args, **kwargs)
 
+    def get_all_submissions(self):
+        return self.submissions.all()
+
     

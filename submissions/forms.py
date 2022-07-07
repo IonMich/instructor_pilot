@@ -36,10 +36,60 @@ class SubmissionSearchForm(forms.Form):
 class GradingForm(forms.ModelForm):
     class Meta:
         model = PaperSubmission
-        fields = ['student', 'question_grades', 'grader_comments', 'comment_files']
-        # widgets = {
-        #     'grade': forms.TextInput(attrs={'type': 'number', 'step': '1'}),
-        #     'grader_comments': forms.Textarea(attrs={'rows': '3'}),
-        #     'comment_files': forms.FileInput(),
-        # }
-        
+        fields = ['student', 'question_grades', 'grader_comments', 'comment_files']        
+
+
+class SubmissionFilesUploadForm(forms.Form):
+    file = forms.FileField()
+    assignment = forms.ModelChoiceField(
+        queryset=Assignment.objects.all(),
+        )
+    student = forms.ModelChoiceField(
+        queryset=Student.objects.all(),
+        empty_label="Multiple students",
+        required=False,)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        return cleaned_data
+
+    def save(self):
+    
+        assignment = self.cleaned_data['assignment']
+        student = self.cleaned_data['student']
+        print("assignment: ", assignment, "student: ", student)
+        file = self.cleaned_data['file']
+        print("file: ", file)
+        if student:
+            raise NotImplementedError("specific student upload is not implemented yet")
+            submission = PaperSubmission.objects.create(
+                assignment=assignment,
+                student=student,
+                file=file,
+                attempt=1,
+                )
+        else:
+            uploaded_submission_pks = PaperSubmission.add_papersubmissions_to_db(
+                assignment,
+                uploaded_file=file,
+                )
+        return uploaded_submission_pks
+
+class StudentClassifyForm(forms.Form):
+    assignment = forms.ModelChoiceField(
+        queryset=Assignment.objects.all(),
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        return cleaned_data
+
+    def save(self):
+    
+        assignment = self.cleaned_data['assignment']
+        print("assignment: ", assignment)
+
+        classified_submission_pks, not_classified_submission_pks = PaperSubmission.classify(
+                assignment,
+                )
+        return classified_submission_pks, not_classified_submission_pks

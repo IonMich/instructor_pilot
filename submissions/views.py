@@ -1,9 +1,9 @@
 from django.shortcuts import render
 # from django.views.generic import ListView, DetailView
 from .models import PaperSubmission, CanvasQuizSubmission, ScantronSubmission
-from .forms import SubmissionSearchForm, GradingForm
+from .forms import SubmissionSearchForm, GradingForm, SubmissionFilesUploadForm, StudentClassifyForm
 import pandas as pd
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from itertools import zip_longest
 import random
@@ -57,6 +57,67 @@ def home_view(request):
     return render(request, 'submissions/home.html', context)
 
 
+def upload_files_view(request):
+    """
+    Upload files to the server
+    """
+    message = "Use this form to upload submission files to server"
+    form = SubmissionFilesUploadForm()
+    if request.method == 'POST':
+        form = SubmissionFilesUploadForm(request.POST, request.FILES)
+        print("request was POST")
+        print("request.FILES: ", request.FILES)
+        if form.is_valid():
+            print("form is valid")
+            uploaded_submission_pks = form.save()
+            qs = PaperSubmission.objects.filter(pk__in=uploaded_submission_pks)
+            return render(
+                request, 
+                'submissions/upload_files.html',
+                {'form': form,
+                "random_num": _random1000, 
+                "qs":qs, 
+                'message': 'Files uploaded successfully'})
+        else:
+            message = 'Form is not valid'
+            print("form is not valid")
+        
+    return render(
+        request, 
+        'submissions/upload_files.html', 
+        {'form': form, 
+        'message': message})
+
+def submission_classify_view(request):
+    message = "Use this form to to classify submission by student name and university ID using Deep Learning methods"
+    form = StudentClassifyForm()
+    if request.method == 'POST':
+        form = StudentClassifyForm(request.POST)
+        print("request was POST")
+        if form.is_valid():
+            print("form is valid")
+            classified_submission_pks, not_classified_submission_pks = form.save()
+            qs = PaperSubmission.objects.filter(pk__in=classified_submission_pks)
+            qs2 = PaperSubmission.objects.filter(pk__in=not_classified_submission_pks)
+            message = f"Classified {len(qs)} submissions and not classified {len(qs2)} submissions"
+            render(
+                request, 
+                'submissions/classify.html', 
+                {'form': form,
+                "qs_classified": qs,
+                 "qs_not_classified": qs2,
+                 "random_num": _random1000,
+                'message': message})
+        else:
+            message = 'Form is not valid'
+            print("form is not valid")
+    return render(
+        request, 
+        'submissions/classify.html', 
+        {'form': form, 
+        'message': message})
+
+
 def submission_list_view(request):
     
     # qs stands for queryset
@@ -79,7 +140,7 @@ def submission_detail_view(request, pk):
     if request.method == 'POST':
         submission.graded_at = timezone.now()
         submission.graded_by = request.user
-        q_grades = [ str(request.POST.get(f"grade_{i+1}",0)) 
+        q_grades = [ str(request.POST.get(f"grade_{i+1}")) 
             for i in range(n_q)]
         print(q_grades)
         if q_grades:
@@ -91,10 +152,6 @@ def submission_detail_view(request, pk):
             # set mutable flag back
             request.POST._mutable = _mutable
 
-        # get all data from request.POST
-        # print(request.FILES)
-        for key, value in request.POST.items():
-            print(key, value)
         grading_form = GradingForm(
             request.POST,
             request.FILES,
@@ -127,3 +184,35 @@ def submission_detail_view(request, pk):
         {'submission': submission, 
         'grading_form': grading_form, 
         'grades_zipped': grades_zipped})
+
+
+def redirect_to_previous(request, pk):
+    
+    # first find the object corresponding to the pk
+    submission = get_object_or_404(PaperSubmission, pk=pk)
+    # then find the previous object
+    qs = PaperSubmission.objects.filter(
+        created__lt=submission.created).order_by('-created')
+    if len(qs) > 0:
+        return redirect('submissions:detail', qs[0].pk)
+    else:
+        return redirect('submissions:detail', submission.pk)
+
+
+def redirect_to_next(request, pk):
+    from django.shortcuts import redirect
+    # first find the object corresponding to the pk
+    submission = get_object_or_404(PaperSubmission, pk=pk)
+    # then find the next object
+    qs = PaperSubmission.objects.filter(
+        created__gt=submission.created, 
+        assignment=submission.assignment
+        ).order_by('created')
+    if len(qs) > 0:
+        return redirect('submissions:detail', qs[0].pk)
+    else:
+        return redirect('submissions:detail', 
+        submission.pk)
+    
+
+

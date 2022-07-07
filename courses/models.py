@@ -33,3 +33,10 @@ class Course(models.Model):
 
     def __str__(self):
         return f"{self.name} ({dict(semesters).get(self.semester)} {self.year})"
+
+    def get_students(self):
+        students = []
+        for section in self.sections.all():
+            for student in section.students.all():
+                students.append(student)
+        return students
