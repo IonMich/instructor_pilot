@@ -13,7 +13,7 @@ This is a message: {{ message }}
 <form action="" method="POST">
     {% csrf_token %}
     {{ form|crispy }}
-    <button type="submit" class="btn btn-primary mt-3">Classify</button>
+    <button type="submit" name="submit-classify" class="btn btn-primary mt-3">Classify</button>
 </form>
 <br>
 {% if request.method == "POST" %}
@@ -21,8 +21,8 @@ This is a message: {{ message }}
         <div class="alert alert-success">
             {{ message }}
         </div>
-        {% include "main.html" with object_list=qs_classified title="Classified" %}
-        {% include "main.html" with object_list=qs_not_classified title=" Not Classified" %}
+        {% include "submissions/main.html" with object_list=qs_classified title="Classified" %}
+        {% include "submissions/main.html" with object_list=qs_not_classified title=" Not Classified" %}
     {% else %}
         <div class="alert alert-danger">
             {{ message }}

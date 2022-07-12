@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load submission_extras %}
 
+
 {% block title %}
 
 {{ title }}
@@ -10,7 +11,7 @@
   {% block content %}
   {% comment %} <div class="gradient-pattern"> {% endcomment %}
 
-  <h1> {{ title }}</h1>
+  <h3> {{ title }}</h3>
   <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4  g-2 mt-5 ">
       {% for obj in object_list %}
       <div class="col">

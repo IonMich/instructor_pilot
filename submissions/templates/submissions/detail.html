@@ -113,9 +113,9 @@
     <div class="row justify-content-center">
         <div class="col-sm-12 btn-group w-auto">
             {% comment %} go to previous submission {% endcomment %}
-            <a class="btn btn-outline-primary" href="/submissions/{{ submission.pk }}/previous/">Previous</a>
+            <a class="btn btn-outline-primary" href='{% url "submissions:detail_previous" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}'>Previous</a>
             {% comment %} go to next submission {% endcomment %}
-            <a class="btn btn-outline-primary" href="/submissions/{{ submission.pk }}/next/">Next</a>
+            <a class="btn btn-outline-primary" href='{% url "submissions:detail_previous" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}'>Next</a>
         </div>
     </div>
 
@@ -124,7 +124,7 @@
     $(document).ready(function(){
         $('body').bind('keydown', function(e) {
             if (e.which == 39) {
-                window.location.href = "/submissions/{{ submission.pk }}/next/";
+                window.location.href = '{% url "submissions:detail_next" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}';
             }
         });
     });
@@ -135,7 +135,7 @@
     $(document).ready(function(){
         $('body').bind('keydown', function(e) {
             if (e.which == 37) {
-                window.location.href = "/submissions/{{ submission.pk }}/previous/";
+                window.location.href = '{% url "submissions:detail_previous" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}';
             }
         });
     });

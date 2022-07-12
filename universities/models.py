@@ -7,6 +7,9 @@ from django_countries.fields import CountryField
 class University(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(max_length=500)
+    university_code = models.CharField(
+        max_length=100,
+        default="ufl")
     country = CountryField()
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)

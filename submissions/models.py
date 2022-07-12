@@ -190,14 +190,19 @@ class PaperSubmission(Submission):
         return f"Paper "+ super().__str__()
 
     def get_absolute_url(self):
-        return reverse("submissions:detail", kwargs={"pk": self.pk})
+        return reverse(
+            "submissions:detail", 
+            kwargs={
+                "submission_pk": self.pk,
+                "course_pk": self.assignment.course.pk,
+                "assignment_pk": self.assignment.pk})
 
     class Meta:
         verbose_name_plural = "Paper Submissions"        
 
     @classmethod
-    def add_papersubmissions_to_db(
-        assignment,
+    def add_papersubmissions_to_db(cls,
+        assignment_target,
         quiz_number=None,
         quiz_dir_path=None,
         uploaded_file=None):
@@ -205,8 +210,9 @@ class PaperSubmission(Submission):
         Add submission images and pdfs to the database.
         """
         num_pages_per_submission = 2
-        new_pdf_dir = os.path.join(settings.MEDIA_ROOT, "submissions", f"{assignment.course}/{assignment}/pdf/")
-        img_rel_dir = os.path.join("submissions", f"{assignment.course}/{assignment}/img/")
+        print("assignment is:", assignment_target)
+        new_pdf_dir = os.path.join(settings.MEDIA_ROOT, "submissions", f"{assignment_target.course}/{assignment_target}/pdf/")
+        img_rel_dir = os.path.join("submissions", f"{assignment_target.course}/{assignment_target}/img/")
         img_dir = os.path.join(settings.MEDIA_ROOT, img_rel_dir)
         
         if not os.path.exists(new_pdf_dir):
@@ -232,7 +238,7 @@ class PaperSubmission(Submission):
             print(new_pdf_fpath)
             os.rename(old_pdf_fpath, new_pdf_fpath)
             paper_submission = PaperSubmission.objects.create(
-                assignment=assignment,
+                assignment=assignment_target,
                 pdf=new_pdf_fpath,
                 grader_comments="")
             created_submission_pks.append(paper_submission.pk)

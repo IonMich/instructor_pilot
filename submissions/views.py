@@ -2,11 +2,16 @@ from django.shortcuts import render
 # from django.views.generic import ListView, DetailView
 from .models import PaperSubmission, CanvasQuizSubmission, ScantronSubmission
 from .forms import SubmissionSearchForm, GradingForm, SubmissionFilesUploadForm, StudentClassifyForm
+from assignments.models import Assignment
+from courses.models import Course
 import pandas as pd
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from itertools import zip_longest
 import random
+from django.urls import reverse
+
+
 
 def _random1000():
     yield random.randint(0, 100)
@@ -57,12 +62,12 @@ def home_view(request):
     return render(request, 'submissions/home.html', context)
 
 
-def upload_files_view(request):
+def upload_files_view(request, assignment_pk=None):
     """
     Upload files to the server
     """
     message = "Use this form to upload submission files to server"
-    form = SubmissionFilesUploadForm()
+    form = SubmissionFilesUploadForm(assignment_pk)
     if request.method == 'POST':
         form = SubmissionFilesUploadForm(request.POST, request.FILES)
         print("request was POST")
@@ -129,8 +134,8 @@ def submission_list_view(request):
     return render(request, 'submissions/main.html', context)
 
 
-def submission_detail_view(request, pk):
-    submission = get_object_or_404(PaperSubmission, pk=pk)
+def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
+    submission = get_object_or_404(PaperSubmission, pk=submission_pk)
     n_q = submission.assignment.number_of_questions
     grades_zipped = zip_longest(
         submission.get_question_grades(), 
@@ -186,33 +191,51 @@ def submission_detail_view(request, pk):
         'grades_zipped': grades_zipped})
 
 
-def redirect_to_previous(request, pk):
+def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
     
     # first find the object corresponding to the pk
-    submission = get_object_or_404(PaperSubmission, pk=pk)
+    submission = get_object_or_404(PaperSubmission, pk=submission_pk)
     # then find the previous object
     qs = PaperSubmission.objects.filter(
+        assignment=submission.assignment,
         created__lt=submission.created).order_by('-created')
     if len(qs) > 0:
-        return redirect('submissions:detail', qs[0].pk)
+        print("found previous")
+        return redirect(
+            reverse('submissions:detail', 
+        kwargs={'course_pk': course_pk,
+        'assignment_pk': assignment_pk,
+        'submission_pk': qs[0].pk}))
     else:
-        return redirect('submissions:detail', submission.pk)
+        return redirect(
+            reverse('submissions:detail', 
+        kwargs={'course_pk': course_pk,
+        'assignment_pk': assignment_pk,
+        'submission_pk': submission_pk}))
 
 
-def redirect_to_next(request, pk):
+def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
     from django.shortcuts import redirect
     # first find the object corresponding to the pk
-    submission = get_object_or_404(PaperSubmission, pk=pk)
+    submission = get_object_or_404(PaperSubmission, pk=submission_pk)
     # then find the next object
     qs = PaperSubmission.objects.filter(
         created__gt=submission.created, 
         assignment=submission.assignment
         ).order_by('created')
     if len(qs) > 0:
-        return redirect('submissions:detail', qs[0].pk)
+        print("found next")
+        return redirect(
+            reverse('submissions:detail', 
+        kwargs={'course_pk': course_pk,
+        'assignment_pk': assignment_pk,
+        'submission_pk': qs[0].pk}))
     else:
-        return redirect('submissions:detail', 
-        submission.pk)
+        return redirect(
+            reverse('submissions:detail', 
+        kwargs={'course_pk': submission.assignment.course.pk,
+        'assignment_pk': submission.assignment.pk,
+        'submission_pk': submission.pk}))
     
 
 

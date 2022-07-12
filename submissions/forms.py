@@ -40,6 +40,13 @@ class GradingForm(forms.ModelForm):
 
 
 class SubmissionFilesUploadForm(forms.Form):
+    def __init__(self,*args,**kwargs):
+        from django.forms.widgets import HiddenInput
+        no_assignment = kwargs.pop('no_assignment', None)
+        super().__init__(*args,**kwargs)
+        if no_assignment:
+            self.fields['assignment'].widget = HiddenInput()
+
     file = forms.FileField()
     assignment = forms.ModelChoiceField(
         queryset=Assignment.objects.all(),
@@ -54,12 +61,9 @@ class SubmissionFilesUploadForm(forms.Form):
         return cleaned_data
 
     def save(self):
-    
         assignment = self.cleaned_data['assignment']
         student = self.cleaned_data['student']
-        print("assignment: ", assignment, "student: ", student)
         file = self.cleaned_data['file']
-        print("file: ", file)
         if student:
             raise NotImplementedError("specific student upload is not implemented yet")
             submission = PaperSubmission.objects.create(
@@ -70,12 +74,19 @@ class SubmissionFilesUploadForm(forms.Form):
                 )
         else:
             uploaded_submission_pks = PaperSubmission.add_papersubmissions_to_db(
-                assignment,
+                assignment_target=assignment,
                 uploaded_file=file,
                 )
         return uploaded_submission_pks
 
 class StudentClassifyForm(forms.Form):
+    def __init__(self,*args,**kwargs):
+        from django.forms.widgets import HiddenInput
+        no_assignment = kwargs.pop('no_assignment', None)
+        super().__init__(*args,**kwargs)
+        if no_assignment:
+            self.fields['assignment'].widget = HiddenInput()
+
     assignment = forms.ModelChoiceField(
         queryset=Assignment.objects.all(),
         )

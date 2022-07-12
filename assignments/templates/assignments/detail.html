@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags%}
+
+{% block title %}
+
+| {{ assignment.name }}
+
+{% endblock title %}
+
+{% block content %}
+
+<h1> {{assignment.name}} </h1>
+
+{% if assignment.description %}
+    <p> {{assignment.description}} </p>
+{% endif %}
+
+{% comment %} list assignment submissions {% endcomment %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        {% if qs_not %}
+            {% include "submissions/classify.html" with form=classify_form qs_classified=qs_classified qs_not_classified=qs_not message="Still have unclassified submissions" %}
+            {% include "submissions/main.html" with object_list=qs title="Uploaded Paper Submissions" %}
+        {% elif qs_classified %}
+            {% include "submissions/main.html" with object_list=qs_classified title="All Uploads Classified" %}
+        {% elif qs %}
+            {% include "submissions/classify.html" with form=classify_form message="Classify Uploads" %}
+            {% include "submissions/main.html" with object_list=qs title="Uploaded Paper Submissions" %}
+        {% else %}
+            <h3>No submissions found</h3>
+            {% include "submissions/upload_files.html" with form=upload_form message="Upload submissions" %}
+        {% endif %}
+    </div>
+</div>
+
+{% endblock content %}
