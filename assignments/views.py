@@ -6,7 +6,12 @@ from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from submissions.models import PaperSubmission
 from submissions.views import _random1000
-from submissions.forms import SubmissionFilesUploadForm, StudentClassifyForm
+from submissions.forms import (
+    SubmissionFilesUploadForm, 
+    StudentClassifyForm, 
+    SyncFromForm,
+    SyncToForm,
+)
 # Create your views here.
 
 def assignment_detail_view(request,  course_pk, assignment_pk):
@@ -66,6 +71,36 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                     "qs_classified": qs_classified,
                     "qs_not": qs_not,
                     'message': 'Classification submitted successfully'})
+        elif "submit-sync-from" in request.POST:
+            print("request was POST:sync-from")
+            sync_from_form = SyncFromForm(no_assignment=False, data=request.POST)
+            if sync_from_form.is_valid():
+                print("form is valid")
+                sync_from_form.save()
+                return render(
+                    request, 
+                    'assignments/detail.html',
+                    {'assignment': assignment,
+                    "upload_form": upload_form,
+                    "classify_form": classify_form,
+                    "random_num": _random1000, 
+                    "qs":qs, 
+                    'message': 'Sync from canvas successful'})
+        elif "submit-sync-to" in request.POST:
+            print("request was POST:sync-to")
+            sync_to_form = SyncToForm(no_assignment=False, data=request.POST)
+            if sync_to_form.is_valid():
+                print("form is valid")
+                sync_to_form.save()
+                return render(
+                    request, 
+                    'assignments/detail.html',
+                    {'assignment': assignment,
+                    "upload_form": upload_form,
+                    "classify_form": classify_form,
+                    "random_num": _random1000, 
+                    "qs":qs, 
+                    'message': 'Sync to canvas successful'})
     return render(
         request,
         'assignments/detail.html',

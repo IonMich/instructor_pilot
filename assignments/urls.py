@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    assignment_detail_view
+    assignment_detail_view,
     )
 
 app_name = 'assignments'

@@ -91,6 +91,15 @@ class Submission(models.Model):
         null=True,
         blank=True)
 
+    canvas_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True)
+
+    canvas_url = models.URLField(
+        null=True,
+        blank=True)
+
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
@@ -139,7 +148,6 @@ class Submission(models.Model):
             # if the sum of the question grades is not close to the submission grade,
             # raise a validation error
 
-    
 
     class Meta:
         abstract = True
@@ -198,7 +206,11 @@ class PaperSubmission(Submission):
                 "assignment_pk": self.assignment.pk})
 
     class Meta:
-        verbose_name_plural = "Paper Submissions"        
+        verbose_name_plural = "Paper Submissions"  
+
+    def upload_to_canvas(self):
+        # get the canvas course id
+        pass
 
     @classmethod
     def add_papersubmissions_to_db(cls,
@@ -221,7 +233,16 @@ class PaperSubmission(Submission):
             os.makedirs(img_dir)
 
         if uploaded_file:
-            pdf_path = uploaded_file.temporary_file_path()
+            try:
+                pdf_path = uploaded_file.temporary_file_path()
+            except AttributeError as e:
+                print("Error:", e)
+                print("Using tempfile module")
+                import tempfile
+                fp = tempfile.NamedTemporaryFile()
+                fp.write(uploaded_file.read())
+                fp.seek(0)
+                pdf_path = fp.name
         else:
             pdf_path = get_quiz_pdf_path(quiz_number, quiz_dir_path)
         split_pdfs(pdf_fpath=pdf_path, n_pages=num_pages_per_submission)
@@ -390,3 +411,40 @@ class PaperSubmissionImage(models.Model):
         
         return all_imgs, all_img_pks
         
+class SubmissionComment(models.Model):
+    id = models.UUIDField(
+        primary_key=True, 
+        default=uuid.uuid4, 
+        editable=False)
+
+    paper_submission = models.ForeignKey(
+        PaperSubmission,
+        on_delete=models.CASCADE,
+        related_name="%(app_label)s_%(class)s_related",
+        related_query_name="%(app_label)s_%(class)ss",
+        null=True,
+        blank=True)
+
+    text = models.TextField(
+        null=True,
+        blank=True)
+
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="%(app_label)s_%(class)s_related",
+        related_query_name="%(app_label)s_%(class)ss",
+        null=True,
+        blank=True)
+
+    created_at = models.DateTimeField(
+        auto_now_add=True)
+    updated_at = models.DateTimeField(
+        auto_now=True)
+
+
+    def __str__(self):
+        return f"Submission Comment {self.pk}"
+
+    class Meta:
+        verbose_name_plural = "Submission Comments"

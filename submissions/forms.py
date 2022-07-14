@@ -34,10 +34,14 @@ class SubmissionSearchForm(forms.Form):
     include_makeups = forms.BooleanField(initial=True, required=False)
 
 class GradingForm(forms.ModelForm):
+    
     class Meta:
         model = PaperSubmission
-        fields = ['student', 'question_grades', 'grader_comments', 'comment_files']        
+        fields = ['student', 'question_grades', 'comment_files']        
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.new_comment = forms.Textarea()
 
 class SubmissionFilesUploadForm(forms.Form):
     def __init__(self,*args,**kwargs):
@@ -104,3 +108,49 @@ class StudentClassifyForm(forms.Form):
                 assignment,
                 )
         return classified_submission_pks, not_classified_submission_pks
+
+class SyncFromForm(forms.Form):
+    def __init__(self,*args,**kwargs):
+        from django.forms.widgets import HiddenInput
+        no_assignment = kwargs.pop('no_assignment', None)
+        super().__init__(*args,**kwargs)
+        if no_assignment:
+            self.fields['assignment'].widget = HiddenInput()
+
+    assignment = forms.ModelChoiceField(
+        queryset=Assignment.objects.all(),
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        return cleaned_data
+
+    def save(self):
+    
+        assignment = self.cleaned_data['assignment']
+        print("assignment: ", assignment)
+
+        assignment.sync_labeled_submissions_from_canvas()
+
+class SyncToForm(forms.Form):
+    def __init__(self,*args,**kwargs):
+        from django.forms.widgets import HiddenInput
+        no_assignment = kwargs.pop('no_assignment', None)
+        super().__init__(*args,**kwargs)
+        if no_assignment:
+            self.fields['assignment'].widget = HiddenInput()
+
+    assignment = forms.ModelChoiceField(
+        queryset=Assignment.objects.all(),
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        return cleaned_data
+
+    def save(self):
+    
+        assignment = self.cleaned_data['assignment']
+        print("assignment: ", assignment)
+
+        assignment.upload_graded_submissions_to_canvas()

@@ -25,32 +25,39 @@
               <div class="card-body">
                 <h5 class="card-title">
                   {% if obj.student %}
-                  <h5 class="card-title"> 
-                    {% if obj.classification_type == "D"%}
-                    <span class="badge bg-primary">{{obj.classification_type}}</span> 
-                    
-                    {% elif obj.classification_type == "M"%}
-                    <span class="badge bg-warning">{{obj.classification_type}}</span> 
+                    <h5 class="card-title"> 
+                      {% if obj.classification_type == "D"%}
+                      <span class="badge bg-primary">{{obj.classification_type}}</span> 
+                      
+                      {% elif obj.classification_type == "M"%}
+                      <span class="badge bg-warning">{{obj.classification_type}}</span> 
 
-                    {% elif obj.classification_type == "W"%}
-                    <span class="badge bg-info text-dark">{{obj.classification_type}}</span> 
-                    
-                    {% else %}
-                    <span class="badge bg-danger">?</span> 
-                    {% endif %}
-                    
-                    {{obj.student.first_name}} {{obj.student.last_name}} ({{obj.student.uni_id}})
-                    
-                  </h5>
+                      {% elif obj.classification_type == "W"%}
+                      <span class="badge bg-info text-dark">{{obj.classification_type}}</span> 
+                      
+                      {% else %}
+                      <span class="badge bg-danger">?</span> 
+                      {% endif %}
+                      
+                      {{obj.student.first_name}} {{obj.student.last_name}} ({{obj.student.uni_id}})
+                      
+                    </h5>
                   {% else %}
-                  <h5 class="card-title text-muted"> <i>No Student</i></h5>
+                    <h5 class="card-title text-muted"> <i>No Student</i></h5>
                   {% endif %}
                   
                   <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-                <a href="{{obj.get_absolute_url}}" class="stretched-link"></a>
+                  
+                  <a href="{{obj.get_absolute_url}}" class="stretched-link"></a>
+                  
               </div>
               <div class="card-footer" style="background: linear-gradient({{random_num|dj_iter}}deg, #e3dfd1, #d4cced);">
                 <small>Last updated at {{obj.updated}}</small>
+                {% if obj.canvas_id %}
+                  <a href="{{obj.canvas_url}}" class="btn btn-sm btn-outline-primary" style="z-index: 2;position: relative;">
+                    <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" style="width: 16px; height: 16px">
+                  </a>
+                {% endif %}
               </div>
         </div>
       </div>

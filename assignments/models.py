@@ -68,6 +68,8 @@ class Assignment(models.Model):
     def get_all_submissions(self):
         return self.submissions.all()
 
+    
+
     @classmethod
     def update_from_canvas(
         cls, 
@@ -76,6 +78,7 @@ class Assignment(models.Model):
             "Quizzes": "2,2",
         }
         ):
+        # I should probably rename to bulk_update_from_canvas 
         course_assignments = course.assignments.all()
         canvas_assignment_groups = canvas_course.get_assignment_groups(
             include=["assignments", "submission", "score_statistics", "overrides"]
@@ -108,6 +111,88 @@ class Assignment(models.Model):
                 assignment.save()
 
         return course_assignments
+
+    def sync_labeled_submissions_from_canvas(self):
+        """Adds the canvas_id of the corresponding canvas 
+        submission to the submission object, based on the 
+        student's canvas_id and the assignment's canvas_id.
+        """
+        canvas_course = get_canvas_course(canvas_id=self.course.canvas_id)
+        canvas_assignment = canvas_course.get_assignment(
+            self.canvas_id)
+        canvas_submissions = canvas_assignment.get_submissions(
+                include=["submission_comments", "user"]
+                )
+        for canvas_submission in canvas_submissions:
+            if canvas_submission.user["sis_user_id"] is None:
+                continue
+            try:
+                submission = self.submissions_papersubmission_related.get(
+                    student__canvas_id=canvas_submission.user["id"])
+                print(f"Found submission in database for student with canvas_id: {canvas_submission.user['name']}")
+            except self.submissions_papersubmission_related.model.DoesNotExist:
+                print(f"No submission found in database for student with canvas_id: {canvas_submission.user['name']}")
+                continue
+            submission.canvas_id = canvas_submission.id
+            submission.canvas_url = canvas_submission.preview_url
+            submission.save()
+
+
+    def upload_graded_submissions_to_canvas(self):
+        """Uploads the graded submissions to canvas.
+        """
+        canvas_course = get_canvas_course(canvas_id=self.course.canvas_id)
+        canvas_assignment = canvas_course.get_assignment(
+            self.canvas_id)
+        canvas_submissions = canvas_assignment.get_submissions(
+                include=["submission_comments", "user"]
+                )
+        for canvas_submission in canvas_submissions:
+            if canvas_submission.user["sis_user_id"] is None:
+                continue
+            try:
+                submission = self.submissions_papersubmission_related.get(
+                    canvas_id=canvas_submission.id)
+                print(f"Found submission in database for {canvas_submission.user['name']}")
+            except self.submissions_papersubmission_related.model.DoesNotExist:
+                print(f"No submission found in database for {canvas_submission.user['name']}")
+                continue
+            if submission.grade is None:
+                print(f"Will not upload submission without grade for {canvas_submission.user['name']}")
+                continue
+            
+            for comment in submission.submissions_submissioncomment_related.all():
+                print(f'Comment: {comment.text}')
+            score = submission.grade
+            question_grades_comment = ""
+            for idx, question_grade in enumerate(submission.get_question_grades()):
+                question_grades_comment += f"Question {idx+1} Grade: {question_grade}\n"
+            print(f'Student grade: {score}')
+            print(f'Question grades comment: {question_grades_comment}')
+            canvas_submission.edit(submission={
+                'posted_grade': score},
+                comment= 
+                    {"text_comment":question_grades_comment,
+                    },
+                )
+            print(f"Uploaded grade and grade comment for {canvas_submission.user['name']}")
+            
+            for comment in submission.submissions_submissioncomment_related.all():
+                print(f'Comment: {comment.text}')
+                canvas_submission.edit(comment={
+                        "text_comment": comment.text,
+                    },
+                )
+            print(f'Submission comment file url: {submission.pdf}')
+            uploaded = canvas_submission.upload_comment(
+                file=submission.pdf,
+            )
+            if uploaded:
+                print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
+
+            
+
+            
         
 
     

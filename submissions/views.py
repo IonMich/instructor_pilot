@@ -1,6 +1,6 @@
 from django.shortcuts import render
 # from django.views.generic import ListView, DetailView
-from .models import PaperSubmission, CanvasQuizSubmission, ScantronSubmission
+from .models import PaperSubmission, CanvasQuizSubmission, ScantronSubmission, SubmissionComment
 from .forms import SubmissionSearchForm, GradingForm, SubmissionFilesUploadForm, StudentClassifyForm
 from assignments.models import Assignment
 from courses.models import Course
@@ -157,6 +157,8 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
             # set mutable flag back
             request.POST._mutable = _mutable
 
+        print(f"text: {request.POST.get('new_comment')}")
+
         grading_form = GradingForm(
             request.POST,
             request.FILES,
@@ -166,9 +168,19 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         if grading_form.is_valid():
             print("form is valid")
             print(grading_form.cleaned_data)
-            submission.grader_comments = grading_form.cleaned_data.get('grader_comments')
+            # submission.grader_comments = grading_form.cleaned_data.get('grader_comments')
+            # add new comment from cleaned data to a new SubmissionComment instance
+            # assigned to the submission and authored by the request.user
+            
             submission.comment_files = grading_form.cleaned_data.get('comment_files')
             submission.save()
+
+            if request.POST.get('new_comment').strip():
+                comment = SubmissionComment(
+                    paper_submission=submission,
+                    author=request.user,
+                    text=request.POST.get('new_comment'))
+                comment.save()
             print("question grades", submission.question_grades)
             grades_zipped = zip_longest(
                 submission.get_question_grades(), 

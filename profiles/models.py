@@ -11,7 +11,7 @@ class BaseProfile(models.Model):
     )
 
     bio = models.TextField(
-        max_length=500,
+        max_length=1000,
         default = "No bio ..."
     )
     created = models.DateTimeField(
@@ -48,6 +48,7 @@ class StudentProfile(BaseProfile):
     student = models.OneToOneField(
         Student, 
         on_delete=models.CASCADE, 
+        related_name='profile'
         )
     
     def __str__(self):

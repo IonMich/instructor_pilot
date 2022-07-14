@@ -24,6 +24,18 @@
         {% elif qs_classified %}
             {% include "submissions/main.html" with object_list=qs_classified title="All Uploads Classified" %}
         {% elif qs %}
+            {% if assignment.canvas_id %}
+            <h3 class="mt-3"> Sync Labeled Submissions from Canvas </h3>
+            <form action="" method="POST">
+                {% csrf_token %}
+                <button type="submit" name="submit-sync-from" class="btn btn-primary">Sync</button>
+            </form>
+            <h3 class="mt-3"> Upload graded submissions and comments to Canvas </h3>
+            <form action="" method="POST">
+                {% csrf_token %}
+                <button type="submit" name="submit-sync-to" class="btn btn-primary">Post to Canvas</button>
+            </form>
+            {% endif %}
             {% include "submissions/classify.html" with form=classify_form message="Classify Uploads" %}
             {% include "submissions/main.html" with object_list=qs title="Uploaded Paper Submissions" %}
         {% else %}

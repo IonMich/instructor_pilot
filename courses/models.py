@@ -123,6 +123,9 @@ class Course(models.Model):
         # now update the assignments
         self.update_assignments_from_canvas(canvas_course)
 
+        # # now update the students
+        self.update_students_from_canvas(canvas_course)
+
 
         
         return self
@@ -132,3 +135,17 @@ class Course(models.Model):
         assignments = Assignment.update_from_canvas(
             course=self,canvas_course=canvas_course)
         return assignments
+
+    def update_students_from_canvas(self, canvas_course):
+        from students.models import Student
+        canvas_students = canvas_course.get_users(
+            enrollment_type=["student"],
+            include=[
+                "enrollments","locked",
+                "avatar_url","bio",
+                "custom_links", 
+                "current_grading_period_scores", 
+                "uuid"])
+        students = Student.update_from_canvas(
+            course=self, canvas_students=canvas_students)
+        return students

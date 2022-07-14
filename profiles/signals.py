@@ -10,4 +10,6 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Student)
 def create_or_update_student_profile(sender, instance, created, **kwargs):
-    StudentProfile.objects.update_or_create(student=instance)
+    StudentProfile.objects.update_or_create(
+        student=instance,
+        )

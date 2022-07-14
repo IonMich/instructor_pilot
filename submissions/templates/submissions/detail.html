@@ -33,7 +33,7 @@
         </div>
 
         <div class="col-sm-3">
-            <form action="/submissions/{{ submission.pk }}/" method="post">
+            <form action='{% url "submissions:detail" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}' method="post">
                 {% csrf_token %}
                 <div class="row" >                    
                     <div class="col-xs-12 mb-5" style="height:30%;">
@@ -86,22 +86,33 @@
                             {% endfor %}
                         </div>
                     </div>
-                    <div class="col-xs-12 mb-5" style="height:70%;">
+                    <div class="col-xs-12 mb-2" style="height:70%;">
                         <div class="form-outline">
-                            {{ grading_form.grader_comments.errors }}
-                            <label for="{{ grading_form.grader_comments.id_for_label }}" style="font-size:20px;">Comment</label>
-                            <textarea name="grader_comments" class="form-control" id="{{ grading_form.grader_comments.id_for_label }}" rows="7">{{submission.grader_comments}}</textarea>
+                            {{ grading_form.new_comment.errors }}
+                            <label for="{{ grading_form.new_comment.id_for_label }}" style="font-size:20px;">New Comment</label>
+                            <textarea name="new_comment" class="form-control" id="{{ grading_form.new_comment.id_for_label }}" rows="7"></textarea>
                         </div>
                     </div>
+                    {% if submission.submissions_submissioncomment_related.all %}
+                        <label class="mt-3" for="old-comments" style="font-size:20px;">Old Comments</label>
+                        <div class="col-xs-12 mt-2" style="height:70%;" id="old-comments">
+                            {% for comment in submission.submissions_submissioncomment_related.all %}
+                            <div class="form-outline" id="old-comment-{{forloop.counter}}">
+                                
+                                <p name="old_comment_{{forloop.counter}}" class="form-control" id="{{ comment.id_for_label }}">{{comment.text}}</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                     
-                    <div class="col-xs-12 mb-3" style="height:70%;">
+                    <div class="col-xs-12 mt-4" style="height:70%;">
                         <div class="form-outline">
                             {{ grading_form.comment_files.errors }}
                             <label for="{{ grading_form.comment_files.id_for_label }}" style="font-size:20px;">File</label>
                             <input type="file" name="comment_files" class="form-control" id="{{ grading_form.comment_files.id_for_label }}">
                         </div>
                     </div>
-                    <div class="col-xs-12" style="height:70%;">
+                    <div class="col-xs-12 mt-2" style="height:70%;">
                         <input class="btn btn-primary" type="submit" value="Update">
                     </div>
                     
