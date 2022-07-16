@@ -7,6 +7,6 @@ from .views import (
 app_name = 'courses'
 
 urlpatterns = [
-    path('', home_view, name='home'),
+    # path('', home_view, name='home'),
     path('courses/<pk>/', course_detail_view, name='detail'),
 ]

@@ -1,24 +1,23 @@
-{% extends "base.html" %}
 {% load submission_extras %}
 
 
-{% block title %}
 
-{{ title }}
-
-{% endblock title %}
-    
   {% block content %}
   {% comment %} <div class="gradient-pattern"> {% endcomment %}
 
-  <h3> {{ title }}</h3>
+  <h3 class='mt-4'> {{ title }}</h3>
   <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4  g-2 mt-5 ">
       {% for obj in object_list %}
       <div class="col">
         <div class="card h-100" style="min-width:10rem">
             {% if not obj.files.name %}
-              <div style="background: linear-gradient({{random_num|dj_iter}}deg, #8e2de2, #4a00e0); min-height:20vh; background-size: cover; background-position: center; background-repeat: no-repeat;">
-                </div>
+              <div style="background: linear-gradient({{random_num|dj_iter}}deg, #8e2de2, #4a00e0); min-height:20vh; background-size: cover; background-position: center; background-repeat: no-repeat;"</div>
+                {% if obj.grade %}
+                  <span class="position-relative top-100 start-50 translate-middle badge text-dark bg-warning">
+                    {{obj.grade}}/{{obj.assignment.max_score}}
+                  <span class="visually-hidden">Grade</span>
+                {% endif %}
+              </div>
             {% else %}
               <img src="{{MEDIA_URL}}{{obj.files.url}}" class="card-img-top"  alt="Image at {{obj.files.name}}" style="min-height:20vh;">
             {% endif %}
@@ -45,8 +44,18 @@
                   {% else %}
                     <h5 class="card-title text-muted"> <i>No Student</i></h5>
                   {% endif %}
+                  {% if obj.grade %}
+                    {% for q_grade in obj.get_question_grades %}
+                      <p class="card-text">
+                        Question {{forloop.counter}} grade: {{q_grade}}
+                      </p>
+                    {% endfor %}
+                  {% else %}
+                    <p class="card-text">
+                      <i>No Grade</i>
+                    </p>
+                  {% endif %}
                   
-                  <p class="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
                   
                   <a href="{{obj.get_absolute_url}}" class="stretched-link"></a>
                   

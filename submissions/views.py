@@ -1,9 +1,10 @@
 from django.shortcuts import render
 # from django.views.generic import ListView, DetailView
-from .models import PaperSubmission, CanvasQuizSubmission, ScantronSubmission, SubmissionComment
+from .models import Submission, PaperSubmission, CanvasQuizSubmission, ScantronSubmission, SubmissionComment
 from .forms import SubmissionSearchForm, GradingForm, SubmissionFilesUploadForm, StudentClassifyForm
 from assignments.models import Assignment
 from courses.models import Course
+from django.db.models.query_utils import Q
 import pandas as pd
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
@@ -16,50 +17,58 @@ from django.urls import reverse
 def _random1000():
     yield random.randint(0, 100)
 
-def home_view(request):
-    form = SubmissionSearchForm(request.POST or None)
-    sub_df = None
-    qs = None
+def home_view(request, course_pk, assignment_pk=None):
+    """
+    Home page for the submissions app
+
+    Has a list of all submissions for the course 
+    (or assignment if specified) 
+    It also has a form to search for submissions
+    with search terms:
+    - student
+    - date range
+    - submission type (paper, scantron, canvas quiz)
+    """
+    # get the course object
+    course = get_object_or_404(Course, pk=course_pk)
+    # get the assignment object
+    print(f"{assignment_pk=}")
+    if assignment_pk:
+        assignment = get_object_or_404(Assignment, pk=assignment_pk)
+        message = f"Submissions for {assignment.name}"
+    else:
+        assignment = None
+        message = f"Submissions"
+    print(f"{assignment=}")
+
+    qs=None
+    if request.method == 'GET':
+        # get the form for the search
+        form = SubmissionSearchForm(assignment=assignment)
+    
     if request.method == 'POST':
-        date_from = request.POST.get('date_from')
-        date_to = request.POST.get('date_to')
-        assignment = request.POST.get('assignment')
-        student = request.POST.get('student')
-        submission_type = request.POST.get('submission_type')
-        # assignment_group = request.POST.get('assignment_group')
-        print(date_from, date_to, assignment, student, submission_type)
-        if submission_type == 'P':
-            qs = PaperSubmission.objects.filter(
-                created__range=(date_from, date_to))
-        elif submission_type == 'CQ':
-            qs = CanvasQuizSubmission.objects.filter(
-                created__range=(date_from, date_to))
-        elif submission_type == 'S':
-            qs = ScantronSubmission.objects.filter(
-                created__range=(date_from, date_to))
-
-
-
-        if len(qs) > 0:
-            sub_df = pd.DataFrame(qs.values())
-            print(sub_df)
-            sub_df = sub_df.to_html(
-                justify='center',
-                classes=["table table-bordered table-striped table-hover"]
-                )
+        print(request.POST)
+        # if assignment_pk is not None, then we are searching for submissions for a specific assignment
+        if assignment_pk:
+            form = SubmissionSearchForm(request.POST.copy(), assignment=assignment)
         else:
-            print("no submissions found")
-    title = "Results"
-    message = 'Hello from the view!'
+            form = SubmissionSearchForm(request.POST)
+        # add assignment to the form
+        if form.is_valid():
+            qs = form.search()
+    if qs:
+        print(len(qs))
+    # render the page
     context = {
-        "title": title,
-        "message": message, 
-        'form': form, 
-        "qs": qs , 
-        'sub_df': sub_df,
+        "message": message,
+        "object_list": qs,
+        "form": form,
+        "embed_results": True,
         "random_num": _random1000,
-        }
-    return render(request, 'submissions/home.html', context)
+        "assignment": assignment,
+        "course": course,
+    }
+    return render(request, "submissions/home.html", context)
 
 
 def upload_files_view(request, assignment_pk=None):

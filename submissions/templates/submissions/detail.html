@@ -8,12 +8,32 @@
 {% endblock title %}
 
 {% block content %}
+<nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E&#34;); " aria-label="breadcrumb">
+    <ol class="breadcrumb mr-1">
+    <li class="breadcrumb-item"><a href="/">
+        Home
+    </a></li>
+    <li class="breadcrumb-item"><a href="{{submission.assignment.course.get_absolute_url}}">
+        {{submission.assignment.course.course_code}}
+    </a></li>
+    <li class="breadcrumb-item"><a href="{{submission.assignment.get_absolute_url}}">
+        {{submission.assignment.name}}
+    </a></li>
+    {% if submission.student %}
+        <li class="breadcrumb-item active" aria-current="page">{{submission.student.first_name}} {{submission.student.last_name}}</li>
+    {% else %}
+        <li class="breadcrumb-item active" aria-current="page">{{submission}}</li>
+    {% endif %}
+    </ol>
+</nav>
 
     <div class="row">
-        <div class="col-sm-6 w-50">
-            <h5 class="text-muted">Attempt {{ submission.attempt }}</h5>
-        </div>
-        <div class="col-sm-6 w-50" id="output">scrollTop: 0</div>
+        {% if submission.attempt > 1%}
+            <div class="col-md-12">
+                <h5 class="text-muted">Attempt {{submission.attempt}}</h5>
+            </div>
+        {% endif %}
+        {% comment %} <div class="col-sm-6 w-50" id="output">scrollTop: 0</div> {% endcomment %}
         
         <div id="list-pages" class="col-sm-1 list-group mb-4">
             {% for image in submission.submissions_papersubmissionimage_related.all%} 
@@ -89,8 +109,8 @@
                     <div class="col-xs-12 mb-2" style="height:70%;">
                         <div class="form-outline">
                             {{ grading_form.new_comment.errors }}
-                            <label for="{{ grading_form.new_comment.id_for_label }}" style="font-size:20px;">New Comment</label>
-                            <textarea name="new_comment" class="form-control" id="{{ grading_form.new_comment.id_for_label }}" rows="7"></textarea>
+                            <label for="newComment" style="font-size:20px;">New Comment</label>
+                            <textarea name="new_comment" class="form-control" id="newComment" rows="7"></textarea>
                         </div>
                     </div>
                     {% if submission.submissions_submissioncomment_related.all %}
@@ -126,16 +146,23 @@
             {% comment %} go to previous submission {% endcomment %}
             <a class="btn btn-outline-primary" href='{% url "submissions:detail_previous" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}'>Previous</a>
             {% comment %} go to next submission {% endcomment %}
-            <a class="btn btn-outline-primary" href='{% url "submissions:detail_previous" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}'>Next</a>
+            <a class="btn btn-outline-primary" href='{% url "submissions:detail_next" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}'>Next</a>
         </div>
     </div>
 
 {% comment %} bind key ">" to next submission view {% endcomment %}
-<script>
+<script type="text/javascript">
     $(document).ready(function(){
+        // dummy element
+        var text_area = document.getElementById("newComment");
+        
+        
         $('body').bind('keydown', function(e) {
             if (e.which == 39) {
-                window.location.href = '{% url "submissions:detail_next" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}';
+                var areaIsNotFocused = (document.activeElement !== text_area);
+                if (areaIsNotFocused || text_area.value == "") {
+                    window.location.href = '{% url "submissions:detail_next" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}';
+                }
             }
         });
     });
@@ -144,9 +171,13 @@
 {% comment %} bind left arrow to previous submission view {% endcomment %}
 <script>
     $(document).ready(function(){
+        var text_area = document.getElementById("newComment");
         $('body').bind('keydown', function(e) {
             if (e.which == 37) {
-                window.location.href = '{% url "submissions:detail_previous" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}';
+                var areaIsNotFocused = (document.activeElement !== text_area);
+                if (areaIsNotFocused || text_area.value == "") {
+                    window.location.href = '{% url "submissions:detail_previous" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}';
+                }
             }
         });
     });
@@ -155,15 +186,15 @@
 {% comment %} when page is fully loaded focus on the first question {% endcomment %}
 
 
-<script>
+<script type="text/javascript">
         
         
     let imgdiv = document.querySelector("#div-imgs");
-    const output = document.querySelector("#output");
+    {% comment %} const output = document.querySelector("#output");
 
     imgdiv.addEventListener("scroll", event => {
         output.textContent = `scrollTop: ${imgdiv.scrollTop}`;
-    });
+    }); {% endcomment %}
 
     const loadImage = src =>
         new Promise((resolve, reject) => {

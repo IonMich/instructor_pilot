@@ -7,24 +7,19 @@
 
 {% comment %} crispy form {% endcomment %}
 
+{% if message %}<h3 class="mb-5">{{ message }}</h3>{% endif %}
 
-This is a message: {{ message }}
-<p>URL of this page: {{ request.get_full_path }}</p>
-<hr>
 
-<form action="" method="POST">
-    {% csrf_token %}
-    {{ form|crispy }}
-    <button type="submit" class="btn btn-primary mt-3">Search</button>
-</form>
+<div class="container w-50">
+    {% crispy form %}
+</div>
 <br>
-{% if request.method == "POST" %}
+{% if request.method == "POST" and embed_results %}
     {% if sub_df is not None %}
-        
         {{ sub_df|safe }}
-        
-        {% include "main.html" with object_list=qs title="Results" %}
-
+    {% endif %}
+    {% if object_list %}
+        {% include "submissions/main.html" with object_list=object_list title="Results" %}
     {% else %}
         <h3>No results found ... &#128511;</h3>
     {% endif %}

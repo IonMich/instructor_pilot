@@ -141,6 +141,10 @@ class Assignment(models.Model):
     def upload_graded_submissions_to_canvas(self):
         """Uploads the graded submissions to canvas.
         """
+        raise NotImplementedError(
+            "stopping here. I need to add a verification from "
+            "the user that they want to upload the graded "
+            "submissions to canvas.")
         canvas_course = get_canvas_course(canvas_id=self.course.canvas_id)
         canvas_assignment = canvas_course.get_assignment(
             self.canvas_id)

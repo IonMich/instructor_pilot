@@ -1,5 +1,7 @@
 {% extends "base.html" %}
+
 {% load crispy_forms_tags%}
+
 
 {% block title %}
 
@@ -8,6 +10,13 @@
 {% endblock title %}
 
 {% block content %}
+    <nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="{{assignment.course.get_absolute_url}}">{{assignment.course.course_code}}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{assignment.name}}</li>
+        </ol>
+    </nav>
 
 <h1> {{assignment.name}} </h1>
 
@@ -17,32 +26,97 @@
 
 {% comment %} list assignment submissions {% endcomment %}
 <div class="row mt-4">
-    <div class="col-md-12">
-        {% if qs_not %}
-            {% include "submissions/classify.html" with form=classify_form qs_classified=qs_classified qs_not_classified=qs_not message="Still have unclassified submissions" %}
-            {% include "submissions/main.html" with object_list=qs title="Uploaded Paper Submissions" %}
-        {% elif qs_classified %}
-            {% include "submissions/main.html" with object_list=qs_classified title="All Uploads Classified" %}
-        {% elif qs %}
-            {% if assignment.canvas_id %}
-            <h3 class="mt-3"> Sync Labeled Submissions from Canvas </h3>
-            <form action="" method="POST">
-                {% csrf_token %}
-                <button type="submit" name="submit-sync-from" class="btn btn-primary">Sync</button>
-            </form>
-            <h3 class="mt-3"> Upload graded submissions and comments to Canvas </h3>
-            <form action="" method="POST">
-                {% csrf_token %}
-                <button type="submit" name="submit-sync-to" class="btn btn-primary">Post to Canvas</button>
-            </form>
-            {% endif %}
-            {% include "submissions/classify.html" with form=classify_form message="Classify Uploads" %}
-            {% include "submissions/main.html" with object_list=qs title="Uploaded Paper Submissions" %}
-        {% else %}
-            <h3>No submissions found</h3>
-            {% include "submissions/upload_files.html" with form=upload_form message="Upload submissions" %}
+    {% if qs %}
+        {% if assignment.canvas_id %}
+        <div class="col-md-6 border-end mb-5">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mt-3"> Classify submissions based on student ID using Tensorflow</p>
+                    <form action="" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" name="submit-classify" class="btn btn-primary">Classify</button>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <p class="mt-3"> Sync Labeled Submissions from Canvas </p>
+                    <form action="" method="POST" id="sync-from-form">
+                        {% csrf_token %}
+                        <button type="submit" id="btnFetch" class="btn btn-primary">Sync</button>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <p class="mt-3"> Upload graded submissions and comments to Canvas </p>
+                    <form action="" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" name="submit-sync-to" class="btn btn-primary">Post to Canvas</button>
+                    </form>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="col-md-6 d-flex justify-content-center">
+            {% crispy search_form %}
+        </div>
         {% endif %}
-    </div>
+        {% if message %}
+            <div class="col-md-12 mt-5">
+                <div class="alert alert-{{message_type}}">
+                    {{ message }}
+                </div>
+            </div>
+        {% endif %}
+        {% include "submissions/main.html" with object_list=qs title="Submissions" %}
+    {% else %}
+        <h3>No submissions found</h3>
+        {% include "submissions/upload_files.html" with form=upload_form message="Upload submissions" %}
+    {% endif %}
 </div>
 
+
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        $("#btnFetch").click(function() {
+           console.log("fetching");
+           
+           // disable button
+            $(this).prop("disabled", true);
+            // add spinner to button
+            $(this).html(
+                `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Syncing...`
+            );
+            $.ajax({
+                // url is current url
+                url: window.location.href,
+                type: "POST",
+                // add csrf token to post data
+                data: {
+                    "submit-sync-from": "submit-sync-from", 
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function(data) {
+                    console.log(data);
+                    // remove spinner
+                    $("#btnFetch").html("Sync");
+                    // enable button
+                    $("#btnFetch").prop("disabled", false);
+                    // show success message
+                    $("#message").html(
+                        `<div class="alert alert-success">
+                            <strong>Success!</strong> Sync complete.
+                        </div>`
+                    );
+                },
+                complete:function(){},
+                error:function (xhr, textStatus, thrownError){}
+            });
+            
+        });
+    });
+    
+</script>
+
 {% endblock content %}
+
+
