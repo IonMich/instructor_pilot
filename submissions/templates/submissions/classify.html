@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags%}
+
+{% block content %}
+
+{% comment %} crispy form {% endcomment %}
+
+
+This is a message: {{ message }}
+<p>URL of this page: {{ request.get_full_path }}</p>
+<hr>
+
+<form action="" method="POST">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" name="submit-classify" class="btn btn-primary mt-3">Classify</button>
+</form>
+<br>
+{% if request.method == "POST" %}
+    {% if form.is_valid %}
+        <div class="alert alert-success">
+            {{ message }}
+        </div>
+        {% include "submissions/main.html" with object_list=qs_classified title="Classified" %}
+        {% include "submissions/main.html" with object_list=qs_not_classified title=" Not Classified" %}
+    {% else %}
+        <div class="alert alert-danger">
+            {{ message }}
+        </div>
+    {% endif %}
+    
+    
+{% endif %}
+
+{% endblock content %}

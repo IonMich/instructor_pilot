@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags%}
+
+
+
+{% block content %}
+
+{% comment %} crispy form {% endcomment %}
+
+{% if message %}<h3 class="mb-5">{{ message }}</h3>{% endif %}
+
+
+<div class="container w-50">
+    {% crispy form %}
+</div>
+<br>
+{% if request.method == "POST" and embed_results %}
+    {% if sub_df is not None %}
+        {{ sub_df|safe }}
+    {% endif %}
+    {% if object_list %}
+        {% include "submissions/main.html" with object_list=object_list title="Results" %}
+    {% else %}
+        <h3>No results found ... &#128511;</h3>
+    {% endif %}
+{% endif %}
+
+{% endblock content %}
