@@ -173,6 +173,14 @@ class SubmissionFilesUploadForm(forms.Form):
         empty_label="Multiple students",
         required=False,)
 
+    pages_per_submission = forms.IntegerField(
+        required=True,
+        initial=2,
+        )
+    image_dpi = forms.IntegerField(
+        required=True,
+        initial=150,
+        )
     def clean(self):
         cleaned_data = super().clean()
         return cleaned_data
@@ -181,6 +189,8 @@ class SubmissionFilesUploadForm(forms.Form):
         assignment = self.cleaned_data['assignment']
         student = self.cleaned_data['student']
         file = self.cleaned_data['file']
+        num_pages_per_submission = self.cleaned_data['pages_per_submission']
+        image_dpi = self.cleaned_data['image_dpi']
         if student:
             raise NotImplementedError("specific student upload is not implemented yet")
             submission = PaperSubmission.objects.create(
@@ -193,6 +203,8 @@ class SubmissionFilesUploadForm(forms.Form):
             uploaded_submission_pks = PaperSubmission.add_papersubmissions_to_db(
                 assignment_target=assignment,
                 uploaded_file=file,
+                num_pages_per_submission=num_pages_per_submission,
+                dpi=image_dpi,
                 )
         return uploaded_submission_pks
 

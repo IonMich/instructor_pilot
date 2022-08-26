@@ -98,11 +98,27 @@ class Course(models.Model):
         print(canvas_course.__dict__)
         self.university = university
         self.name = canvas_course.name
-        self.start_date = canvas_course.start_at_date
+        try:
+            self.start_date = canvas_course.start_at_date
+        except AttributeError:
+            if canvas_course.start_at is not None:
+                self.start_date = canvas_course.start_at
+            else:
+                import datetime
+                d_start = datetime.datetime.strptime(canvas_course.term["start_at"],"%Y-%m-%dT%H:%M:%SZ")
+                new_format = "%Y-%m-%d"
+                self.start_date = d_start.strftime(new_format)
         try:
             self.end_date = canvas_course.end_at_date
         except AttributeError:
-            self.end_date = canvas_course.end_at
+            if canvas_course.end_at is not None:
+                self.end_date = canvas_course.end_at
+            else:
+                self.end_date = canvas_course.term["end_at"]
+                import datetime
+                d_end = datetime.datetime.strptime(canvas_course.term["end_at"],"%Y-%m-%dT%H:%M:%SZ")
+                new_format = "%Y-%m-%d"
+                self.end_date = d_end.strftime(new_format)
 
         self.save(update_fields=
             ["university",

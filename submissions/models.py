@@ -214,13 +214,14 @@ class PaperSubmission(Submission):
     @classmethod
     def add_papersubmissions_to_db(cls,
         assignment_target,
+        num_pages_per_submission=2,
+        dpi=150,
         quiz_number=None,
         quiz_dir_path=None,
         uploaded_file=None):
         """
         Add submission images and pdfs to the database.
         """
-        num_pages_per_submission = 2
         print("assignment is:", assignment_target)
         new_pdf_dir = os.path.join(settings.MEDIA_ROOT, "submissions", f"{assignment_target.course}/{assignment_target}/pdf/")
         img_rel_dir = os.path.join("submissions", f"{assignment_target.course}/{assignment_target}/img/")
@@ -245,12 +246,15 @@ class PaperSubmission(Submission):
         else:
             pdf_path = get_quiz_pdf_path(quiz_number, quiz_dir_path)
         split_pdfs(pdf_fpath=pdf_path, n_pages=num_pages_per_submission)
-        quizzes_img_list = convert_pdfs_to_img_list(pdf_path, num_pages_per_submission=num_pages_per_submission, dpi=150)
+        quizzes_img_list = convert_pdfs_to_img_list(
+            pdf_path, 
+            num_pages_per_submission=num_pages_per_submission, 
+            dpi=dpi)
         m = len(quizzes_img_list[0])
         created_submission_pks = []
         for i, img_list in enumerate(quizzes_img_list):
             start_page = i * m
-            end_page = (i + 1) * m -1
+            end_page = (i + 1) * m - 1
             pdf_filename = f'submission_{start_page}-{end_page}.pdf'
             old_pdf_fpath = os.path.join(settings.BASE_DIR, "tmp", pdf_filename)
             new_pdf_fpath = os.path.join(new_pdf_dir, pdf_filename)
@@ -267,7 +271,6 @@ class PaperSubmission(Submission):
                 img_full_path = os.path.join(img_dir, f'submission-{i}-page-{j+1}.png')
                 img_rel_path = os.path.join(img_rel_dir, f'submission-{i}-page-{j+1}.png')
                 img.save(img_full_path, "PNG")
-                # raise NotImplementedError("Implement this")
                 PaperSubmissionImage.objects.create(
                     submission=paper_submission,
                     image=img_rel_path,

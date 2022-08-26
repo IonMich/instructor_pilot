@@ -35,7 +35,6 @@ INSTALLED_APPS = [
     # 'django.contrib.sites',
     'django.contrib.sessions',
     # our apps
-    'playground',
     "documents",
     "students",
     "profiles",

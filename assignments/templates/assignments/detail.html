@@ -61,7 +61,7 @@
         {% endif %}
         {% if message %}
             <div class="col-md-12 mt-5">
-                <div class="alert alert-{{message_type}}">
+                <div class="alert id='myMessage' alert-{{message_type}}">
                     {{ message }}
                 </div>
             </div>
@@ -102,11 +102,12 @@
                     // enable button
                     $("#btnFetch").prop("disabled", false);
                     // show success message
-                    $("#message").html(
+                    $("#myMessage").html(
                         `<div class="alert alert-success">
                             <strong>Success!</strong> Sync complete.
                         </div>`
                     );
+                    
                 },
                 complete:function(){},
                 error:function (xhr, textStatus, thrownError){}
