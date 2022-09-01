@@ -44,11 +44,9 @@ INSTALLED_APPS = [
     "submissions",
     "universities",
     
-
     # 3rd party apps
     "crispy_forms",
     "crispy_bootstrap5",
-    "easy_thumbnails",
     "django_countries",
 ]
 
