@@ -1,7 +1,7 @@
 from django.db import models
 from universities.models import University
 from django.contrib.auth.models import User
-from courses.utils import get_canvas_course
+from courses.utils import get_canvas_course, get_canvas_object
 from django.urls import reverse
 
 # Create your models here.
@@ -14,6 +14,7 @@ semesters=(
         ("SUB","Summer B"),
         ("SUC","Summer C"),
 )
+
 
 class Course(models.Model):
     name = models.CharField(max_length=100)
@@ -40,6 +41,11 @@ class Course(models.Model):
         null=True,
         blank=True)
 
+    image = models.ImageField(
+        upload_to='courses/',
+        null=True,
+        blank=True)
+
     canvas_id = models.CharField(
         max_length=100,
         null=True,
@@ -60,11 +66,16 @@ class Course(models.Model):
     def get_absolute_url(self):
         return reverse("courses:detail", kwargs={"pk": self.id})
 
-    def get_students(self):
+    def get_students(self, section_pk=None):
         students = []
-        for section in self.sections.all():
+        if section_pk:
+            section = self.sections.filter(pk=section_pk)
             for student in section.students.all():
                 students.append(student)
+        else:
+            for section in self.sections.all():
+                for student in section.students.all():
+                    students.append(student)
         return students
 
 
@@ -120,9 +131,20 @@ class Course(models.Model):
                 new_format = "%Y-%m-%d"
                 self.end_date = d_end.strftime(new_format)
 
+        image_url = canvas_course.image_download_url
+        from urllib import request
+        import os
+        from django.core.files import File
+        result = request.urlretrieve(image_url)
+        self.image.save(
+            f"{self.course_code}_{self.term}.png",
+            File(open(result[0], 'rb'))
+            )
+
         self.save(update_fields=
             ["university",
             "name",
+            "image",
             "canvas_id",
             "semester_type",
             "year",
@@ -130,6 +152,15 @@ class Course(models.Model):
             "end_date",
             "updated"
             ])
+        canvas = get_canvas_object()
+        canvas_course_announcements = canvas.get_announcements([canvas_course])
+
+        
+        Announcement.update_from_canvas(
+            requester=requester,
+            course=self,
+            canvas_announcements=canvas_course_announcements)
+
         # now update the sections
         from sections.models import Section
         sections = Section.update_from_canvas(
@@ -142,7 +173,8 @@ class Course(models.Model):
         # # now update the students
         self.update_students_from_canvas(canvas_course)
 
-
+        
+        
         
         return self
     
@@ -165,3 +197,46 @@ class Course(models.Model):
         students = Student.update_from_canvas(
             course=self, canvas_students=canvas_students)
         return students
+
+
+class Announcement(models.Model):
+    title = models.CharField(max_length=255)
+    body = models.TextField()
+    date = models.DateTimeField()
+    author = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+    course = models.ForeignKey(
+        Course, 
+        on_delete=models.CASCADE,
+        related_name="announcements")
+    canvas_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True)
+
+    def __str__(self):
+        return self.title
+
+    @classmethod
+    def update_from_canvas(cls, requester, course, canvas_announcements):
+        for canvas_announcement in canvas_announcements:
+            try:
+                announcement = cls.objects.get(canvas_id=canvas_announcement.id)
+            except cls.DoesNotExist:
+                announcement = cls(canvas_id=canvas_announcement.id)
+            
+            announcement.date = canvas_announcement.created_at
+            import datetime
+            _d = datetime.datetime.strptime(announcement.date,"%Y-%m-%dT%H:%M:%SZ")
+            new_format = "%Y-%m-%d"
+            announcement.date = _d.strftime(new_format)
+            announcement.title = canvas_announcement.title
+            announcement.body = canvas_announcement.message
+            announcement.date = canvas_announcement.created_at
+            announcement.author = canvas_announcement.user_name
+            announcement.course = course
+            announcement.save()
+        return cls.objects.filter(course=course)

@@ -10,6 +10,11 @@ from canvasapi import Canvas
 API_URL = "https://ufl.instructure.com/"
 CANVAS_API_KEY = get_API_key()
 
+def get_canvas_object():
+    """
+    Return a Canvas object.
+    """
+    return Canvas(API_URL, CANVAS_API_KEY)
 
 def get_canvas_course(course_code=None, term_name=None, canvas_id=None):
     """

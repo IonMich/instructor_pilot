@@ -25,9 +25,9 @@ def course_detail_view(request, pk):
         'courses/detail.html', 
         {'course': course, })
 
-def home_view(request):
+def user_list_view(request):
     courses = Course.objects.all()
     return render(
         request, 
-        'courses/home.html', 
+        'courses/user_list.html', 
         {'courses': courses, })

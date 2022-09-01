@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if not section %}
+| {{ course.course_code }}
+{% else %}
+| {{ section.name }} ({{ course.course_code }})
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<header>
+    <nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E&#34;); " aria-label="breadcrumb">
+        <ol class="breadcrumb mr-1">
+        <li class="breadcrumb-item"><a href="/">
+            Home
+        </a></li>
+        <li class="breadcrumb-item"><a href="{{course.get_absolute_url}}">
+            {{course.course_code}}
+        </a></li>
+        {% if section %}
+        <li class="breadcrumb-item"><a href="{{course.get_absolute_url}}">
+            {{section.name}}
+        </a></li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">Students</li>
+        </ol>
+    </nav>
+</header>
+<main>
+    {% comment %} create the bootstrap grid for the cards {% endcomment %}
+    <div class="row row-cols-1 row-cols-xs-2 row-cols-sm-3 row-cols-sm-4 row-cols-lg-6 g-4">
+        {% for student in students %}
+            <div class="col">
+                {% comment %} create the card {% endcomment %}
+                <div class="card h-100">
+                    {% comment %} name {% endcomment %}
+                    <img class="card-img-top rounded-circle mt-2 mx-auto d-block" src="{{ student.avatar_url }}" alt="{{ student.name }}" style="max-width:128px; align:center">
+                    {% comment %} card body {% endcomment %}
+                    <div class="card-body">
+                        
+                        
+                        {% comment %} name {% endcomment %}
+                        <h5 class="card-title">{{ student.name }} ({{student.uni_id}})</h5>
+                        {% if student.bio is not None %}
+                            <p class="overflow-hidden" style="white-space:nowrap;text-overflow: ellipsis;">{{ student.bio }}</p>
+                        {% endif %}
+                        <a href="{% url 'students:detail' course_pk=course.pk student_pk=student.id %}" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</main>
+<footer>
+    <p>Footer</p>
+</footer>
+{% endblock %}
