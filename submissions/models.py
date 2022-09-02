@@ -223,9 +223,20 @@ class PaperSubmission(Submission):
         Add submission images and pdfs to the database.
         """
         print("assignment is:", assignment_target)
-        new_pdf_dir = os.path.join(settings.MEDIA_ROOT, "submissions", f"{assignment_target.course}/{assignment_target}/pdf/")
-        img_rel_dir = os.path.join("submissions", f"{assignment_target.course}/{assignment_target}/img/")
-        img_dir = os.path.join(settings.MEDIA_ROOT, img_rel_dir)
+        new_pdf_dir = os.path.join(
+            settings.MEDIA_ROOT, 
+            "submissions", 
+            f"course_{assignment_target.course.pk}", 
+            f"assignment_{assignment_target.pk}",
+            "pdf")
+        img_rel_dir = os.path.join(
+            "submissions", 
+            f"course_{assignment_target.course.pk}", 
+            f"assignment_{assignment_target.pk}",
+            "img")
+        img_dir = os.path.join(
+            settings.MEDIA_ROOT, 
+            img_rel_dir)
         
         if not os.path.exists(new_pdf_dir):
             os.makedirs(new_pdf_dir)
@@ -268,8 +279,9 @@ class PaperSubmission(Submission):
             created_submission_pks.append(paper_submission.pk)
             
             for j, img in enumerate(img_list):
-                img_full_path = os.path.join(img_dir, f'submission-{i}-page-{j+1}.png')
-                img_rel_path = os.path.join(img_rel_dir, f'submission-{i}-page-{j+1}.png')
+                img_filename = f'submission-{i}-page-{j+1}.png'
+                img_full_path = os.path.join(img_dir, img_filename)
+                img_rel_path = os.path.join(img_rel_dir, img_filename)
                 img.save(img_full_path, "PNG")
                 PaperSubmissionImage.objects.create(
                     submission=paper_submission,
