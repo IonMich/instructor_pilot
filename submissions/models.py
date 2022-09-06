@@ -296,11 +296,16 @@ class PaperSubmission(Submission):
         use a deep learning model to classify the paper submissions
         """
         DETECTION_PROB_D = 1E-5
-        model_path = os.path.join(settings.MEDIA_ROOT, "digits_HTR.model")
+        model_path = os.path.join(settings.MEDIA_ROOT, "digits_HTR_model")
+        model_path_h5 = os.path.join(settings.MEDIA_ROOT, "digits_backup_model.h5")
         all_imgs, all_img_pks = PaperSubmissionImage.get_all_assignment_imgs(assignment)
         df_ids = import_students_from_db(assignment.course)
         # get the model
-        model = import_tf_model(model_path)
+        try:
+            model = import_tf_model(model_path)
+        except IOError as e:
+            print("Error:", e)
+            model =  import_tf_model(model_path_h5)
         df_digits = classify(
             model, 
             df_ids, 
