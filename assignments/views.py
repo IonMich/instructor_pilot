@@ -57,7 +57,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
             upload_form = SubmissionFilesUploadForm(no_assignment=False, data=request.POST, files=request.FILES)
             if upload_form.is_valid():
                 print("form is valid")
-                uploaded_submission_pks = upload_form.save()
+                uploaded_submission_pks = upload_form.save(request)
                 qs = PaperSubmission.objects.filter(pk__in=uploaded_submission_pks)
                 print(len(qs))
                 

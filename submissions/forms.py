@@ -164,7 +164,9 @@ class SubmissionFilesUploadForm(forms.Form):
         if no_assignment:
             self.fields['assignment'].widget = HiddenInput()
 
-    file = forms.FileField()
+    file_field = forms.FileField(
+        widget=forms.ClearableFileInput(attrs={'multiple': True})
+        )
     assignment = forms.ModelChoiceField(
         queryset=Assignment.objects.all(),
         )
@@ -185,24 +187,28 @@ class SubmissionFilesUploadForm(forms.Form):
         cleaned_data = super().clean()
         return cleaned_data
 
-    def save(self):
+    def save(self, request):
         assignment = self.cleaned_data['assignment']
         student = self.cleaned_data['student']
-        file = self.cleaned_data['file']
+        files = request.FILES.getlist('file_field')
         num_pages_per_submission = self.cleaned_data['pages_per_submission']
         image_dpi = self.cleaned_data['image_dpi']
+
+        print(len(files))
+        print(type(files[0]))
         if student:
             raise NotImplementedError("specific student upload is not implemented yet")
+            assert len(files) == 1
             submission = PaperSubmission.objects.create(
                 assignment=assignment,
                 student=student,
-                file=file,
+                file=files,
                 attempt=1,
                 )
         else:
             uploaded_submission_pks = PaperSubmission.add_papersubmissions_to_db(
                 assignment_target=assignment,
-                uploaded_file=file,
+                uploaded_files=files,
                 num_pages_per_submission=num_pages_per_submission,
                 dpi=image_dpi,
                 )

@@ -71,7 +71,7 @@ def convert_pdfs_to_img_list(
     quizzes_img_list = [list(a) for a in zip(*[iter(quiz_imgs)] * num_pages_per_submission)]
     return quizzes_img_list
 
-def split_pdfs(pdf_fpath=None, n_pages=2):
+def split_pdfs(pdf_fpath=None, file_idx=0, n_pages=2):
     """
     Split a PDF into multiple PDFs each of size n_pages.
     """
@@ -86,7 +86,7 @@ def split_pdfs(pdf_fpath=None, n_pages=2):
         pdf_writer = PdfFileWriter()
         for j in range(i, i+n_pages):
             pdf_writer.addPage(pdf_reader.getPage(j))
-        with open(f'tmp/submission_{i}-{i+n_pages-1}.pdf', 'wb') as out:
+        with open(f'tmp/submission_batch_{file_idx}_{i}-{i+n_pages-1}.pdf', 'wb') as out:
             pdf_writer.write(out)
 
 

@@ -218,7 +218,7 @@ class PaperSubmission(Submission):
         dpi=150,
         quiz_number=None,
         quiz_dir_path=None,
-        uploaded_file=None):
+        uploaded_files=None):
         """
         Add submission images and pdfs to the database.
         """
@@ -242,52 +242,52 @@ class PaperSubmission(Submission):
             os.makedirs(new_pdf_dir)
         if not os.path.exists(img_dir):
             os.makedirs(img_dir)
-
-        if uploaded_file:
-            try:
-                pdf_path = uploaded_file.temporary_file_path()
-            except AttributeError as e:
-                print("Error:", e)
-                print("Using tempfile module")
-                import tempfile
-                fp = tempfile.NamedTemporaryFile()
-                fp.write(uploaded_file.read())
-                fp.seek(0)
-                pdf_path = fp.name
-        else:
-            pdf_path = get_quiz_pdf_path(quiz_number, quiz_dir_path)
-        split_pdfs(pdf_fpath=pdf_path, n_pages=num_pages_per_submission)
-        quizzes_img_list = convert_pdfs_to_img_list(
-            pdf_path, 
-            num_pages_per_submission=num_pages_per_submission, 
-            dpi=dpi)
-        m = len(quizzes_img_list[0])
-        created_submission_pks = []
-        for i, img_list in enumerate(quizzes_img_list):
-            start_page = i * m
-            end_page = (i + 1) * m - 1
-            pdf_filename = f'submission_{start_page}-{end_page}.pdf'
-            old_pdf_fpath = os.path.join(settings.BASE_DIR, "tmp", pdf_filename)
-            new_pdf_fpath = os.path.join(new_pdf_dir, pdf_filename)
-            print(old_pdf_fpath)
-            print(new_pdf_fpath)
-            os.rename(old_pdf_fpath, new_pdf_fpath)
-            paper_submission = PaperSubmission.objects.create(
-                assignment=assignment_target,
-                pdf=new_pdf_fpath,
-                grader_comments="")
-            created_submission_pks.append(paper_submission.pk)
+        for file_idx, uploaded_file in enumerate(uploaded_files):
+            if uploaded_file:
+                try:
+                    pdf_path = uploaded_file.temporary_file_path()
+                except AttributeError as e:
+                    print("Error:", e)
+                    print("Using tempfile module")
+                    import tempfile
+                    fp = tempfile.NamedTemporaryFile()
+                    fp.write(uploaded_file.read())
+                    fp.seek(0)
+                    pdf_path = fp.name
+            else:
+                pdf_path = get_quiz_pdf_path(quiz_number, quiz_dir_path)
+            split_pdfs(pdf_fpath=pdf_path, file_idx=file_idx, n_pages=num_pages_per_submission)
+            quizzes_img_list = convert_pdfs_to_img_list(
+                pdf_path, 
+                num_pages_per_submission=num_pages_per_submission, 
+                dpi=dpi)
+            m = len(quizzes_img_list[0])
+            created_submission_pks = []
+            for i, img_list in enumerate(quizzes_img_list):
+                start_page = i * m
+                end_page = (i + 1) * m - 1
+                pdf_filename = f'submission_batch_{file_idx}_{start_page}-{end_page}.pdf'
+                old_pdf_fpath = os.path.join(settings.BASE_DIR, "tmp", pdf_filename)
+                new_pdf_fpath = os.path.join(new_pdf_dir, pdf_filename)
+                print(old_pdf_fpath)
+                print(new_pdf_fpath)
+                os.rename(old_pdf_fpath, new_pdf_fpath)
+                paper_submission = PaperSubmission.objects.create(
+                    assignment=assignment_target,
+                    pdf=new_pdf_fpath,
+                    grader_comments="")
+                created_submission_pks.append(paper_submission.pk)
+                
+                for j, img in enumerate(img_list):
+                    img_filename = f'submission-{i}-batch-{file_idx}-page-{j+1}.png'
+                    img_full_path = os.path.join(img_dir, img_filename)
+                    img_rel_path = os.path.join(img_rel_dir, img_filename)
+                    img.save(img_full_path, "PNG", dpi=(dpi, dpi))
+                    PaperSubmissionImage.objects.create(
+                        submission=paper_submission,
+                        image=img_rel_path,
+                        page=j+1)
             
-            for j, img in enumerate(img_list):
-                img_filename = f'submission-{i}-page-{j+1}.png'
-                img_full_path = os.path.join(img_dir, img_filename)
-                img_rel_path = os.path.join(img_rel_dir, img_filename)
-                img.save(img_full_path, "PNG")
-                PaperSubmissionImage.objects.create(
-                    submission=paper_submission,
-                    image=img_rel_path,
-                    page=j+1)
-        
         return created_submission_pks
     
     @classmethod
@@ -306,11 +306,14 @@ class PaperSubmission(Submission):
         except IOError as e:
             print("Error:", e)
             model =  import_tf_model(model_path_h5)
+        dpi = round(all_imgs[0][0].info["dpi"][0])
+        print("dpi is:", dpi)
         df_digits = classify(
             model, 
             df_ids, 
             all_imgs,
-            template_path=os.path.join(settings.MEDIA_ROOT, "template.png")
+            template_path=os.path.join(settings.MEDIA_ROOT, "template.png"),
+            dpi=dpi,
             )
 
         df_digits_detections = (
@@ -419,8 +422,10 @@ class PaperSubmissionImage(models.Model):
         # in the ipynb these were ppm images, 
         # so I might need to convert them to ppm
         for sub_image in sub_Images:
-            all_imgs.append(Image.open(sub_image.image))
+            img = Image.open(sub_image.image)
+            all_imgs.append(img)
             all_img_pks.append(sub_image.pk)
+        print("dpi", img.info["dpi"][0])
 
         # convert imgs to nested list every `num_pages_per_quiz`
         # for example, if num_pages_per_quiz=2, then:

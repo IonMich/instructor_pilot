@@ -83,7 +83,7 @@ def upload_files_view(request, assignment_pk=None):
         print("request.FILES: ", request.FILES)
         if form.is_valid():
             print("form is valid")
-            uploaded_submission_pks = form.save()
+            uploaded_submission_pks = form.save(request)
             qs = PaperSubmission.objects.filter(pk__in=uploaded_submission_pks)
             return render(
                 request, 
