@@ -561,7 +561,7 @@ def classify(
         df_ids, 
         img_list,
         template_path,
-        crop_box_150=(10, 20, 785, 260),
+        crop_box_150=(10, 20, 785, 300),
         dpi=300,
         pages_to_skip=[0,1,3],
         ):
