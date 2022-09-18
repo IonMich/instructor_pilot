@@ -6,3 +6,4 @@ media/
 .vscode/
 *.pdf
 *.csv
+!media/template.png
