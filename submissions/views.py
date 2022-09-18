@@ -11,12 +11,14 @@ from django.utils import timezone
 from itertools import zip_longest
 import random
 from django.urls import reverse
+from django.contrib.auth.decorators import login_required
 
 
 
 def _random1000():
     yield random.randint(0, 100)
 
+@login_required(login_url='/admin')
 def home_view(request, course_pk, assignment_pk=None):
     """
     Home page for the submissions app
@@ -71,6 +73,7 @@ def home_view(request, course_pk, assignment_pk=None):
     return render(request, "submissions/home.html", context)
 
 
+@login_required(login_url='/admin')
 def upload_files_view(request, assignment_pk=None):
     """
     Upload files to the server
@@ -102,6 +105,7 @@ def upload_files_view(request, assignment_pk=None):
         {'form': form, 
         'message': message})
 
+@login_required(login_url='/admin')
 def submission_classify_view(request):
     message = "Use this form to to classify submission by student name and university ID using Deep Learning methods"
     form = StudentClassifyForm()
@@ -132,6 +136,7 @@ def submission_classify_view(request):
         'message': message})
 
 
+@login_required(login_url='/admin')
 def submission_list_view(request):
     
     # qs stands for queryset
@@ -143,6 +148,7 @@ def submission_list_view(request):
     return render(request, 'submissions/main.html', context)
 
 
+@login_required(login_url='/admin')
 def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
     submission = get_object_or_404(PaperSubmission, pk=submission_pk)
     n_q = submission.assignment.number_of_questions
@@ -211,7 +217,7 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         'grading_form': grading_form, 
         'grades_zipped': grades_zipped})
 
-
+@login_required(login_url='/admin')
 def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
     
     # first find the object corresponding to the pk
@@ -235,6 +241,7 @@ def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
         'submission_pk': submission_pk}))
 
 
+@login_required(login_url='/admin')
 def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
     from django.shortcuts import redirect
     # first find the object corresponding to the pk
