@@ -16,7 +16,7 @@ from submissions.forms import (
 from django.contrib.auth.decorators import login_required
 # Create your views here.
 
-@login_required(login_url='/admin')
+@login_required
 def assignment_detail_view(request,  course_pk, assignment_pk):
     # course = get_object_or_404(Course, pk=course_pk)
     assignment = get_object_or_404(Assignment, pk=assignment_pk)
