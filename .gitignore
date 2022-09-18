@@ -1,12 +1,7 @@
 db.sqlite3
 *.pyc
 .env
-.vscode/launch.json
-media/avatars
-media/submissions/
-documents/
-courses/
-profiles/
+media/
 **/migrations
 .vscode/
 *.pdf
