@@ -242,6 +242,7 @@ class PaperSubmission(Submission):
             os.makedirs(new_pdf_dir)
         if not os.path.exists(img_dir):
             os.makedirs(img_dir)
+        created_submission_pks = []
         for file_idx, uploaded_file in enumerate(uploaded_files):
             if uploaded_file:
                 try:
@@ -262,7 +263,7 @@ class PaperSubmission(Submission):
                 num_pages_per_submission=num_pages_per_submission, 
                 dpi=dpi)
             m = len(quizzes_img_list[0])
-            created_submission_pks = []
+            
             for i, img_list in enumerate(quizzes_img_list):
                 start_page = i * m
                 end_page = (i + 1) * m - 1

@@ -63,18 +63,14 @@
                             </div>
                         {% endif %}
                         <div class="form-group">
-                            <select class="form-select w-auto" name="student" id="id_student">
-                                {% if submission.student is None %}
-                                    <option value="" selected disabled hidden>Select Student</option>
-                                {% else %}
-                                    <option value="{{ submission.student.pk }}">{{ submission.student }} ({{submission.student.uni_id}})</option>
-                                {% endif %}
+                            <select class="form-control selectpicker show-tick" data-width="auto" title="Select student" data-live-search="true" name="student" id="id_student" >
+                                <option data-hidden="true" value=""></option>
                                 {% for section in submission.assignment.course.sections.all %}
+                                    <optgroup label="{{section}}">
                                     {% for student in section.students.all %}
-                                        {% if student.pk != submission.student.pk %}
-                                            <option value="{{ student.pk }}">{{student}} ({{student.uni_id}})</option>
-                                        {% endif %}
+                                        <option {% if student.pk == submission.student.pk %}selected{% endif %} value="{{ student.pk }}" data-tokens="{{section}}" data-subtext="{{student.uni_id}}">{{student}}</option>
                                     {% endfor %}
+                                    </optgroup>
                                 {% endfor %}
                             </select>
                             {% if submission.student is not None %}
