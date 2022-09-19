@@ -38,7 +38,9 @@
     
 </head>
 <body>
-    {% include 'navbar.html' %}
+    {% block navbar %}
+        {% include 'navbar.html' %}
+    {% endblock navbar %}
     <div class="container mt-3 mb-3">
         {% block content %}
         {% endblock content %}

@@ -66,7 +66,16 @@ class Assignment(models.Model):
         return super().save(*args, **kwargs)
 
     def get_all_submissions(self):
-        return self.submissions.all()
+        return self.submissions_papersubmission_related.all()
+
+    def get_grading_progress(self):
+        """Returns the grading progress of the assignment as a percentage."""
+        submissions = self.get_all_submissions()
+        graded_submissions_count = submissions.filter(
+            graded_by__isnull=False).count()
+        if submissions.count() == 0:
+            return 0
+        return round(100 * graded_submissions_count / submissions.count(), 2)
 
     
 
