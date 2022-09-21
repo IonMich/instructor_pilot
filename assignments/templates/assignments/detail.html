@@ -1,6 +1,10 @@
 {% extends "base.html" %}
-
+{% load static %}
 {% load crispy_forms_tags%}
+
+{% block scripts %}
+    <script src="{% static 'assignments/detail.js' %}" defer></script>
+{% endblock scripts %}
 
 
 {% block title %}
@@ -72,51 +76,6 @@
         {% include "submissions/upload_files.html" with form=upload_form message="Upload submissions" %}
     {% endif %}
 </div>
-
-
-
-<script type="text/javascript">
-    $(document).ready(function() {
-        $("#btnFetch").click(function() {
-           console.log("fetching");
-           
-           // disable button
-            $(this).prop("disabled", true);
-            // add spinner to button
-            $(this).html(
-                `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Syncing...`
-            );
-            $.ajax({
-                // url is current url
-                url: window.location.href,
-                type: "POST",
-                // add csrf token to post data
-                data: {
-                    "submit-sync-from": "submit-sync-from", 
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
-                },
-                success: function(data) {
-                    console.log(data);
-                    // remove spinner
-                    $("#btnFetch").html("Sync");
-                    // enable button
-                    $("#btnFetch").prop("disabled", false);
-                    // show success message
-                    $("#myMessage").html(
-                        `<div class="alert alert-success">
-                            <strong>Success!</strong> Sync complete.
-                        </div>`
-                    );
-                    
-                },
-                complete:function(){},
-                error:function (xhr, textStatus, thrownError){}
-            });
-            
-        });
-    });
-    
-</script>
 
 {% endblock content %}
 

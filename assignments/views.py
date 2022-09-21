@@ -14,6 +14,7 @@ from submissions.forms import (
     SyncToForm,
 )
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 # Create your views here.
 
 @login_required
@@ -83,13 +84,29 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 else:
                     message_type = 'success'
         elif "submit-sync-from" in request.POST:
-            print("request was POST:sync-from")
-            sync_from_form = SyncFromForm(no_assignment=False, data=request.POST)
-            if sync_from_form.is_valid():
-                print("form is valid")
-                sync_from_form.save()
-                message = 'Sync from canvas successful'
-                message_type = 'success'
+            # Handle ajax request and return json response with the submissions that were synced
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                print("ajax request")
+                sync_from_form = SyncFromForm(no_assignment=False, data=request.POST)
+                if sync_from_form.is_valid():
+                    print("form is valid")
+                    sync_from_form.save()
+                    message = 'Sync from canvas successful'
+                    message_type = 'success'
+                    # return submissions that were synced as json
+                    submissions = PaperSubmission.objects.filter(assignment=assignment)
+                    submissions = submissions.order_by('created')
+                    submissions = submissions.values('pk', 'canvas_id', 'canvas_url')
+                    submissions = list(submissions)
+                    
+                    return JsonResponse({'submissions': submissions})
+                else:
+                    print(sync_from_form.errors)
+                    return JsonResponse({'error': 'form is not valid'})
+            else:
+                print("not ajax request")
+                return JsonResponse({'error': 'not ajax request'})
+
         elif "submit-sync-to" in request.POST:
             print("request was POST:sync-to")
             sync_to_form = SyncToForm(no_assignment=False, data=request.POST)
