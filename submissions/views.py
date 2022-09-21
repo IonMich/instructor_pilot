@@ -152,9 +152,10 @@ def submission_list_view(request):
 def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
     submission = get_object_or_404(PaperSubmission, pk=submission_pk)
     n_q = submission.assignment.number_of_questions
-    grades_zipped = zip_longest(
+    grades_zipped = list(zip_longest(
         submission.get_question_grades(), 
         submission.assignment.get_max_question_scores())
+    )
     print(submission.assignment)
     print("request.user: ", request.user)
     if request.method == 'POST':
@@ -197,9 +198,10 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
                     text=request.POST.get('new_comment'))
                 comment.save()
             print("question grades", submission.question_grades)
-            grades_zipped = zip_longest(
+            grades_zipped = list(zip_longest(
                 submission.get_question_grades(), 
                 submission.assignment.get_max_question_scores())
+            )
             return render(
                 request, 
                 'submissions/detail.html', 

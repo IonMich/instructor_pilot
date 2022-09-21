@@ -150,7 +150,7 @@ class Submission(models.Model):
 
     class Meta:
         abstract = True
-        ordering = ["-created"]
+        ordering = ["created"]
 
     def __str__(self):
         if self.assignment is None:
@@ -205,7 +205,8 @@ class PaperSubmission(Submission):
                 "assignment_pk": self.assignment.pk})
 
     class Meta:
-        verbose_name_plural = "Paper Submissions"  
+        verbose_name_plural = "Paper Submissions" 
+        ordering = ["created"] 
 
     def upload_to_canvas(self):
         # get the canvas course id
