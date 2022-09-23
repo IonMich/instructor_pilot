@@ -71,8 +71,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR / 'templates',
-            os.path.join(BASE_DIR, 'submissions', 'assignments', 'templates', 'submissions', 'courses'),
+            os.path.join(BASE_DIR, 'templates')
             ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -140,8 +139,12 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default URL
-LOGIN_URL = '/admin'
+# Default URL to redirect if login is required
+LOGIN_URL = '/accounts/login/'
+# Redirect to home URL after login (Default redirects to /accounts/profile/)
+LOGIN_REDIRECT_URL = '/'
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
