@@ -1,5 +1,4 @@
 function navigatorHandler (event) {
-    let unsavedChanges;
     let areaIsFocused = (document.activeElement === text_area);
     if (areaIsFocused && text_area.value !== "") {
         return
@@ -25,7 +24,13 @@ function checkIfChanges() {
     // check if the grades have changed
     const grade_inputs = document.querySelectorAll(".grade-input");
     for (const [index, input] of grade_inputs.entries()) {
-        if (input.value !== initial_grades[index][0]) {
+        // if input value is empty string, set it to null
+        if (input.value === "") {
+            inputValue = null;
+        } else {
+            inputValue = input.value;
+        }
+        if (inputValue !== initial_grades[index][0]) {
             unsavedChanges = true;
             console.log("changes");
             break;
