@@ -53,7 +53,35 @@
                     <p class="mt-3"> Upload graded submissions and comments to Canvas </p>
                     <form action="" method="POST">
                         {% csrf_token %}
-                        <button type="submit" name="submit-sync-to" class="btn btn-primary">Post to Canvas</button>
+                        <button type="button" name="submit-sync-to" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#syncToModal">Post to Canvas</button>
+                    
+                        <div class="modal fade" id="syncToModal" tabindex="-1" aria-labelledby="syncToModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                              <div class="modal-content">
+                                <div class="modal-header">
+                                  <h5 class="modal-title" id="syncToModalLabel">Upload to Canvas</h5>
+                                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                  This action will post all graded submissions and comments to Canvas. Specifically, 
+                                  the script retrieve all submissions of {{assignment.name}} on Canvas, and then for each submission:
+                                    <ul>
+                                        <li>Get the corresponding submission in our database with the same canvas ID. If no canvas ID is found, this submission will be skipped.</li>
+                                        <li>Check if the submission is graded in our database. If it is not graded, this submission will be skipped.</li>
+                                        <li>Post the submission grade on Canvas. If the submission is already graded on Canvas, the grade is overwriten.</li>
+                                        <li>Post a comment on Canvas with the individual question scores. This does <em>not</em> overwrite any previous submitted comments.</li>
+                                        <li>Post all comments in the database corresponding to this submission. These do <em>not</em> overwrite any previous submitted comments.</li>
+                                    </ul>
+                                  Are you sure you want to continue?
+                                </div>
+                                <div class="modal-footer">
+                                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                  <button type="submit" name="submit-sync-to" class="btn btn-primary">Post</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                    
                     </form>
                 </div>
                 
