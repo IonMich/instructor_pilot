@@ -46,7 +46,17 @@
         <li class="breadcrumb-item active" aria-current="page">{{submission}}</li>
     {% endif %}
     </ol>
+    {% comment %} add grader request.user.username to the right of the navbar. If clicked, redirects to the user profile page{% endcomment %}
+    <div class="d-flex me-auto">
+        <a href="{{request.user.profile.get_absolute_url}}" class="text-decoration-none text-dark">
+            <div class="d-flex align-items-center">
+                <img src="{{request.user.profile.avatar.url}}" class="rounded-circle" style="width: 2rem; height: 2rem; object-fit: cover;">
+                <span class="ms-2">{{request.user.username}}</span>
+            </div>
+        </a>
+    </div>
 </nav>
+
 
     <div class="row">
         
