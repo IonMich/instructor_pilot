@@ -66,11 +66,12 @@
                                   This action will post all graded submissions and comments to Canvas. Specifically, 
                                   the script retrieve all submissions of {{assignment.name}} on Canvas, and then for each submission:
                                     <ul>
-                                        <li>Get the corresponding submission in our database with the same canvas ID. If no canvas ID is found, this submission will be skipped.</li>
+                                        <li>Get the corresponding submission in our database with the same canvas ID. If no matching canvas ID is found, this submission will be skipped.</li>
                                         <li>Check if the submission is graded in our database. If it is not graded, this submission will be skipped.</li>
                                         <li>Post the submission grade on Canvas. If the submission is already graded on Canvas, the grade is overwriten.</li>
                                         <li>Post a comment on Canvas with the individual question scores. This does <em>not</em> overwrite any previous submitted comments.</li>
                                         <li>Post all comments in the database corresponding to this submission. These do <em>not</em> overwrite any previous submitted comments.</li>
+                                        <li>Update the submission PDF file to Canvas attached to a new submission comment.</li>
                                     </ul>
                                   Are you sure you want to continue?
                                 </div>
