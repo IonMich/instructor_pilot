@@ -87,7 +87,8 @@ function appendSuccessMsg(form) {
 }
 
 const btnFetch = document.getElementById('btnFetch');
-
-btnFetch.addEventListener('click', syncSubsFromCanvas);
+if (btnFetch) {
+    btnFetch.addEventListener('click', syncSubsFromCanvas);
+}
 
 
