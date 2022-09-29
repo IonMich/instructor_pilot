@@ -192,7 +192,28 @@
           <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
-            {% comment %} set scroll height for each question {% endcomment %}
+            <div class="accordion" id="accordionMoreInfo">
+                <div class="accordion-item">
+                    <h5 class="accordion-header" id="headingOne">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                            Set the scroll height for each question.
+                        </button>
+                    </h5>
+                    <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionMoreInfo">
+                        <div class="accordion-body">
+                            <p>
+                                This determines how much the section containing 
+                                the scanned submission images will be scrolled when you focus the corresponding question 
+                                grade input, as a factor of the page height. 
+                            </p>
+                            <p>
+                                For example, if you set the scroll height for
+                                question 1 to 0.5, then when you focus the grade input for question 1, the section containing
+                                the scanned submission images will be scrolled down by half a page height.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             <form id="offcanvas-scroll-form">
                 {% csrf_token %}
                 {% with ''|center:submission.assignment.number_of_questions as range %}
