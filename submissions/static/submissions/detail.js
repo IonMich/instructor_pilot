@@ -97,7 +97,7 @@ function handleScroll () {
                 console.log("focus");
                 input.select();
                 imgdiv.scrollTo({
-                    top:(page_height+margin)*(i+2), 
+                    top:(page_height+margin)*scrollFactors[i], 
                     left:0, 
                     behavior: "smooth"
                 });
@@ -107,6 +107,127 @@ function handleScroll () {
     });
 };
 
+// Define the function setInitialInputValues that will set the initial input values of the offcanvas inputs
+// based on the scroll height factors of the user preferences. The user preferences
+// contain the scroll height factors corresponding to each question of each assignment
+// of each course. The scroll height factors are stored in a JSON object in the user
+// preferences. The JSON object is parsed and the scroll height factors are set as
+// the initial values of the offcanvas inputs. If the scroll height factors for the
+// current assignment are not present in the user preferences, the scroll height
+// factors are set to the course default scroll height factors. If the course default
+// scroll height factors are not present in the user preferences, the scroll height
+// factors are set to empty strings.
+function setInitialInputValues () {
+    // set the initial input values of the offcanvas inputs and return the scroll height factors
+    const offcanvas = document.querySelector("#offcanvasExample");
+    const offcanvasInputs = offcanvas.querySelectorAll(".scroll-height-input");
+    // if course_id is not present in the user preferences, set the scroll height factors to empty strings
+    // if user_scroll_height_factors is null, set the scroll height factors to empty strings
+    if (user_scroll_height_factors === null) {
+        offcanvasInputs.forEach(input => {
+            input.value = "";
+        });
+    } else if (!user_scroll_height_factors.hasOwnProperty(course_id)) {
+        offcanvasInputs.forEach(input => {
+            input.value = "";
+        });
+    } else {
+        // if user_scroll_height_factors[course_id] is null, set the scroll height factors to empty strings
+        if (user_scroll_height_factors[course_id] === null) {
+            console.log("null");
+            offcanvasInputs.forEach(input => {
+                input.value = "";
+            });
+        } else if (!user_scroll_height_factors[course_id].hasOwnProperty(assignment_id)) {
+            if (user_scroll_height_factors[course_id].hasOwnProperty("default")) {
+                offcanvasInputs.forEach((input, i) => {
+                    input.value = user_scroll_height_factors[course_id]["default"][i];
+                });
+            } else {
+                offcanvasInputs.forEach(input => {
+                    input.value = "";
+                });
+            }
+        } else {
+            // if the assignment_id is present in the user preferences, set the scroll height factors to the scroll height factors
+            // corresponding to the assignment_id
+            offcanvasInputs.forEach((input, i) => {
+                input.value = user_scroll_height_factors[course_id][assignment_id][i];
+            });
+        }
+    }
+    console.log("initial values set");
+    console.log("returning scroll height factors:");
+    console.log(Array.from(offcanvasInputs).map(input => input.value));
+    return Array.from(offcanvasInputs).map(input => input.value);
+}
+    
+// Handle changes in the offcanvas settings inputs:
+// The offcanvas contains one scroll height input for each question in the assignment.
+// The scroll height is the factor multiplying the page height to get the scroll position.
+// The scroll height is the height that the div containing the images should scroll to when the corresponding question input is focused.
+// the offcanvas allows the user to change the div scroll height for each question.
+// The html element for the scroll height input is named: id_scroll_height_question_<question_number>
+// note that the function handleScroll should take as parameter the scroll height factors for each question
+// and scroll to the correct height for each question.
+// Finally, the scroll height factors should be saved in the user preferences,
+// and specifically in the field "scroll_height_factors" of the user.profile.preferences field
+
+function handleOffcanvasInputs () {
+    const offcanvas = document.querySelector("#offcanvasExample");
+    const offcanvasInputs = offcanvas.querySelectorAll(".scroll-height-input");
+    // get the scroll height factors of this assignment from the django template
+
+    // set the initial input values of the offcanvas inputs
+    scrollFactors = setInitialInputValues();
+    console.log("after set", scrollFactors);
+
+    offcanvasInputs.forEach( (input, i) => {
+        input.addEventListener("change", () => {
+            // get the form
+            const form = document.querySelector("#offcanvas-scroll-form");
+            // get csrf token from input element of form
+            const csrfToken = form.querySelector('input[name="csrfmiddlewaretoken"]').value;
+            
+            console.log("input changed");
+            console.log(input);
+            console.log("before", scrollFactors);
+            offcanvasInputs.forEach((inputIter, j) => {
+                console.log(j);
+                scrollFactors[j] = inputIter.value;
+            });
+            console.log("after", scrollFactors);
+            handleScroll(scrollFactors);
+            // save scroll height factors in user preferences
+            const url = "/profile/preferences/edit/";
+            const data = {
+                "scroll_height_factors": {
+                    [course_id]: {
+                        [assignment_id]: scrollFactors
+                    }
+                }
+            };
+            console.log("data",data);
+            console.log(JSON.stringify(data))
+            const options = {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                body: JSON.stringify(data)
+            };
+            fetch(url, options)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                })
+                .catch(error => {
+                    console.log(error);
+                });
+        });
+    });
+};
 
 const text_area = document.getElementById("newComment");
 const prevBtn = document.getElementById("btnPrev");
@@ -116,11 +237,30 @@ const url = new URL(window.location.href);
 const prev_url = url.href + "previous/";
 // add next to the end of the url
 const next_url = url.href + "next/";
+let scrollFactors = [];
 
-const initial_grades = JSON.parse(document.getElementById("grades-initial").textContent);
-const pk = JSON.parse(document.getElementById("sub-pk").textContent);
-const firstPk = JSON.parse(document.getElementById("first-sub-pk").textContent);
-const lastPk = JSON.parse(document.getElementById("last-sub-pk").textContent);
+const user_scroll_height_factors = JSON.parse(
+    document.querySelector("#scroll_height_factors").textContent
+    );
+const course_id = JSON.parse(
+    document.querySelector("#course_id").textContent
+    );
+const assignment_id = JSON.parse(
+    document.querySelector("#assignment_id").textContent
+    );
+const initial_grades = JSON.parse(
+    document.getElementById("grades-initial").textContent
+    );
+const pk = JSON.parse(
+    document.getElementById("sub-pk").textContent
+    );
+const firstPk = JSON.parse(
+    document.getElementById("first-sub-pk").textContent
+    );
+const lastPk = JSON.parse(
+    document.getElementById("last-sub-pk").textContent
+    );
+console.log(scroll_height_factors, course_id, assignment_id);
 console.log(pk, firstPk, lastPk);
 if (pk === lastPk) {
     nextBtn.disabled = true;
@@ -142,7 +282,7 @@ else {
 
 console.log(initial_grades);
 
+handleOffcanvasInputs();
+console.log("global", scrollFactors);
 handleScroll();
 document.addEventListener('keydown', navigatorHandler);
-
-

@@ -36,6 +36,11 @@ class UserProfile(BaseProfile):
         related_name='profile'
         )
     
+    preferences = models.JSONField(
+        default=dict,
+        blank=True
+    )
+    
 
     def __str__(self):
         if self.user.first_name and self.user.last_name:

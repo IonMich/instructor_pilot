@@ -3,10 +3,13 @@
 {% load crispy_forms_tags%}
 
 {% block scripts %}
+    {{ request.user.profile.preferences.scroll_height_factors|json_script:"scroll_height_factors" }}
     {{ grades_zipped|json_script:"grades-initial" }}
-    {{submission.pk|json_script:"sub-pk"}}
-    {{submission.assignment.submissions_papersubmission_related.first.pk|json_script:"first-sub-pk"}}
-    {{submission.assignment.submissions_papersubmission_related.last.pk|json_script:"last-sub-pk"}}
+    {{ submission.assignment.pk|json_script:"assignment_id"}}
+    {{submission.assignment.course.pk|json_script:"course_id"}}
+    {{ submission.pk|json_script:"sub-pk" }}
+    {{ submission.assignment.submissions_papersubmission_related.first.pk|json_script:"first-sub-pk" }}
+    {{ submission.assignment.submissions_papersubmission_related.last.pk|json_script:"last-sub-pk" }}
     <script src="{% static 'submissions/detail.js' %}" defer></script>
 {% endblock scripts %}
 
@@ -48,7 +51,6 @@
             <li class="breadcrumb-item active" aria-current="page">{{submission}}</li>
         {% endif %}
         </ol>
-        {% comment %} add grader request.user.username to the right of the navbar. If clicked, redirects to the user profile page{% endcomment %}
     </nav>
     </div>
     <div class="ms-auto bd-highlight">
@@ -68,7 +70,6 @@
                 <h5 class="text-muted">Attempt {{submission.attempt}}</h5>
             </div>
         {% endif %}
-        {% comment %} <div class="col-sm-6 w-50" id="output">scrollTop: 0</div> {% endcomment %}
         
         <div id="list-pages" class="col-sm-1 list-group mb-4">
             {% for image in submission.submissions_papersubmissionimage_related.all%} 
@@ -192,16 +193,19 @@
         </div>
         <div class="offcanvas-body">
             {% comment %} set scroll height for each question {% endcomment %}
-            {% with ''|center:submission.assignment.number_of_questions as range %}
-                {% for i in range %}
-                    <div class="form-outline">
-                        <label class="mt-3" for="id_scroll_height_question_{{forloop.counter}}" style="font-size:20px;">Question {{forloop.counter}} Scroll Height</label>
-                        <div class="input-group mt-2">
-                            <input onClick="this.select();" placeholder="?" name="scroll_height_{{forloop.counter}}" type="number" id="id_scroll_height_question_{{forloop.counter}}" class="form-control" value="" style="max-width:80px;">
+            <form id="offcanvas-scroll-form">
+                {% csrf_token %}
+                {% with ''|center:submission.assignment.number_of_questions as range %}
+                    {% for i in range %}
+                        <div class="form-outline">
+                            <label class="mt-3" for="id_scroll_height_question_{{forloop.counter}}" style="font-size:20px;">Question {{forloop.counter}} Scroll Height</label>
+                            <div class="input-group mt-2">
+                                <input onClick="this.select();" placeholder="?" name="scroll_height_{{forloop.counter}}" type="number" id="id_scroll_height_question_{{forloop.counter}}" class="form-control scroll-height-input" value="" style="max-width:80px;">
+                            </div>
                         </div>
-                    </div>
-                {% endfor %}
-            {% endwith %}
+                    {% endfor %}
+                {% endwith %}
+            </form>
         </div>
     </div>
     
