@@ -48,19 +48,21 @@
         </a></li>
         {% if submission.student %}
             <li class="breadcrumb-item active" aria-current="page">{{submission.student.first_name}} {{submission.student.last_name}}</li>
+            <img src="{{submission.student.profile.avatar.url}}" class="rounded-circle ms-3" width="30" height="30" alt="">       
         {% else %}
-            <li class="breadcrumb-item active" aria-current="page">{{submission}}</li>
+            <li class="breadcrumb-item active" aria-current="page">{{submission.short_name}}</li>
         {% endif %}
         </ol>
     </nav>
     </div>
     <div class="ms-auto bd-highlight">
-        <a href="{{request.user.profile.get_absolute_url}}" class="text-decoration-none text-dark">
             <div class="d-flex align-items-center">
+                <span class="me-5 text-muted">Average: {{submission.assignment.get_average_grade}} / {{submission.assignment.max_score}}</span>
+            <a href="{{request.user.profile.get_absolute_url}}" class="text-decoration-none text-dark">
                 <img src="{{request.user.profile.avatar.url}}" class="rounded-circle" style="width: 2rem; height: 2rem; object-fit: cover;">
                 <span class="ms-2">{{request.user.username}}</span>
+            </a>
             </div>
-        </a>
     </div>
 </div>
 

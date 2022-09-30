@@ -161,6 +161,10 @@ class Submission(models.Model):
             else:
                 return f"Submission {self.id} for {self.assignment.name} by {self.student.first_name} {self.student.last_name}"
     
+    def short_name(self):
+        short_id = str(self.id).split("-")[0]
+        return f"Submission {short_id}"
+        
     def save(self, *args, **kwargs):
         s_grades = self.get_question_grades()
         if not all(g is None for g in s_grades):

@@ -77,6 +77,21 @@ class Assignment(models.Model):
             return 0
         return round(100 * graded_submissions_count / submissions.count(), 2)
 
+    def get_average_grade(self, section=None):
+        """Returns the average grade of the assignment."""
+        submissions = self.get_all_submissions()
+        if section is not None:
+            submissions = submissions.filter(student__section=section)
+        """Returns the average grade of the assignment based only 
+        on the grades of the submissions that have been graded.
+        """
+        submissions = self.get_all_submissions()
+        graded_submissions = submissions.filter(graded_by__isnull=False)
+        if graded_submissions.count() == 0:
+            return 0
+        grades = [s.grade for s in graded_submissions]
+        return round(sum(grades) / len(grades), 2)
+
     
 
     @classmethod
