@@ -17,7 +17,7 @@ def profile_preferences_edit_view(request):
     # This happens via an AJAX call which is why we return a JSON response
     # instead of a rendered template. The data is then used to update the
     # user preferences JSON field in the database. Currently the only accepted
-    # preference is the scroll_height_factors stored in user.profile.preferences 
+    # preference is the scroll_height_factors and grade_steps stored in user.profile.preferences 
     # JSON field. The data have the following format:
     # const data = {
     #             "scroll_height_factors": {
@@ -28,34 +28,36 @@ def profile_preferences_edit_view(request):
     #         };
     import json
     data = json.loads(request.body.decode("utf-8"))
-    
-    # we get the scroll_height_factors from the data
-    scroll_height_factors = data.get('scroll_height_factors', None)
     # we get the user from the request
     user = request.user
     # we get the user profile
     profile = user.profile
     # we get the user preferences
     preferences = profile.preferences
-    scroll_preferences = preferences.get('scroll_height_factors', None)
-    if scroll_height_factors is not None:
-        if scroll_preferences is None:
-            scroll_preferences = {}
-        for course_id, course_scroll_preferences in scroll_height_factors.items():
-        # if the scroll_height_factors are not None, we update the preferences
-            for assignment_id, scroll_factors in course_scroll_preferences.items():
-                scroll_preferences[course_id][assignment_id] = scroll_factors
+
+    # set preferences for scroll_height_factors and grade_steps
+    for preferece in data:
+        preference_data = data.get(preferece, None)
+        user_preference = preferences.get(preferece, None)
+        if not preference_data:
+            return JsonResponse({"error": "No data for submitted preference {}".format(preferece)}, status=400)
+        if not user_preference:
+            user_preference = {}
+        for course_id, course_preferences_data in preference_data.items():
+            if not user_preference.get(course_id, None):
+                user_preference[course_id] = {}
+            for assignment_id, assignment_preferences_data in course_preferences_data.items():
+                user_preference[course_id][assignment_id] = assignment_preferences_data
             # if only one assignment is updated and there is no default scroll
             # factor for the course, we set the course default scroll factor 
             # ([course_id]['default']) to the scroll factor of the assignment
-            if len(course_scroll_preferences) == 1:
-                scroll_preferences[course_id]['default'] = scroll_factors
-
-        preferences['scroll_height_factors'] = scroll_preferences
+            if len(course_preferences_data) == 1:
+                user_preference[course_id]['default'] = assignment_preferences_data
+        if len(preference_data) == 1:
+            user_preference['default'] = assignment_preferences_data
+        preferences[preferece] = user_preference
         profile.preferences = preferences
         profile.save()
-        return JsonResponse({"status": "success"})
-    else:
-        return JsonResponse({"status": "error: no scroll_height_factors in data"})
+    return JsonResponse({"success": True})
 
 
