@@ -31,7 +31,7 @@ function syncSubsFromCanvas(event) {
         // the boby contains a row element with the class "submissions-row" which contains 
         // submissions as cards. The cards have a data attribute "data-pk" which is the primary key
         // of the submission in the database. We can use this to find the card for a submission
-        // and update its footer by appending or updating the link to the submission on Canvas.
+        // and update the div-card-tools to add a link to the submission on Canvas.
 
         // get the row element
         const row = document.querySelector('#submissions-row');
@@ -47,7 +47,11 @@ function syncSubsFromCanvas(event) {
             if (!card) {
                 continue;
             }
-            // update the card
+            // update the card and append success message
+            //  append success message in form. Mention also the number of submissions that are and are not synced
+            // get the counts:
+            var syncedCount = data.submissions.filter(sub => sub.canvas_url).length;
+            var notSyncedCount = data.submissions.length - syncedCount;
             updateCard(card, sub);
         }
 
@@ -55,19 +59,23 @@ function syncSubsFromCanvas(event) {
         btnFetch.textContent = `Sync`;
         btnFetch.disabled = false;
         // append success message in form
-        appendSuccessMsg(form);
+        appendSuccessMsg(form, syncedCount, notSyncedCount);
     });
 };
 
-function appendSuccessMsg(form) {
-    // append success message in form
+function appendSuccessMsg(form, syncedCount, notSyncedCount) {
+
     closeBtn = `<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
-    successText = `<strong>Success!</strong> Synced all labelled submissions from Canvas.`;
-    successMsg = `<div class="alert alert-success alert-dismissible fade show mt-1" role="alert">${successText}${closeBtn}</div>`;
-    form.insertAdjacentHTML(
-        'beforeend',
-        successMsg
-    );
+    if (notSyncedCount === 0) {
+        msg = `All ${syncedCount} submissions have been synced from Canvas!`;
+    } else {
+        msg = `${syncedCount} submissions are now synced from Canvas. ${notSyncedCount} submissions were not synced from Canvas.`;
+    }
+    alertHtml = `<div class="alert alert-success alert-dismissible fade show mt-1" role="alert">
+                ${msg}
+                ${closeBtn}
+            </div>`;
+    form.insertAdjacentHTML('beforeend', alertHtml);
 }
 
 const btnFetch = document.getElementById('btnFetch');
@@ -77,27 +85,93 @@ if (btnFetch) {
 
 // on hover of a submission card, show delete button at top right
 // on click of delete button, show confirmation modal
-// on click of confirm button in modal, delete submission
-// on click of cancel button in modal, hide modal
+// the button has an attribute data-pk which is the primary key of the submission
 btnDeleteSub = document.querySelectorAll('.btn-delete-sub');
 for (const btn of btnDeleteSub) {
     btn.addEventListener('click', function(event) {
         event.preventDefault();
+        const pk = this.getAttribute('data-pk');
+        const form = deleteModal.querySelector('form');
+        const input = form.querySelector('input[name="pk"]');
+        input.value = pk;
+        const modalLabel = deleteModal.querySelector('.modal-title');
+        // delete all the modal carousel items
+        const deleteCarouselInner = deleteModal.querySelector('.carousel-inner');
+        const deleteCarouselItems = deleteCarouselInner.querySelectorAll('.carousel-item');
+        for (const item of deleteCarouselItems) {
+            item.remove();
+        }
         const card = this.closest('.card');
-        const pk = card.dataset.pk;
-        const modal = document.getElementById('deleteSubModal');
-        const btnConfirm = modal.querySelector('.btn-confirm');
-        btnConfirm.dataset.pk = pk;
-        const modalBody = modal.querySelector('.modal-body');
-        modalBody.innerHTML = `Are you sure you want to delete this submission?`;
-        const modalTitle = modal.querySelector('.modal-title');
-        modalTitle.innerHTML = `Delete Submission`;
-        const modalFooter = modal.querySelector('.modal-footer');
-        modalFooter.innerHTML = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-danger btn-confirm">Delete</button>`;
-        const myModal = new bootstrap.Modal(modal);
-        myModal.show();
+        
+        const cardCarouselItems = card.querySelectorAll('.carousel-item');
+        console.log(cardCarouselItems);
+        for (const item of cardCarouselItems) {
+            // get the image element
+            const img = item.querySelector('img');
+            // copy the image element
+            const imgCopy = img.cloneNode();
+            // append the image element to the modal carousel inner
+            const carouselItem = document.createElement('div');
+            // add the class carousel-item to the carousel item
+            carouselItem.classList.add('carousel-item');
+
+            // if the item the first direct child of the carousel inner, add the active class
+            if (item === cardCarouselItems[0]) {
+                carouselItem.classList.add('active');
+            }
+            carouselItem.appendChild(imgCopy);
+            deleteCarouselInner.appendChild(carouselItem);
+        }
+
+        // set the modal title to the title of the submission
+        const title = card.querySelector('.card-title').textContent;
+        modalLabel.textContent = title;
+        // show the modal
+        console.log(deleteModal,bsDeleteModal);
+        bsDeleteModal.show();
+        // pause the carousel of all cards
+        for (const cardCarousel of bsCarousels) {
+            cardCarousel.pause();
+        }
+
     });
 }
+
+// on click of the delete button in the delete modal, submit the form
+function deleteSub (event) {
+    event.preventDefault();
+    const form = document.getElementById('delete-sub-form');
+    const csrfToken = form.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    const pk = form.querySelector('input[name="pk"]').value;
+    // the url to delete the submission is the url of the page with submissions/<pk>/delete/
+    const url = window.location.href + `submissions/${pk}/delete/`;
+    // ajax request to delete the submission
+    fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRFToken": csrfToken,
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data);
+        // if message is success, remove the card from the page
+        if (data.message === 'success') {
+            const card = document.querySelector(`.card[data-pk="${pk}"]`);
+            // remove the event listener for this card
+            const btn = card.querySelector('.btn-delete-sub');
+            card.remove();
+            // shift all remaining cards in the bootstrap grid to the left
+            const cards = document.querySelectorAll('.card');
+            
+            // hide the modal
+            bsDeleteModal.hide();
+        }
+    });
+}
+
 
 function showCardTools(event) {
     console.log("showing card tools");
@@ -126,8 +200,9 @@ function hideCardTools(event) {
 }
 
 function updateCard(card, sub) {
-    // get the div containing the tools. one of the tools is a link to the submission on Canvas
-    const divTools = card.querySelector('.div-card-tools');
+    const deleteSubsBtn = card.querySelector('.btn-delete-sub');
+    // get parent div of the delete button
+    const divTools = deleteSubsBtn.closest('.div-card-tools');
     // get the footer of the card
     const cardFooter = card.querySelector('.card-footer');
     // check if the card already has a link to the submission on Canvas with the class "btn-canvas"
@@ -154,7 +229,7 @@ function updateCard(card, sub) {
 
 
 // add event listener for hover on submission cards
-const cards = document.querySelectorAll('.card');
+let cards = document.querySelectorAll('.card');
 for (const card of cards) {
     card.addEventListener('mouseenter', showCardTools);
     card.addEventListener('mouseleave', hideCardTools);
@@ -190,24 +265,23 @@ function syncCarouselSlide(event) {
             bsCarousel.to(newIndex);
         }
     }
-
 }
 
 // if previous or next button is clicked in a carousel, sync the slide of all other carousels
 // by triggering the same event on all other carousels
-const carousels = document.querySelectorAll('.carousel');
+const cardCarousels = document.querySelectorAll('.card .carousel');
 // get the corresponding set of bootstrap carousel instances
 const bsCarousels = []
-for (const carousel of carousels) {
+for (const carousel of cardCarousels) {
     bsCarousels.push(bootstrap.Carousel.getOrCreateInstance(carousel));
 }
 
-const btnCarouselPrev = document.querySelectorAll('.carousel-control-prev');
+const btnCarouselPrev = document.querySelectorAll('.card .carousel-control-prev');
 for (const btn of btnCarouselPrev) {
     btn.addEventListener('click', syncCarouselSlide);
 }
 
-const btnCarouselNext = document.querySelectorAll('.carousel-control-next');
+const btnCarouselNext = document.querySelectorAll('.card .carousel-control-next');
 for (const btn of btnCarouselNext) {
     btn.addEventListener('click', syncCarouselSlide);
 }
@@ -264,7 +338,14 @@ Promise.all(imageUrls.map(loadImage)).then(images => {
     // }
 });
 
+// handle modal close
+// when the modal is closed, resume the carousel of all cards
+const deleteModal = document.getElementById('modal-delete-sub');
+const bsDeleteModal = bootstrap.Modal.getOrCreateInstance(deleteModal);
+const btnDeleteConfirmed = deleteModal.querySelector('.btn-delete-confirmed');
 
-
+btnDeleteConfirmed.addEventListener('click', function(event) {
+    deleteSub(event);
+});
 
 

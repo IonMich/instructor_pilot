@@ -12,7 +12,8 @@ from itertools import zip_longest
 import random
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
-
+from django.http import JsonResponse
+from django.views.generic.edit import DeleteView
 
 
 def _random1000():
@@ -267,5 +268,19 @@ def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
         'assignment_pk': submission.assignment.pk,
         'submission_pk': submission.pk}))
     
+# The delete view deletes the submission and returns a JsonResponse
+# with a message (success or failure)
+@login_required
+def submission_delete_view(request, course_pk, assignment_pk, submission_pk):
+    submission = get_object_or_404(PaperSubmission, pk=submission_pk)
+    if request.method == 'POST':
+        submission.delete()
+        return JsonResponse({'message': 'success'})
+    else:
+        return JsonResponse({'message': 'failure'})
+    
+
+
+
 
 
