@@ -125,6 +125,7 @@ for (const btn of btnDeleteSub) {
 
         // set the modal title to the title of the submission
         const title = card.querySelector('.card-title').textContent;
+        const bsDeleteModal = bootstrap.Modal.getOrCreateInstance(deleteModal);
         modalLabel.textContent = title;
         // show the modal
         console.log(deleteModal,bsDeleteModal);
@@ -140,6 +141,7 @@ for (const btn of btnDeleteSub) {
 // on click of the delete button in the delete modal, submit the form
 function deleteSub (event) {
     event.preventDefault();
+    const bsDeleteModal = bootstrap.Modal.getOrCreateInstance(deleteModal);
     const form = document.getElementById('delete-sub-form');
     const csrfToken = form.querySelector('input[name="csrfmiddlewaretoken"]').value;
     const pk = form.querySelector('input[name="pk"]').value;
@@ -341,7 +343,6 @@ Promise.all(imageUrls.map(loadImage)).then(images => {
 // handle modal close
 // when the modal is closed, resume the carousel of all cards
 const deleteModal = document.getElementById('modal-delete-sub');
-const bsDeleteModal = bootstrap.Modal.getOrCreateInstance(deleteModal);
 const btnDeleteConfirmed = deleteModal.querySelector('.btn-delete-confirmed');
 
 btnDeleteConfirmed.addEventListener('click', function(event) {
