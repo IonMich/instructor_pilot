@@ -348,4 +348,45 @@ btnDeleteConfirmed.addEventListener('click', function(event) {
     deleteSub(event);
 });
 
+// add event listener for the btn-delete-all button
+// when the button is clicked, show the modal to delete all submissions
+const btnDeleteAll = document.getElementById('btn-delete-all');
+btnDeleteAll.addEventListener('click', function(event) {
+    const deleteAllModal = document.getElementById('modal-delete-all');
+    const bsDeleteAllModal = bootstrap.Modal.getOrCreateInstance(deleteAllModal);
+    bsDeleteAllModal.show();
+});
+
+// add event listener for the btn-delete-all-confirmed button
+// when the button is clicked, delete all submissions
+const btnDeleteAllConfirmed = document.getElementById('btn-delete-all-confirmed');
+btnDeleteAllConfirmed.addEventListener('click', function(event) {
+    deleteAllSubs(event);
+});
+
+function deleteAllSubs(event) {
+    event.preventDefault();
+    const form = document.getElementById('delete-all-form');
+    const csrfToken = form.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    // the url to delete the submission is the url of the page with submissions/<pk>/delete/
+    const url = window.location.href + "submissions/delete-all/";
+    // ajax request to delete the submission
+    fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRFToken": csrfToken,
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data);
+        // if the submission was deleted successfully, reload the page
+        if (data.message === "success") {
+            window.location.reload();
+        }
+    }
+    );
+}
 

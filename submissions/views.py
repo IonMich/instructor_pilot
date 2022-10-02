@@ -278,6 +278,18 @@ def submission_delete_view(request, course_pk, assignment_pk, submission_pk):
         return JsonResponse({'message': 'success'})
     else:
         return JsonResponse({'message': 'failure'})
+
+@login_required
+def submission_delete_all_view(request, course_pk, assignment_pk):
+    # get all submissions for the assignment
+    assignment = get_object_or_404(
+        Assignment, pk=assignment_pk)
+    if request.method == 'POST':
+        print("deleting all submissions")
+        PaperSubmission.objects.filter(assignment=assignment).delete()
+        return JsonResponse({'message': 'success'})
+    else:
+        return JsonResponse({'message': 'failure'})
     
 
 

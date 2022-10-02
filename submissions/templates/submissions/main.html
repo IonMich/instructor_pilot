@@ -6,9 +6,13 @@
 
   {% block content %}
   {% comment %} <div class="gradient-pattern"> {% endcomment %}
+{% comment %} add {{title}} and button with id btn-delete-all. Use CSS flexbox{% endcomment %}
+<div class="mt-5" style="display: flex; justify-content: space-between; align-items: center;">
+    <h3>{{title}}</h3>
+    <button type="button" class="btn btn-danger" id="btn-delete-all">Delete All</button>
+</div>
 
-  <h3 class='mt-4'> {{ title }}</h3>
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 row-cols-xxl-5 g-2 mt-5" id="submissions-row">
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 row-cols-xxl-5 g-2 mt-3" id="submissions-row">
       {% for obj in object_list %}
       <div class="col">
         <div class="card h-100" data-pk="{{ obj.pk }}">
@@ -145,6 +149,27 @@
       </div>
     </div>
   </div>
+
+  <div class="modal fade" id="modal-delete-all" tabindex="-1" aria-labelledby="modal-delete-all-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-delete-all-label">Delete All Submissions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete <b>all</b> submissions?</p>
+          <form method="POST" id="delete-all-form" >
+            {% csrf_token %}
+            <input type="hidden" name="pk" id="input-pk">
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-danger" id="btn-delete-all-confirmed">Delete</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
 
 {% endblock content %}
