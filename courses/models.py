@@ -60,6 +60,9 @@ class Course(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
+    def get_short_name(self):
+        return f"{self.course_code} {self.term}"
+
     def __str__(self):
         return f"{self.name} ({self.term})"
 

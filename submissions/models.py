@@ -410,6 +410,9 @@ class PaperSubmissionImage(models.Model):
 
     class Meta:
         verbose_name_plural = "Paper Submission Images"
+
+    def get_assignment(self):
+        return self.submission.assignment
     
     @classmethod
     def get_all_assignment_imgs(cls, assignment):

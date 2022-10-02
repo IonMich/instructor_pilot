@@ -43,6 +43,10 @@ class Assignment(models.Model):
         null=True,
         blank=True)
 
+    def get_long_name(self):
+        """Returns the name of the assignment with the name of the course."""
+        return f"{self.course.course_code} {self.course.term} - {self.name}"
+
     def get_max_question_scores(self):
         return self.max_question_scores.split(",")
 
