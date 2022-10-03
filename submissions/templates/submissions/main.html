@@ -9,7 +9,15 @@
 {% comment %} add {{title}} and button with id btn-delete-all. Use CSS flexbox{% endcomment %}
 <div class="mt-5" style="display: flex; justify-content: space-between; align-items: center;">
     <h3>{{title}}</h3>
-    <button type="button" class="btn btn-danger" id="btn-delete-all">Delete All</button>
+    {% comment %} button to add submission {% endcomment %}
+    <div role="group" aria-label="Submission Actions">
+      <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#add-sub-modal" title="Add new submissions">
+        <i class="bi-file-earmark-plus-fill"></i>
+      </button>
+      <button type="button" class="btn btn-outline-danger" id="btn-delete-all" title="Delete all submissions">
+        <i class="bi-trash-fill"></i>
+      </button>
+    </div>
 </div>
 
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 row-cols-xxl-5 g-2 mt-3" id="submissions-row">
@@ -92,7 +100,7 @@
                       </a>
                     {% endif %}
                     <button class="btn btn-sm btn-outline-danger btn-delete-sub" data-pk="{{ obj.pk }}" style="z-index: 20;">
-                      <i class="bi bi-trash"></i>
+                      <i class="bi bi-trash-fill"></i>
                     </button>
                   </div>
                   
@@ -170,6 +178,22 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="modal fade" id="add-sub-modal" tabindex="-1" aria-labelledby="add-sub-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-upload-new-label">Add New Submissions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        
+        <div class="modal-body">
+          {% include "submissions/upload_files.html" with form=upload_form message="Add new submissions" %}
+        </div>
+      </div>
+    </div>
+  </div>
 
 
 {% endblock content %}
