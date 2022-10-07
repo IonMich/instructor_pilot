@@ -430,3 +430,17 @@ offcanvasGradeStepInput.addEventListener("keydown", (event) => {
         offcanvasGradeStepInput.blur();
     }
 });
+
+// for each old comment, add a hover event listener for the div containing the comment
+// when the user hovers over the div, show the delete button
+const oldComments = document.querySelectorAll(".old-comment");
+oldComments.forEach(comment => {
+    const deleteBtn = comment.querySelector(".btn-delete-comment");
+    comment.addEventListener("mouseenter", () => {
+        deleteBtn.classList.remove("d-none");
+    });
+    comment.addEventListener("mouseleave", () => {
+        deleteBtn.classList.add("d-none");
+    });
+}
+);

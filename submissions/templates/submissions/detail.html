@@ -180,9 +180,19 @@
                         <label class="mt-3" for="old-comments" style="font-size:20px;">Old Comments</label>
                         <div class="col-xs-12 mt-2" style="height:70%;" id="old-comments">
                             {% for comment in submission.submissions_submissioncomment_related.all %}
-                            <div class="form-outline" id="old-comment-{{forloop.counter}}">
-                                
+                            <div class="form-outline old-comment" id="old-comment-{{forloop.counter}}" style="position:relative;">
+                                {% comment %} add the old comment and a button to delete it at the top right corner of the div 
+                                It is hidden by default and only shown when the user hovers over the div
+                                Its position is absolute so it doesn't affect the layout of the page
+                                {% endcomment %}
+                                <div class="position-absolute center end-0">
+                                    <button type="button" class="btn btn-delete-comment d-none" aria-label="Close" data-bs-pk="{{comment.pk}}" title="Delete comment" tabindex="-1">
+                                        {% comment %} trash {% endcomment %}
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </div>
                                 <p name="old_comment_{{forloop.counter}}" class="form-control" id="{{ comment.id_for_label }}">{{comment.text}}</p>
+                                
                             </div>
                             {% endfor %}
                         </div>
