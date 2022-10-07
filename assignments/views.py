@@ -27,6 +27,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
     search_form = SubmissionSearchForm(assignment=assignment)
     upload_form = SubmissionFilesUploadForm(no_assignment=True)
     classify_form = StudentClassifyForm(no_assignment=True)
+    sync_to_form = SyncToForm(no_assignment=True)
     message = ''
     message_type = 'info'
     if request.method == 'POST':
@@ -115,6 +116,8 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 sync_to_form.save()
                 message = 'Sync to canvas successful'
                 message_type = 'success'
+            else:
+                print(sync_to_form.errors)
     return render(
         request,
         'assignments/detail.html',
@@ -123,6 +126,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
         "search_form": search_form,
         'classify_form': classify_form,
         'upload_form': upload_form,
+        'sync_to_form': sync_to_form,
         "random_num": _random1000,
         'message': message,
         'message_type': message_type,

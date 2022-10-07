@@ -9,11 +9,11 @@ import uuid
 from django.core.exceptions import ValidationError
 from submissions.utils import (
     CommaSeparatedFloatField, 
-    get_quiz_pdf_path, 
-    convert_pdfs_to_img_list,
-    split_pdfs)
+    get_quiz_pdf_path,)
 import os
 from PIL import Image
+import random
+import string
 
 from submissions.digits_classify import (
     import_tf_model,
@@ -221,11 +221,14 @@ class PaperSubmission(Submission):
         assignment_target,
         num_pages_per_submission=2,
         dpi=150,
+        student=None,
         quiz_number=None,
         quiz_dir_path=None,
         uploaded_files=None):
         """
-        Add submission images and pdfs to the database.
+        This method adds paper submissions to the database.
+        It also saves the pdfs and images to the media directory
+        by splitting the original pdf(s) into individual submissions.
         """
         print("assignment is:", assignment_target)
         new_pdf_dir = os.path.join(
@@ -242,11 +245,15 @@ class PaperSubmission(Submission):
         img_dir = os.path.join(
             settings.MEDIA_ROOT, 
             img_rel_dir)
-        
+
         if not os.path.exists(new_pdf_dir):
             os.makedirs(new_pdf_dir)
         if not os.path.exists(img_dir):
             os.makedirs(img_dir)
+        # if student is provided, make sure that there is only one uploaded file
+        if student and len(uploaded_files) > 1:
+            raise ValueError("Can only upload one file per student.")
+
         created_submission_pks = []
         for file_idx, uploaded_file in enumerate(uploaded_files):
             if uploaded_file:
@@ -262,40 +269,56 @@ class PaperSubmission(Submission):
                     pdf_path = fp.name
             else:
                 pdf_path = get_quiz_pdf_path(quiz_number, quiz_dir_path)
-            split_pdfs(pdf_fpath=pdf_path, file_idx=file_idx, n_pages=num_pages_per_submission)
-            quizzes_img_list = convert_pdfs_to_img_list(
-                pdf_path, 
-                num_pages_per_submission=num_pages_per_submission, 
-                dpi=dpi)
-            m = len(quizzes_img_list[0])
+            import fitz
+            doc = fitz.open(pdf_path)
+            n_pages = doc.page_count
+            if student and n_pages != num_pages_per_submission:
+                raise ValueError(
+                    f"The number of pages in the pdf ({n_pages}) is "
+                    f"not equal to num_pages_per_submission ({num_pages_per_submission}).")
+            if n_pages % num_pages_per_submission != 0:
+                raise ValueError("The number of pages in the pdf is not a multiple of num_pages_per_submission.")
             
-            for i, img_list in enumerate(quizzes_img_list):
-                start_page = i * m
-                end_page = (i + 1) * m - 1
-                pdf_filename = f'submission_batch_{file_idx}_{start_page}-{end_page}.pdf'
-                old_pdf_fpath = os.path.join(settings.BASE_DIR, "tmp", pdf_filename)
+            n_submissions = n_pages // num_pages_per_submission
+            print(f"New: {pdf_path}\n")
+            for i in range(n_submissions):
+                # print on the same line the progress of the loop
+                print(f"Submission {i+1}/{n_submissions}", end="\r")
+                start_page = i * num_pages_per_submission
+                end_page = (i + 1) * num_pages_per_submission - 1
+                # we want to avoid name collisions, so we generate a random string
+                # to append to the filename
+                random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+                pdf_filename = f'submission_batch_{file_idx}_{start_page}-{end_page}_{random_string}.pdf'
                 new_pdf_fpath = os.path.join(new_pdf_dir, pdf_filename)
-                print(old_pdf_fpath)
-                print(new_pdf_fpath)
-                os.rename(old_pdf_fpath, new_pdf_fpath)
+                doc_new = fitz.open()
+                doc_new.insert_pdf(doc, from_page=start_page, to_page=end_page)
+                doc_new.save(new_pdf_fpath)
+
                 paper_submission = PaperSubmission.objects.create(
                     assignment=assignment_target,
                     pdf=new_pdf_fpath,
                     grader_comments="")
+                # if student is provided, we want to associate the submission
+                # with the student
+                if student:
+                    paper_submission.student = student
+                    paper_submission.save()
                 created_submission_pks.append(paper_submission.pk)
-                
-                for j, img in enumerate(img_list):
-                    img_filename = f'submission-{i}-batch-{file_idx}-page-{j+1}.png'
+                for j in range(num_pages_per_submission):
+                    page = doc.load_page(start_page + j)
+                    img_filename = f'submission-{i}-batch-{file_idx}-page-{j+1}-{random_string}.png'
                     img_full_path = os.path.join(img_dir, img_filename)
                     img_rel_path = os.path.join(img_rel_dir, img_filename)
-                    img.save(img_full_path, "PNG", dpi=(dpi, dpi))
+                    pix = page.get_pixmap(dpi=dpi)
+                    pix.save(img_full_path)
                     PaperSubmissionImage.objects.create(
                         submission=paper_submission,
                         image=img_rel_path,
                         page=j+1)
-            
+
         return created_submission_pks
-    
+
     @classmethod
     def classify(cls, assignment):
         """ 
@@ -474,6 +497,10 @@ class SubmissionComment(models.Model):
         auto_now_add=True)
     updated_at = models.DateTimeField(
         auto_now=True)
+
+    is_grade_summary = models.BooleanField(
+        default=False,
+        )
 
 
     def __str__(self):
