@@ -57,7 +57,14 @@
     </div>
     <div class="ms-auto bd-highlight">
             <div class="d-flex align-items-center">
-                <span class="me-5 text-muted">Average: {{submission.assignment.get_average_grade}} / {{submission.assignment.max_score}}</span>
+                <span class="me-5 text-muted">
+                    Average:
+                    {% if submission.assignment.get_grading_progress != 0 %}
+                        {{submission.assignment.get_average_grade}} 
+                    {% else %}
+                        -
+                    {% endif %}
+                    / {{submission.assignment.max_score}}</span>
             <a href="{{request.user.profile.get_absolute_url}}" class="text-decoration-none text-dark">
                 <img src="{{request.user.profile.avatar.url}}" class="rounded-circle" style="width: 2rem; height: 2rem; object-fit: cover;">
                 <span class="ms-2">{{request.user.username}}</span>
