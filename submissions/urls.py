@@ -10,6 +10,7 @@ from .views import (
     submission_classify_view,
     submission_delete_view,
     submission_delete_all_view,
+    submission_comment_delete_view,
     )
 
 app_name = 'submissions'
@@ -24,5 +25,6 @@ urlpatterns = [
     path('courses/<course_pk>/assignments/<assignment_pk>/submissions/<uuid:submission_pk>/previous/', redirect_to_previous, name='detail_previous'),
     path('courses/<course_pk>/assignments/<assignment_pk>/submissions/<uuid:submission_pk>/next/', redirect_to_next, name='detail_next'),
     path('courses/<course_pk>/assignments/<assignment_pk>/submissions/<submission_pk>/delete/', submission_delete_view, name='delete-submission'),
+    path('courses/<course_pk>/assignments/<assignment_pk>/submissions/<submission_pk>/comments/<comment_pk>/delete/', submission_comment_delete_view, name='delete-comment'),
     
 ]

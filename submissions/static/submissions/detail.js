@@ -444,3 +444,66 @@ oldComments.forEach(comment => {
     });
 }
 );
+
+// add a click event listener to the delete button of each old comment
+// when the user clicks the delete button, open a modal to confirm the deletion
+
+oldComments.forEach(comment => {
+    const deleteBtn = comment.querySelector(".btn-delete-comment");
+    deleteBtn.addEventListener("click", () => {
+        // get the comment id
+        const commentId = deleteBtn.getAttribute("data-bs-pk");
+        // get the modal
+        const modalCommentDelete = document.querySelector("#deleteCommentModal");
+        // get the modal delete button
+        const modalDeleteBtn = modalCommentDelete.querySelector("#btnDeleteCommentConfirmed");
+        // set the comment id as data attribute of the modal delete button
+        modalDeleteBtn.setAttribute("data-bs-pk", commentId);
+        // show the modal
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalCommentDelete);
+        modalInstance.show();
+    });
+}
+);
+
+// add a click event listener to the modal delete button
+// when the user clicks the modal delete button, send a fetch request to delete the comment
+const modalDeleteBtn = document.querySelector("#btnDeleteCommentConfirmed");
+modalDeleteBtn.addEventListener("click", () => {
+    // get the comment id
+    const commentId = modalDeleteBtn.getAttribute("data-bs-pk");
+    //  get the corresponding comment div, in order to remove it from the DOM later
+    // the id of the comment div is the not the same as the comment id, so we need to
+    // get the comment div by using the fact that its btn-delete-comment button has the
+    // same data-bs-pk attribute as the comment id:
+    const commentDiv = document.querySelector(`.btn-delete-comment[data-bs-pk="${commentId}"]`).closest(".old-comment");
+    // get the csrf token from the modal form
+    modal = document.querySelector("#deleteCommentModal");
+    console.log(modal);
+    modalform = document.querySelector("#deleteCommentModal form");
+    console.log(modalform);
+    const csrfToken = modalform.querySelector("input[name='csrfmiddlewaretoken']").value;
+    // send a fetch request to delete the comment
+    const url = `/courses/${course_id}/assignments/${assignment_id}/submissions/${pk}/comments/${commentId}/delete/`;
+    const options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
+        }
+    };
+    fetch(url, options)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            // remove the comment div
+            commentDiv.remove();
+            // hide the modal
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            modalInstance.hide();
+        })
+        .catch(error => {
+            console.log(error);
+        });
+}
+);

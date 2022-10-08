@@ -291,6 +291,14 @@ def submission_delete_all_view(request, course_pk, assignment_pk):
     else:
         return JsonResponse({'message': 'failure'})
     
+@login_required
+def submission_comment_delete_view(request, course_pk, assignment_pk, submission_pk, comment_pk):
+    comment = get_object_or_404(SubmissionComment, pk=comment_pk)
+    if request.method == 'POST':
+        comment.delete()
+        return JsonResponse({'message': 'success'})
+    else:
+        return JsonResponse({'message': 'failure'})
 
 
 
