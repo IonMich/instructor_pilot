@@ -20,15 +20,37 @@
         <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="/">Home</a></li>
         <li class="breadcrumb-item"><a href="{{assignment.course.get_absolute_url}}">{{assignment.course.course_code}}</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{{assignment.name}}</li>
+        <li class="breadcrumb-item active" aria-current="page">{{assignment.name}} 
+            <span class="badge bg-dark" title="Average Grade">
+                {% if assignment.get_grading_progress != 0 %}
+                {{assignment.get_average_grade}} 
+            {% else %}
+                -
+            {% endif %}/ {{ assignment.max_score }}
+            </span>
+        </li>
         </ol>
     </nav>
 
-<h1> {{assignment.name}} </h1>
+
+{% comment %} show the assignment grading progress and the average grade {% endcomment %}
+    <h1>
+        {{ assignment.name }}
+        <span class="badge bg-light text-dark" title="Percentage Graded">
+            {{ assignment.get_grading_progress }} %
+        </span>
+    </h1>
 
 {% if assignment.description %}
-    <p> {{assignment.description}} </p>
+    {% comment %} show description if it exists in italics {% endcomment %}
+    <div class="alert alert-info" role="alert" style="max-height: 200px; overflow-y: scroll; max-width: 500px;">
+        <i class="text-muted">
+        {{assignment.description | safe}}
+        </i>
+    </div>
 {% endif %}
+
+
 
 {% comment %} list assignment submissions {% endcomment %}
 <div class="row mt-4">
