@@ -83,6 +83,26 @@ if (btnFetch) {
     btnFetch.addEventListener('click', syncSubsFromCanvas);
 }
 
+// in the Post to Canvas modal, when the user selects the option "specific" in the submission_sync_option
+// show the select element to select the submission(s) to sync
+function showSelectSubs(event) {
+    const selectSubs = document.getElementById('specific-submission-select-div');
+    console.log(event);
+    if (event.target.value === 'specific') {
+        selectSubs.classList.remove('d-none');
+    } else {
+        selectSubs.classList.add('d-none');
+    }
+}
+
+// add event listener to the specific-submission-select element of the Post to Canvas modal
+// when the user selects the option "specific" in the submission_sync_option
+// show the select element to select the submission(s) to sync
+const selectSyncOption = document.getElementsByName('submission_sync_option');
+if (selectSyncOption) {
+    selectSyncOption.forEach(el => el.addEventListener('change', showSelectSubs));
+}
+
 // on hover of a submission card, show delete button at top right
 // on click of delete button, show confirmation modal
 // the button has an attribute data-pk which is the primary key of the submission

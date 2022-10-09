@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+
 {% load static %}
 {% load crispy_forms_tags%}
 
@@ -19,15 +20,37 @@
         <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="/">Home</a></li>
         <li class="breadcrumb-item"><a href="{{assignment.course.get_absolute_url}}">{{assignment.course.course_code}}</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{{assignment.name}}</li>
+        <li class="breadcrumb-item active" aria-current="page">{{assignment.name}} 
+            <span class="badge bg-dark" title="Average Grade">
+                {% if assignment.get_grading_progress != 0 %}
+                {{assignment.get_average_grade}} 
+            {% else %}
+                -
+            {% endif %}/ {{ assignment.max_score }}
+            </span>
+        </li>
         </ol>
     </nav>
 
-<h1> {{assignment.name}} </h1>
+
+{% comment %} show the assignment grading progress and the average grade {% endcomment %}
+    <h1>
+        {{ assignment.name }}
+        <span class="badge bg-light text-dark" title="Percentage Graded">
+            {{ assignment.get_grading_progress }} %
+        </span>
+    </h1>
 
 {% if assignment.description %}
-    <p> {{assignment.description}} </p>
+    {% comment %} show description if it exists in italics {% endcomment %}
+    <div class="alert alert-info" role="alert" style="max-height: 200px; overflow-y: scroll; max-width: 500px;">
+        <i class="text-muted">
+        {{assignment.description | safe}}
+        </i>
+    </div>
 {% endif %}
+
+
 
 {% comment %} list assignment submissions {% endcomment %}
 <div class="row mt-4">
@@ -51,41 +74,118 @@
                 </div>
                 <div class="col-md-6">
                     <p class="mt-3"> Upload graded submissions and comments to Canvas </p>
-                    <form action="" method="POST">
-                        {% csrf_token %}
-                        <button type="button" name="submit-sync-to" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#syncToModal">Post to Canvas</button>
-                    
+                        {% comment %} add button that opens the syncToModal {% endcomment %}
+                        
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#syncToModal">
+                            Upload to Canvas
+                            {% comment %} add an icon indicating that a modal with be opened {% endcomment %}
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </button>
                         <div class="modal fade" id="syncToModal" tabindex="-1" aria-labelledby="syncToModalLabel" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-dialog modal-dialog-centered modal-lg">
                               <div class="modal-content">
                                 <div class="modal-header">
                                   <h5 class="modal-title" id="syncToModalLabel">Upload to Canvas</h5>
                                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
-                                  This action will post all graded submissions and comments to Canvas. Specifically, 
-                                  the script retrieve all submissions of {{assignment.name}} on Canvas, and then for each submission:
-                                    <ul>
-                                        <li>Get the corresponding submission in our database with the same canvas ID. If no matching canvas ID is found, this submission will be skipped.</li>
-                                        <li>Check if the submission is graded in our database. If it is not graded, this submission will be skipped.</li>
-                                        <li>Post the submission grade on Canvas. If the submission is already graded on Canvas, the grade is overwriten.</li>
-                                        <li>Post a comment on Canvas with the individual question scores. This does <em>not</em> overwrite any previous submitted comments.</li>
-                                        <li>Post all comments in the database corresponding to this submission. These do <em>not</em> overwrite any previous submitted comments.</li>
-                                        <li>Update the submission PDF file to Canvas attached to a new submission comment.</li>
-                                    </ul>
-                                  Are you sure you want to continue?
+                                    <form action="" method="POST">
+                                    {% csrf_token %}
+                                    <div class="form-group d-none">
+                                        <input type="hidden" name="assignment" value="{{ assignment.pk }}" id="id_assignment">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="id_submission_sync_option" class="control-label">Submission Sync Option</label>
+                                        <div class="form-check">
+                                            <input checked type="radio" name="submission_sync_option" value="all" id="id_submission_sync_option_0" class="form-check-input">
+                                            <label for="id_submission_sync_option_0" class="form-check-label">Upload all locally graded submissions</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input type="radio" name="submission_sync_option" value="grade_not_on_canvas" id="id_submission_sync_option_1" class="form-check-input">
+                                            <label for="id_submission_sync_option_1" class="form-check-label">Upload only locally graded submissions that are not graded on canvas</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input type="radio" name="submission_sync_option" value="specific" id="id_submission_sync_option_2" class="form-check-input">
+                                            <label for="id_submission_sync_option_2" class="form-check-label">Upload a specific selection of submissions</label>
+                                        </div>
+                                    </div>
+                                    {% comment %} if specific is checked, we want to display a bootstrap-select for the submissions{% endcomment %}
+                                    <div class="form-group d-none" id="specific-submission-select-div">
+                                        <label for="id_submissions" class="control-label">Submissions</label>
+                                        <select name="specific_submissions" id="id_specific_submissions" class="selectpicker" multiple data-actions-box="true">
+                                            {% for submission in qs %}
+                                                <option value="{{ submission.pk }}">
+                                                    {% if submission.student %}
+                                                     {{ submission.student.first_name }} {{ submission.student.last_name }} 
+                                                    {% else %}
+                                                        {{ submission.short_name }}
+                                                    {% endif %}
+                                                    {% if submission.grade %}
+                                                        ({{ submission.grade }} / {{ assignment.max_score }})
+                                                    {% else %}
+                                                        (Not Graded)
+                                                    {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="id_comment_sync_option" class="control-label">Comment Sync Option</label>
+                                        <div class="form-check">
+                                            <input checked type="radio" name="comment_sync_option" value="all" id="id_comment_sync_option_0" class="form-check-input">
+                                            <label for="id_comment_sync_option_0" class="form-check-label">Upload all locally saved comments as new comments on canvas</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input disabled type="radio" name="comment_sync_option" value="comment_not_on_canvas" id="id_comment_sync_option_1" class="form-check-input">
+                                            <label for="id_comment_sync_option_1" class="form-check-label">Upload only locally saved comments that are not on canvas</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input disabled type="radio" name="comment_sync_option" value="delete_previous" id="id_comment_sync_option_2" class="form-check-input">
+                                            <label for="id_comment_sync_option_2" class="form-check-label">Upload all locally saved comments as new comments on canvas, but delete all previously uploaded comments on the canvas submission posted by the current user</label>
+                                        </div>
+                                    </div>
+                                    {% comment %} describe details of syncing process in an accordion: {% endcomment %}
+
+
+                                    <div class="accordion">
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header" id="headingOne">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                                  More Details
+                                                </button>
+                                            </h2>
+                                            <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                                                <div class="accordion-body">
+                                                This action will post all graded submissions and comments to Canvas. Specifically, 
+                                                the script retrieve all submissions of {{assignment.name}} on Canvas, and then for each Canvas submission:
+                                                    <ul>
+                                                        <li>Get the corresponding submission in our database with the same canvas ID. 
+                                                            If no matching canvas ID is found, this submission will be skipped.
+                                                            That's why one should sync submissions from Canvas to our database before uploading to Canvas.                                              
+                                                        </li>
+                                                        <li>Check if the submission is graded in our database. If it is not graded, this submission will be skipped.</li>
+                                                        <li>Given the choice of submission sync behavior, determine if this submission should be uploaded to Canvas.</li>
+                                                        <li>Post the submission grade on Canvas. If the submission is already graded on Canvas, the grade is overwriten.</li>
+                                                        <li>Given the choice of comment sync behavior, determine if comments should be uploaded to Canvas and if previously uploaded comments should be deleted.
+                                                            Other than the regular user-generated comments, the script will also upload the grade per question as a comment. 
+                                                            Note: Old grade-per-question comments are deleted from Canvas before new ones are uploaded, no matter what the comment sync option is.
+                                                        </li>
+                                                        <li>Update the submission PDF file to Canvas attached to a new submission comment.</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                 
                                 </div>
                                 <div class="modal-footer">
                                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                   <button type="submit" name="submit-sync-to" class="btn btn-primary">Post</button>
                                 </div>
+                                </form>
                               </div>
                             </div>
-                          </div>
-                    
-                    </form>
+                        </div>
                 </div>
-                
             </div>
         </div>
         

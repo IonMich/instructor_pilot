@@ -5,6 +5,10 @@ from courses.views import course_detail_view
 from submissions.utils import CommaSeparatedFloatField
 from courses.utils import get_canvas_course
 from django.urls import reverse
+from django.conf import settings
+import tempfile
+import os
+import shutil
 
 # Create your models here.
 
@@ -166,13 +170,52 @@ class Assignment(models.Model):
             submission.save()
 
 
-    def upload_graded_submissions_to_canvas(self):
-        """Uploads the graded submissions to canvas.
+    def upload_graded_submissions_to_canvas(self, 
+            submission_sync_option,
+            comment_sync_option,
+            specific_submissions=None
+    ):
+        """Uploads the grades and comments of the submissions to canvas.
+
+        Options to in the SyncToForm:
+        A select form field to choose the set of submissions to sync:
+        - upload all locally graded submissions or, 
+        - only graded locally submissions that are not graded on canvas.
+        - a specific selection of submissions. This would require a
+          multiple select form field.
+
+        A select form field to choose the comment syncing behavior:
+        - upload all locally saved comments as new comments on canvas, or
+        - upload all locally saved comments as new comments on canvas, 
+          but delete all previously uploaded comments on the canvas 
+          submission posted by the current user, or
+        - upload only comments that are not on canvas. This requires
+          a check for each comment if it is already on canvas which
+          means that we need to get the canvas_id of the comment when
+          we upload it to canvas. This is not implemented yet.
+
+        for these two form fields, we use as parameters here:
+        - submission_sync_option
+        - comment_sync_option
+
+        submission_sync_option = forms.ChoiceField(
+        choices=(
+            ('all', 'Upload all locally graded submissions'),
+            ('grade_not_on_canvas', 'Upload only locally graded submissions that are not graded on canvas'),
+            ('specific', 'Upload a specific selection of submissions'),
+            ),
+        )
+        # Now fot the submissions determined by submission_sync_option,
+        # we also specify the comment_sync_option: 
+        comment_sync_option = forms.ChoiceField(
+            choices=(
+                ('all', 'Upload all locally saved comments as new comments on canvas'),
+                ('delete_previous', 'Upload all locally saved comments as new comments on canvas, but delete all previously uploaded comments on the canvas submission posted by the current user'),
+                ('comment_not_on_canvas', 'Upload only comments that are not on canvas'),
+                ),
+            )
         """
-        raise NotImplementedError(
-            "stopping here. I need to add a verification from "
-            "the user that they want to upload the graded "
-            "submissions to canvas.")
+        raise ValueError("This error is raised as a final safety measure to prevent accidental uploads of grades to canvas. Comment out this line from assignments.models.upload_graded_submissions_to_canvas to enable the upload.")
         canvas_course = get_canvas_course(canvas_id=self.course.canvas_id)
         canvas_assignment = canvas_course.get_assignment(
             self.canvas_id)
@@ -192,6 +235,14 @@ class Assignment(models.Model):
             if submission.grade is None:
                 print(f"Will not upload submission without grade for {canvas_submission.user['name']}")
                 continue
+            if submission_sync_option == "grade_not_on_canvas" and canvas_submission.score is not None:
+                print(f"Will not upload grade for {canvas_submission.user['name']} because it is already on canvas.")
+                continue
+            if submission_sync_option == "specific" and submission not in specific_submissions:
+                print(f"Will not upload grade for {canvas_submission.user['name']} because it is not in the specific selection.")
+                continue
+
+            # continue
             
             for comment in submission.submissions_submissioncomment_related.all():
                 print(f'Comment: {comment.text}')
@@ -201,12 +252,22 @@ class Assignment(models.Model):
                 question_grades_comment += f"Question {idx+1} Grade: {question_grade}\n"
             print(f'Student grade: {score}')
             print(f'Question grades comment: {question_grades_comment}')
-            canvas_submission.edit(submission={
+            uploaded_canvas_submission = canvas_submission.edit(submission={
                 'posted_grade': score},
                 comment= 
                     {"text_comment":question_grades_comment,
                     },
                 )
+            # TODO: use the following to use comment_sync_option
+            # print(uploaded_canvas_submission.__dict__)
+            # for comment in uploaded_canvas_submission.submission_comments:
+            #     if (comment["comment"] == question_grades_comment.strip("\n") 
+            #     and comment["author_id"] == uploaded_canvas_submission.grader_id):
+            #         print(f"Found comment in canvas submission: {comment['comment']}")
+            #         print(f"Comment id: {comment['id']}")
+            #         submission.canvas_comment_id = comment["id"]
+            #         submission.save()
+            #         break
             print(f"Uploaded grade and grade comment for {canvas_submission.user['name']}")
             
             for comment in submission.submissions_submissioncomment_related.all():
@@ -216,11 +277,20 @@ class Assignment(models.Model):
                     },
                 )
             print(f'Submission comment file url: {submission.pdf}')
-            uploaded = canvas_submission.upload_comment(
-                file=submission.pdf,
-            )
-            if uploaded:
-                print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
+            
+            new_file_name = f"submission_{submission.student.first_name}_{submission.student.last_name}.pdf"
+            tmp_folder_path = os.path.join(settings.BASE_DIR, "tmp")
+            if not os.path.exists(tmp_folder_path):
+                os.makedirs(tmp_folder_path)
+            with tempfile.TemporaryDirectory(dir=tmp_folder_path) as tmp_dir:
+                tmp_file_path = os.path.join(tmp_dir, new_file_name)
+                shutil.copyfile(submission.pdf.path, tmp_file_path)
+
+                uploaded = canvas_submission.upload_comment(
+                    file=tmp_file_path,
+                )
+                if uploaded:
+                    print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
 
             
 

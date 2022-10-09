@@ -2,7 +2,7 @@
 {% load static %}
 <link rel="stylesheet" href="{% static 'assignments/style.css' %}">
 
-
+{% load crispy_forms_tags%}
 
   {% block content %}
   {% comment %} <div class="gradient-pattern"> {% endcomment %}
@@ -189,7 +189,11 @@
         </div>
         
         <div class="modal-body">
-          {% include "submissions/upload_files.html" with form=upload_form message="Add new submissions" %}
+          <form action="" enctype="multipart/form-data" method="POST">
+            {% csrf_token %}
+            {{ upload_form|crispy }}
+            <button type="submit" name="submit-upload" class="btn btn-primary mt-3">Upload</button>
+          </form>
         </div>
       </div>
     </div>
