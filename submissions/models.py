@@ -9,7 +9,9 @@ import uuid
 from django.core.exceptions import ValidationError
 from submissions.utils import (
     CommaSeparatedFloatField, 
-    get_quiz_pdf_path,)
+    get_quiz_pdf_path,
+    convert_pdf_to_images,
+)
 import os
 from PIL import Image
 import random
@@ -217,6 +219,21 @@ class PaperSubmission(Submission):
         pass
 
     @classmethod
+    def get_images_for_classify(cls, assignment, dpi, top_percent=0.25, left_percent=0.5, crop_box=None, skip_pages=(0,1,3)):
+        # for each PaperSubmission in assignment, use the pdf and the function
+        # convert_pdf_to_images to get the images of interest
+        # return a list of images with the following format:
+        # [ [image1, image2, ...], [image1, image2, ...], ... ]
+        # and a list of the submission pk's
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        images = []
+        image_sub_pks = []
+        for submission in submissions:
+            images.append(convert_pdf_to_images(submission.pdf, dpi, top_percent, left_percent, crop_box, skip_pages))
+            image_sub_pks.append([submission.pk for i in range(len(images[-1]))])
+        return images, image_sub_pks
+
+    @classmethod
     def add_papersubmissions_to_db(cls,
         assignment_target,
         num_pages_per_submission=2,
@@ -320,28 +337,36 @@ class PaperSubmission(Submission):
         return created_submission_pks
 
     @classmethod
-    def classify(cls, assignment):
+    def classify(
+        cls, 
+        assignment,
+        dpi=300,
+        top_percent=0.25,
+        left_percent=0.5,
+        crop_box=None,
+        skip_pages=(0, 1, 3,)):
         """ 
         use a deep learning model to classify the paper submissions
         """
         DETECTION_PROB_D = 1E-5
-        model_path = os.path.join(settings.MEDIA_ROOT, "digits_HTR_model")
-        model_path_h5 = os.path.join(settings.MEDIA_ROOT, "digits_backup_model.h5")
-        all_imgs, all_img_pks = PaperSubmissionImage.get_all_assignment_imgs(assignment)
+        model_path_h5 = os.path.join(settings.MEDIA_ROOT, "digits_model.h5")
+        all_imgs, all_sub_pks = PaperSubmission.get_images_for_classify(
+            assignment,
+            dpi=dpi,
+            top_percent=top_percent,
+            left_percent=left_percent,
+            crop_box=crop_box,
+            skip_pages=skip_pages)
         df_ids = import_students_from_db(assignment.course)
         # get the model
-        try:
-            model = import_tf_model(model_path)
-        except IOError as e:
-            print("Error:", e)
-            model =  import_tf_model(model_path_h5)
-        dpi = round(all_imgs[0][0].info["dpi"][0])
+        model =  import_tf_model(model_path_h5)
+
         print("dpi is:", dpi)
+
         df_digits = classify(
             model, 
             df_ids, 
             all_imgs,
-            template_path=os.path.join(settings.MEDIA_ROOT, "template.png"),
             dpi=dpi,
             )
 
@@ -351,12 +376,16 @@ class PaperSubmission(Submission):
                 .drop_duplicates(['doc_idx',])
                 .astype({'ufid': str})
                 .sort_values('doc_idx'))
+
         
-        df_digits_detections["sub_img"] = df_digits_detections.apply(
-            lambda row: PaperSubmissionImage.objects.get(id=all_img_pks[row.doc_idx][row.page_idx]), 
+        if len(df_digits_detections) == 0:
+            print("No detections above threshold.")
+            classified_submission_pks = []
+            not_classified_submission_pks = [pk_list[0] for pk_list in all_sub_pks]
+            return classified_submission_pks, not_classified_submission_pks
+        df_digits_detections["submission_pk"] = df_digits_detections.apply(
+            lambda row: PaperSubmission.objects.get(pk=all_sub_pks[row.doc_idx][row.page_idx]).pk, 
             axis=1)
-        df_digits_detections["submission_pk"] = df_digits_detections["sub_img"].apply(
-            lambda x: x.submission.pk)
         df_digits_detections["student"] = df_digits_detections.apply(
             lambda row: Student.objects.get(uni_id=row.ufid), 
             axis=1)

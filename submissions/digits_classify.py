@@ -5,7 +5,6 @@ import os
 import pandas as pd
 
 UFID_LENGTH = 8
-PAGES_PER_SUBMISSION = 2
 
 def perform_ops_to_imgs(quizzes_img_list, operator, **kwargs):
     new_list = []
@@ -79,7 +78,7 @@ def remove_lines_img(
             x_bottom = max(c.mean(axis=0)[0,1] for c in cnts)
             low, high = x_top, x_bottom
     else:
-        return img, (None,None)
+        return img, (None, None)
 
     count_lines = 0
     for c in cnts:
@@ -89,7 +88,7 @@ def remove_lines_img(
             if (abs((x_loc - x_left) % avg_x_distance)>2*(dpi//150)
             and abs((x_loc - x_left) % avg_x_distance - avg_x_distance)>2*(dpi//150)
             ):
-                print("skipping")
+                print("Found vertical line, but won't remove because it's not a multiple of avg_x_distance away from x_left")
                 continue
         count_lines += 1
         cv2.drawContours(removed, [c], -1, (255,255,255), 2*dpi//150)
@@ -98,10 +97,18 @@ def remove_lines_img(
     # plt.show()
     # Repair image
     if do_reconstruct:
-        # in our case the lines are on the edges, so probably don't need to do this
-        repair_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, restruct_kernel)
-        removed = 255 - cv2.morphologyEx(255 - removed, cv2.MORPH_CLOSE, repair_kernel, iterations=1)
-    return removed , (low, high)
+        repair_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
+        removed = 255 - removed
+        dilate = cv2.dilate(removed, repair_kernel, iterations=3)
+        pre_result = cv2.bitwise_and(dilate, thresh)
+
+        result = cv2.morphologyEx(pre_result, cv2.MORPH_CLOSE, repair_kernel, iterations=3)
+        final = cv2.bitwise_and(result, thresh)
+        invert_final = 255 - final
+    else:
+        invert_final = removed
+
+    return invert_final , (low, high)
 
 def import_students_from_db(course):
     student_info = []
@@ -130,118 +137,62 @@ def apply_scale_rotate(img, scale, angle):
     rotated_img = cv2.warpAffine(scaled_img, M, (width, height))
     return rotated_img
 
-def find_best_scale_and_angle(template, img_list, n_iter=1000, match_method=None, annealing=False):
-    """Do a MCMC search for the best scale and angle to align the template to the image"""
-    import random
-    # temperature
-    T = 1
-    if match_method is None:
-        match_method = cv2.TM_SQDIFF_NORMED
-    if match_method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
-        best_score = np.inf
-    else:
-        best_score = 0
-    best_scale = 1.0
-    best_angle = 0
-    # step size for Marcov chain
-    scale_sigma = 0.01
-    angle_sigma = 0.01
-    # start with scale and angle of 1.0 and 0
-    scale = best_scale
-    angle = best_angle
-    score = best_score
-    # prior for scale and angle is gaussian with mean 1.0 and 0
-    # and variances 0.1 and 1.0
-    scale_prior = lambda x: np.exp(-0.5*(x-1.0)**2/0.1**2)
-    angle_prior = lambda x: np.exp(-0.5*x**2/1.0**2)
-    prior = lambda x,y: scale_prior(x)*angle_prior(y)
-    for i in range(n_iter):
-        # scale and angle search
-        proposed_scale = scale + random.gauss(0, scale_sigma)
-        propose_angle =  angle + random.gauss(0, angle_sigma)
-        print("proposed: scale", proposed_scale, "angle", propose_angle, end="\r")
-        # scale the template
-        template_ = apply_scale_rotate(template, proposed_scale, propose_angle)
-        template_rgb, template_luminance = template_[:,:,:3], template_[:,:,3]
+
+def get_possible_boundaries(img_rgb, padding_px):
+    sub_boundaries = []
+    # convert the image to grayscale
+    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+    # apply a threshold to the image
+    ret, thresh = cv2.threshold(img_gray, 127, 255, 0)
+    # find the contours in the image
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # sort the contours by area
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)
+    count = 0
+    for i in range(100):
+        if cv2.contourArea(contours[i]) < 100000 and cv2.contourArea(contours[i]) > 10000:
+            count += 1
+            # approximate the contour with a rectangle
+            rect = cv2.minAreaRect(contours[i])
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
+            # or more concisely
+            min_x, min_y = np.min(box, axis=0)
+            max_x, max_y = np.max(box, axis=0)
+            # pad 
+            sub_boundaries.append((
+                max(0, min_x-padding_px),
+                max(0, min_y-padding_px),
+                min(img_rgb.shape[1], max_x+padding_px),
+                min(img_rgb.shape[0], max_y+padding_px)
+            ))
         
-        # randomly choose an image to match to
-        sub_idx = random.randint(0, len(img_list)-1)
-        page_idx = random.randint(0, len(img_list[sub_idx])-1)
-        img_rgb = np.array(img_list[sub_idx][page_idx])
-        # image_to_match = cv2.erode(img_rgb, None, iterations=1)
-        # template_rgb_ = cv2.erode(template_rgb, None, iterations=1)
-        # copy
-        image_to_match = img_rgb.copy()
-        template_rgb_ = template_rgb.copy()
-        result = cv2.matchTemplate(image_to_match, template_rgb_, match_method)
-        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-        if match_method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
-            # implement the Metropolis-Hastings acceptance criterion
-            # accept if the new score is better than the old score
-            # or if the new score is worse than the old score, accept with probability exp(-(new-old)/T)
-            prior_ratio = prior(proposed_scale, propose_angle) / prior(scale, angle)
-            if min_val < best_score or random.random() < prior_ratio * np.exp(-(min_val-best_score)/T):
-                angle = propose_angle
-                scale = proposed_scale
-            if min_val < best_score:
-                best_score = min_val
-                best_scale = proposed_scale
-                best_angle = propose_angle
-        else:
-            if max_val > best_score or random.random() < prior_ratio * np.exp((max_val - best_score)/T):
-                angle = propose_angle
-                scale = proposed_scale
-            if max_val > best_score:
-                best_score = max_val
-                best_scale = proposed_scale
-                best_angle = propose_angle
-        if annealing:
-            T *= 0.99
-        # print and overwrite in the same line to show progress
-    print("\nbest: scale", best_scale, "angle", best_angle, "score", best_score)
-    best_template = apply_scale_rotate(template, best_scale, best_angle)
-    return best_template, best_scale, best_angle
+    return sub_boundaries
 
-def extract_digit_boxes_from_img(
+def extract_digit_boxes_from_img_new(
+    img_rgb, 
+    dpi=300,
+):
+    padding_px = round(3 * dpi / 150)
+    sub_boundaries = get_possible_boundaries(
         img_rgb, 
-        template_rgb, 
-        mask, 
-        dpi=300,
-        match_method=None
-        ):
-    ht, wt = template_rgb.shape[:2]
-    if not match_method:
-        match_method = cv2.TM_SQDIFF_NORMED
-    image_to_match = cv2.erode(img_rgb, None, iterations=1)
-    template_rgb = cv2.erode(template_rgb, None, iterations=1)
-    result = cv2.matchTemplate(image_to_match, template_rgb, match_method, None, mask)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-    if match_method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
-        top_left = min_loc
-    else:
-        top_left = max_loc
-
-    x1, x2 = top_left[0], top_left[0] + wt
-    y1, y2 = top_left[1], top_left[1] + ht
-    img = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+        padding_px
+    )
     
-    # _, img =  cv2.threshold(img, 200, 255, cv2.THRESH_BINARY)
-
-    # cv2.rectangle(img, (x1, y1), (x2, y2), (100,100,255), 2)
-    # plt.imshow(img)
-    # plt.show()
-    for padding_x_px in [10*dpi//150, 50*dpi//150, 100*dpi//150]:
+    # now we have the boundaries so we can crop the image
+    # without the need of the template!
+    img = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+    # try each possible boundary
+    for boundary in sub_boundaries:
         try:
-            img_ = img[
-                y1:y2, 
-                x1-padding_x_px:x2+padding_x_px
-                ]
+            img_ = img[boundary[1]:boundary[3], boundary[0]:boundary[2]]
+
             img_no_v, (x_left, x_right) = remove_lines_img(
                 img_, 
                 mode="vertical", 
                 rect_kernel_size=37*dpi//150, 
                 rect_kernel_width=1, 
-                do_reconstruct=False,
+                do_reconstruct=True,
                 dpi=dpi
                 )
 
@@ -250,26 +201,29 @@ def extract_digit_boxes_from_img(
                 mode="horizontal", 
                 rect_kernel_size=70*dpi//150, 
                 rect_kernel_width=1, 
-                do_reconstruct=False,
+                do_reconstruct=True,
                 dpi=dpi
                 )
-            img = cv2.bitwise_or(img_no_v, img_no_h)
+            img_nolines = cv2.bitwise_or(img_no_v, img_no_h)
             break
-        except ValueError as e:
+        except Exception as e:
             print("Handling:", e)
             continue
 
-    image_boundary_pixels_x_left = x_left 
-    len_x = x_right - x_left
-    separation = len_x // UFID_LENGTH
-    start_left = image_boundary_pixels_x_left
+    if x_right is not None and x_left is not None:
+        image_boundary_pixels_x_left = x_left 
+        len_x = x_right - x_left
+        separation = len_x // UFID_LENGTH
+        start_left = image_boundary_pixels_x_left
+    else:
+        return None
     
     digits = []
     for i_box in range(UFID_LENGTH):
         boundary_x_left = start_left + i_box * separation
         boundary_x_right = start_left + (i_box+1) * separation
 
-        image_i = img[
+        image_i = img_nolines[
             int(y_top): int(y_bottom), 
             int(boundary_x_left):int(boundary_x_right)]
         digits.append(image_i)
@@ -277,32 +231,21 @@ def extract_digit_boxes_from_img(
     assert image_i.dtype==np.uint8
     return digits
 
-def get_all_digits(
-    quizzes_img_list, 
-    template, 
+def get_all_digits_new(
+    quizzes_img_list,
     dpi,
     pages_to_skip=[0,1,3],
-    match_method=None):
-
-    best_template, best_scale, best_angle = find_best_scale_and_angle(
-        template,
-        quizzes_img_list,
-        n_iter=1000,
-        match_method=cv2.TM_SQDIFF_NORMED
-    )
-    template_rgb, template_luminance = best_template[:,:,:3], best_template[:,:,3]
-
+    ):
     digits = {}
     for idx_submission, submission in enumerate(quizzes_img_list):
         for idx_page, page in enumerate(submission):
             if idx_page in pages_to_skip:
                 continue
-            digits[idx_submission, idx_page] = extract_digit_boxes_from_img(
+            digits_extracted = extract_digit_boxes_from_img_new(
                 np.array(page), 
-                template_rgb, 
-                mask=template_luminance, 
-                dpi=dpi,
-                match_method=match_method)
+                dpi=dpi)
+
+            digits[idx_submission, idx_page] = digits_extracted
     return digits
 
 def resize_keep_aspect(img, size):
@@ -487,12 +430,11 @@ def get_all_ufids(digit_imgs, df_ids, model, len_subs):
     # matplotlib.use('TKAgg')
     for submission_idx, page_idx in digit_imgs.keys():
         digits_img_list = digit_imgs[(submission_idx, page_idx)]
-        # if not(submission_idx == 3 and page_idx == 1):
-        #     continue
-        # print(submission_idx, page_idx, end="\r")
         
         max_probability = 0
         for morph in morph_list:
+            if digits_img_list is None:
+                break
             
             digits_processed = preprocess_digits(digits_img_list, morph=morph)
             
@@ -560,28 +502,15 @@ def classify(
         model, 
         df_ids, 
         img_list,
-        template_path,
-        crop_box_150=(10, 20, 785, 300),
         dpi=300,
         pages_to_skip=[0,1,3],
         ):
-    crop_box = tuple(np.array(crop_box_150) * dpi // 150)
-    print("Cropping to approximate region of interest with crop_box", crop_box)
-    img_list_ = crop_to_name_region(
-        img_list,
-        box=crop_box)
-    print("Creating a copy of the image list")
-    img_list = copy.deepcopy(img_list_)
 
-    template_150 = cv2.imread(template_path, cv2.IMREAD_UNCHANGED)
-    template = apply_scale_rotate(template_150, dpi//150, 0)
-    print("Applying template matching and cropping to the digit list")
-    digit_imgs = get_all_digits(
+    print("Cropping to the digit list")
+    digit_imgs = get_all_digits_new(
         img_list, 
-        template, 
         dpi=dpi,
-        pages_to_skip=pages_to_skip,
-        match_method=None)
+        pages_to_skip=pages_to_skip)
     print("Classifying the digits")
     df_digits = get_all_ufids(
         digit_imgs, 
