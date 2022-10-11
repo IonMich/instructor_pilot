@@ -349,7 +349,7 @@ class PaperSubmission(Submission):
         use a deep learning model to classify the paper submissions
         """
         DETECTION_PROB_D = 1E-5
-        model_path_h5 = os.path.join(settings.MEDIA_ROOT, "digits_model.h5")
+        model_path_h5 = os.path.join(settings.MEDIA_ROOT, "classify/digits_model.h5")
         all_imgs, all_sub_pks = PaperSubmission.get_images_for_classify(
             assignment,
             dpi=dpi,
