@@ -7,3 +7,4 @@ media/
 *.pdf
 *.csv
 !media/template.png
+!media/digits_model.h5
