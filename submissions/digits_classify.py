@@ -209,6 +209,8 @@ def extract_digit_boxes_from_img_new(
         except Exception as e:
             print("Handling:", e)
             continue
+    else:
+        x_left, x_right, y_top, y_bottom = None, None, None, None
 
     if x_right is not None and x_left is not None:
         image_boundary_pixels_x_left = x_left 
