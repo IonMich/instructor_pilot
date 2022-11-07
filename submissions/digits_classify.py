@@ -143,14 +143,17 @@ def get_possible_boundaries(img_rgb, padding_px):
     # convert the image to grayscale
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
     # apply a threshold to the image
-    ret, thresh = cv2.threshold(img_gray, 127, 255, 0)
+    ret, thresh = cv2.threshold(img_gray, 220, 255, 0)
     # find the contours in the image
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # sort the contours by area
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
+    idx_max = min(100, len(contours))
     count = 0
-    for i in range(100):
-        if cv2.contourArea(contours[i]) < 100000 and cv2.contourArea(contours[i]) > 10000:
+    for i in range(idx_max):
+        if cv2.contourArea(contours[i]) < 10000:
+            break
+        if cv2.contourArea(contours[i]) < 100000:
             count += 1
             # approximate the contour with a rectangle
             rect = cv2.minAreaRect(contours[i])
@@ -178,7 +181,9 @@ def extract_digit_boxes_from_img_new(
         img_rgb, 
         padding_px
     )
-    
+    if len(sub_boundaries) == 0:
+        print("No sub_boundaries found with the area specifications")
+        return None
     # now we have the boundaries so we can crop the image
     # without the need of the template!
     img = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
@@ -210,7 +215,8 @@ def extract_digit_boxes_from_img_new(
             print("Handling:", e)
             continue
     else:
-        x_left, x_right, y_top, y_bottom = None, None, None, None
+        print("No contours found with the appropriate number of horizontal and vertical lines")
+        return None
 
     if x_right is not None and x_left is not None:
         image_boundary_pixels_x_left = x_left 
