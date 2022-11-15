@@ -143,7 +143,7 @@ def get_possible_boundaries(img_rgb, padding_px):
     # convert the image to grayscale
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
     # apply a threshold to the image
-    ret, thresh = cv2.threshold(img_gray, 220, 255, 0)
+    ret, thresh = cv2.threshold(img_gray, 180, 255, 0)
     # find the contours in the image
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # sort the contours by area
