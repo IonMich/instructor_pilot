@@ -169,13 +169,15 @@
                             {% endfor %}
                         </div>
                     </div>
-                    <div class="col-xs-12 mb-2" style="height:70%;">
+
+                    {% comment %} <div class="col-xs-12 mb-2" style="height:70%;">
                         <div class="form-outline">
                             {{ grading_form.new_comment.errors }}
+                            
                             <label for="newComment" style="font-size:20px;">New Comment</label>
                             <textarea name="new_comment" class="form-control" id="newComment" rows="7"></textarea>
                         </div>
-                    </div>
+                    </div> {% endcomment %}
                     {% if submission.submissions_submissioncomment_related.all %}
                         <label class="mt-3" for="old-comments" style="font-size:20px;">Old Comments</label>
                         <div class="col-xs-12 mt-2" style="height:70%;" id="old-comments">
@@ -197,6 +199,51 @@
                             {% comment %} create modal for comment delete confirmation {% endcomment %}
                         </div>
                     {% endif %}
+
+                    {% comment %} NEW COMMENTS {% endcomment %}
+                    <div class="col-xs-12 mb-5" style="height:70%;">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <div class="form-group
+                                    {% if grading_form.non_field_errors %}
+                                        {{ grading_form.new_comment.errors }}
+                                    {% endif %}
+                                ">
+                                <div class="d-flex justify-content-between">
+                                    <div class="mb-1">
+                                        <label for="id_comments" style="font-size:20px;">New Comment</label>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="button" aria-pressed="false" autocomplete="off" id="show-assignment-saved-comments" title="Import saved comment">
+                                            <i class="bi bi-menu-button-wide-fill"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+
+
+                                </div>
+                                    <div class="form-outline">
+                                        <select class="form-control selectpicker show-tick d-none" data-width="auto" title="Select saved comment" data-live-search="true" name="saved_comment" id="id_assignment_saved_comments" multiple>
+                                            <style>
+                                                option {
+                                                    font-size: 14px;
+                                                }
+                                            <option value="123" data-tokens="1234">comment 1</option>
+                                            <option value="1223" data-tokens="12234">comment 2</option>
+                                            <option value="1223" data-tokens="122">comment 3</option>
+                                            <option value="23" data-tokens="14">comment 4</option>
+                                            <option value="233" data-tokens="124">comment 5</option>
+                                        </select>
+                                        <textarea name="new_comment" class="form-control" id="newComment" rows="7"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    
                     
                     <div class="col-xs-12 mt-4" style="height:70%;">
                         <div class="form-outline">

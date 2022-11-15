@@ -507,3 +507,32 @@ modalDeleteBtn.addEventListener("click", () => {
         });
 }
 );
+
+// the form contains a button with id "show-assignment-saved-comments"
+// when the user clicks the button, show the saved comments that the user has saved for this assignment
+// and hide the textarea
+// this is done by removing the "d-none" class from the select with id id_assignment_saved_comments
+// if saved comments are shown, the button should hide the saved comments and show the textarea again
+// note that selectpicker creates a div with class "btn-group bootstrap-select" around the select
+// so we need to get the parent of the parent of the select and add the "d-none" class to it
+const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comments");
+showSavedCommentsBtn.addEventListener("click", () => {
+    const savedCommentsSelect = document.querySelector("#id_assignment_saved_comments");
+    if (savedCommentsSelect.classList.contains("d-none")) {
+        savedCommentsSelect.classList.remove("d-none");
+        // also remove the "d-none" class from the div with class "btn-group bootstrap-select"
+        savedCommentsSelect.parentElement.classList.remove("d-none");
+    } else {
+        savedCommentsSelect.classList.add("d-none");
+        // also add the "d-none" class to the div with class "btn-group bootstrap-select"
+        savedCommentsSelect.parentElement.classList.add("d-none");
+    }
+    // if the textarea is hidden, show it
+    if (text_area.classList.contains("d-none")) {
+        text_area.classList.remove("d-none");
+    } else {
+        text_area.classList.add("d-none");
+    }
+
+}
+);
