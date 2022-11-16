@@ -2,6 +2,11 @@
 {% load static %}
 {% load crispy_forms_tags%}
 
+{% comment %} add stylesheet {% endcomment %}
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'submissions/style.css' %}">
+{% endblock %}
+
 {% block scripts %}
     {{ request.user.profile.preferences.scroll_height_factors|json_script:"scroll_height_factors" }}
     {{ request.user.profile.preferences.grade_steps|json_script:"grade_steps" }}
@@ -187,8 +192,17 @@
                                 It is hidden by default and only shown when the user hovers over the div
                                 Its position is absolute so it doesn't affect the layout of the page
                                 {% endcomment %}
-                                <div class="position-absolute center end-0">
-                                    <button type="button" class="btn btn-delete-comment d-none" aria-label="Close" data-bs-pk="{{comment.pk}}" title="Delete comment" tabindex="-1">
+                                <div class="position-absolute center end-0 comment-tools d-none d-flex flex-column-reverse">
+                                    {% comment %} add edit, star and trash buttons {% endcomment %}
+                                    <button type="button" class="btn btn-edit-comment" aria-label="Edit" data-bs-pk="{{comment.pk}}" title="Edit comment" tabindex="-1">
+                                        {% comment %} pen {% endcomment %}
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-star-comment" aria-label="Star" data-bs-pk="{{comment.pk}}" title="Star comment" tabindex="-1">
+                                        {% comment %} star {% endcomment %}
+                                        <i class="bi bi-star-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-delete-comment" aria-label="Close" data-bs-pk="{{comment.pk}}" title="Delete comment" tabindex="-1">
                                         {% comment %} trash {% endcomment %}
                                         <i class="bi bi-trash-fill"></i>
                                     </button>
@@ -201,41 +215,43 @@
                     {% endif %}
 
                     {% comment %} NEW COMMENTS {% endcomment %}
-                    <div class="col-xs-12 mb-5" style="height:70%;">
+
+                    {% comment %} new comment preview {% endcomment %}
+                    <div class="col-xs-12 preview-comment d-none">
+                        <div class="form-floating">
+                            <textarea placeholder="Comment Preview" class="form-control" id="newCommentPreview" disabled></textarea>
+                            <label for="newCommentPreview"><span class="text-muted">Comment Preview</span></label>
+                        </div>
+                    </div>
+                    <div class="col-xs-12" style="height:70%;">
                         <div class="row">
                             <div class="col-xs-12">
                                 <div class="form-group
                                     {% if grading_form.non_field_errors %}
                                         {{ grading_form.new_comment.errors }}
-                                    {% endif %}
-                                ">
-                                <div class="d-flex justify-content-between">
-                                    <div class="mb-1">
-                                        <label for="id_comments" style="font-size:20px;">New Comment</label>
-                                    </div>
-                                    <div>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="button" aria-pressed="false" autocomplete="off" id="show-assignment-saved-comments" title="Import saved comment">
-                                            <i class="bi bi-menu-button-wide-fill"></i>
-                                        </button>
+                                    {% endif %}">
+                                    <div class="d-flex justify-content-between">
+                                        <div class="mt-4 mb-2">
+                                            <label for="id_comments" style="font-size:20px;">New Comment</label>
+                                        </div>
+                                        <div class="mt-4 mb-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="button" aria-pressed="false" autocomplete="off" id="show-assignment-saved-comments" title="Import saved comment">
+                                                <i class="bi bi-menu-button-wide-fill"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-
-
-
-                                </div>
-                                    <div class="form-outline">
-                                        <select class="form-control selectpicker show-tick d-none" data-width="auto" title="Select saved comment" data-live-search="true" name="saved_comment" id="id_assignment_saved_comments" multiple>
-                                            <style>
-                                                option {
-                                                    font-size: 14px;
-                                                }
+                                    <div class="form-outline mb-5">
+                                        
+                                        <select class="form-control saved-comments selectpicker show-tick  d-none" data-width="auto" title="Select saved comment(s)" data-live-search="true" name="saved_comment" id="id_assignment_saved_comments" multiple>
                                             <option value="123" data-tokens="1234">comment 1</option>
                                             <option value="1223" data-tokens="12234">comment 2</option>
-                                            <option value="1223" data-tokens="122">comment 3</option>
-                                            <option value="23" data-tokens="14">comment 4</option>
-                                            <option value="233" data-tokens="124">comment 5</option>
+                                            <option value="1223" data-tokens="122" data-subtext="{% lorem 10%}">comment 3</option>
+                                            <option value="23" data-tokens="14" data-subtext="{% lorem 4%}">comment 4</option>
+                                            <option value="233" data-tokens="124" data-subtext="{% lorem %}">comment 5</option>
+
                                         </select>
-                                        <textarea name="new_comment" class="form-control" id="newComment" rows="7"></textarea>
+                                        <textarea name="new_comment" class="form-control" id="newCommentTextArea" rows="7"></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -245,17 +261,18 @@
 
                     
                     
-                    <div class="col-xs-12 mt-4" style="height:70%;">
+                    <div class="col-xs-12 mt-1">
                         <div class="form-outline">
                             {{ grading_form.comment_files.errors }}
                             <label for="{{ grading_form.comment_files.id_for_label }}" style="font-size:20px;">File</label>
                             <input type="file" name="comment_files" class="form-control" id="{{ grading_form.comment_files.id_for_label }}">
                         </div>
                     </div>
-                    <div class="col-xs-12 mt-2" style="height:70%;">
-                        <input class="btn btn-primary" type="submit" value="Update">
+                    <div class="row justify-content-center">
+                        <div class="col-xs-12 mt-5 w-auto" style="height:70%;">
+                            <input class="btn btn-primary" type="submit" value="Update">
+                        </div>
                     </div>
-                    
                 </div>
             </form>
             <div class="modal fade" id="deleteCommentModal" tabindex="-1" aria-labelledby="deleteCommentModalLabel" aria-hidden="true">

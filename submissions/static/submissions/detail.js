@@ -292,7 +292,7 @@ function setInitialGradeStep() {
 
 
 
-const text_area = document.getElementById("newComment");
+const text_area = document.getElementById("newCommentTextArea");
 const prevBtn = document.getElementById("btnPrev");
 const nextBtn = document.getElementById("btnNext");
 const offcanvas = document.querySelector("#offcanvasExample");
@@ -432,16 +432,53 @@ offcanvasGradeStepInput.addEventListener("keydown", (event) => {
 });
 
 // for each old comment, add a hover event listener for the div containing the comment
-// when the user hovers over the div, show the delete button
+
 const oldComments = document.querySelectorAll(".old-comment");
 oldComments.forEach(comment => {
+    // when the user hovers over the div, show the .comment-tools div
+    const commentTools = comment.querySelector(".comment-tools");
     const deleteBtn = comment.querySelector(".btn-delete-comment");
+    const starBtn = comment.querySelector(".btn-star-comment");
+    const editBtn = comment.querySelector(".btn-edit-comment");
     comment.addEventListener("mouseenter", () => {
-        deleteBtn.classList.remove("d-none");
+        commentTools.classList.remove("d-none");
     });
+    // when the user hovers out of the div, hide the .comment-tools div
     comment.addEventListener("mouseleave", () => {
-        deleteBtn.classList.add("d-none");
+        commentTools.classList.add("d-none");
     });
+    // when the user hovers over the delete button, change the color to red
+    deleteBtn.addEventListener("mouseenter", () => {
+        deleteBtn.classList.add("text-danger");
+    }
+    );
+    // when the user hovers out of the delete button, change the color back to black
+    deleteBtn.addEventListener("mouseleave", () => {
+        deleteBtn.classList.remove("text-danger");
+    }
+    );
+    // when the user hovers over the star button, change the color to yellow
+    starBtn.addEventListener("mouseenter", () => {
+        starBtn.classList.add("text-warning");
+    }
+    );
+    // when the user hovers out of the star button, change the color back to black
+    starBtn.addEventListener("mouseleave", () => {
+        starBtn.classList.remove("text-warning");
+    }
+    );
+    // when the user hovers over the edit button, change the color to green
+    editBtn.addEventListener("mouseenter", () => {
+        editBtn.classList.add("text-success");
+    }
+    );
+    // when the user hovers out of the edit button, change the color back to black
+    editBtn.addEventListener("mouseleave", () => {
+        editBtn.classList.remove("text-success");
+    }
+    );
+
+
 }
 );
 
@@ -516,23 +553,158 @@ modalDeleteBtn.addEventListener("click", () => {
 // note that selectpicker creates a div with class "btn-group bootstrap-select" around the select
 // so we need to get the parent of the parent of the select and add the "d-none" class to it
 const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comments");
-showSavedCommentsBtn.addEventListener("click", () => {
-    const savedCommentsSelect = document.querySelector("#id_assignment_saved_comments");
-    if (savedCommentsSelect.classList.contains("d-none")) {
-        savedCommentsSelect.classList.remove("d-none");
-        // also remove the "d-none" class from the div with class "btn-group bootstrap-select"
-        savedCommentsSelect.parentElement.classList.remove("d-none");
+    showSavedCommentsBtn.addEventListener("click", (event) => {
+    
+    // override the default behaviour of the button
+    event.preventDefault();
+    const savedCommentsDiv = document.querySelector("div.saved-comments")
+    const previewCommentDiv = document.querySelector("div.preview-comment")
+    // if active
+    if (showSavedCommentsBtn.classList.contains("active")) {
+        // copy the selected text to the textarea
+        const previewCommentArea = document.querySelector("#newCommentPreview");
+        previewCommentArea.value = text_area.value;
+        // reduce the height of the preview comment to fit the textarea text
+        if (previewCommentArea.value.length > 0) {
+            height = text_area.scrollHeight;
+            previewCommentArea.style.height = `${height}px`;
+        } 
+
+        console.log("closing textarea");
+        text_area.setAttribute("closing", "");
+        
+        text_area.addEventListener(
+            "animationend",
+            () => {
+                text_area.removeAttribute("closing");
+                text_area.classList.add("d-none");
+                
+            },
+            { once: true }
+            );
+        console.log("opening saved comments");
+        savedCommentsDiv.classList.remove("d-none");
+        savedCommentsDiv.setAttribute("opening", "");
+        savedCommentsDiv.addEventListener(
+            "animationend",
+            () => {
+                
+                savedCommentsDiv.removeAttribute("opening");
+                
+            },
+            { once: true }
+            );
+        previewCommentDiv.classList.remove("d-none");
+        previewCommentDiv.setAttribute("opening", "");
+
+        previewCommentDiv.addEventListener(
+            "animationend",
+            () => {
+                    
+                    previewCommentDiv.removeAttribute("opening");
+                    
+                }
+            );
+        
     } else {
-        savedCommentsSelect.classList.add("d-none");
-        // also add the "d-none" class to the div with class "btn-group bootstrap-select"
-        savedCommentsSelect.parentElement.classList.add("d-none");
-    }
-    // if the textarea is hidden, show it
-    if (text_area.classList.contains("d-none")) {
+        console.log("closing saved comments");
+        savedCommentsDiv.setAttribute("closing", "");
+        savedCommentsDiv.addEventListener(
+            "animationend",
+            () => {
+                savedCommentsDiv.removeAttribute("closing");
+                savedCommentsDiv.classList.add("d-none");
+                
+            },
+            { once: true }
+            );
+
         text_area.classList.remove("d-none");
-    } else {
-        text_area.classList.add("d-none");
+        console.log("opening textarea");
+        text_area.setAttribute("opening", "");
+        
+        text_area.addEventListener(
+            "animationend",
+            () => {
+                text_area.removeAttribute("opening");
+            },
+            { once: true }
+            );
+
+        previewCommentDiv.setAttribute("closing", "");
+        previewCommentDiv.addEventListener(
+            "animationend",
+            () => {
+                previewCommentDiv.removeAttribute("closing");
+                previewCommentDiv.classList.add("d-none");
+            },
+            { once: true }
+
+        );
     }
+    
+    // const savedCommentsSelect = document.querySelector("#id_assignment_saved_comments");
+    // if (savedCommentsSelect.classList.contains("d-none")) {
+    //     savedCommentsSelect.classList.remove("d-none");
+    //     // also remove the "d-none" class from the div with class "btn-group bootstrap-select"
+    //     savedCommentsSelect.parentElement.classList.remove("d-none");
+    // } else {
+    //     savedCommentsSelect.classList.add("d-none");
+    //     // also add the "d-none" class to the div with class "btn-group bootstrap-select"
+    //     savedCommentsSelect.parentElement.classList.add("d-none");
+    // }
+    // // if the textarea is hidden, show it
+    // if (text_area.classList.contains("d-none")) {
+    //     text_area.classList.remove("d-none");
+    // } else {
+    //     text_area.classList.add("d-none");
+    // }
 
 }
 );
+
+// when the saved-comments selectpicker is changed, update the textarea with the selected comment(s)
+// and update the preview comment div
+const savedCommentsSelect = document.querySelector("#id_assignment_saved_comments");
+
+savedCommentsSelect.addEventListener("change", (event) => {
+    // get the selected comment(s)
+    const selectedComments = event.target.selectedOptions;
+    // text_area is already defined above
+
+    // get the preview comment area
+    const previewCommentArea = document.querySelector("#newCommentPreview");
+    
+    text_area.value = "";
+    previewCommentArea.value = "";
+    
+    // loop through the selected comments
+    for (let i = 0; i < selectedComments.length; i++) {
+        // get the comment data-subtext attribute of the selected comment
+        const commentText = selectedComments[i].getAttribute("data-subtext");
+        // add the comment text to the textarea
+        text_area.value += commentText + "\n";
+        
+        // add the comment text to the preview comment div
+        previewCommentArea.value += commentText + "\n";
+
+        // if the value of the textarea does not fit in the textarea, increase the height of the textarea
+        // this is done by setting the height of the textarea to the scrollHeight
+        // the scrollHeight is the height of the textarea including the height of the text
+        // if the scrollHeight is greater than the height of the textarea, increase the height of the textarea
+        if (text_area.scrollHeight > text_area.clientHeight) {
+            text_area.style.height = text_area.scrollHeight + 40 + "px";
+        }
+
+        // if the value of the preview comment div does not fit in the preview comment div, increase the height of the preview comment div
+        // this is done by setting the height of the preview comment div to the scrollHeight
+        // the scrollHeight is the height of the preview comment div including the height of the text
+        // if the scrollHeight is greater than the height of the preview comment div, increase the height of the preview comment div
+        if (previewCommentArea.scrollHeight > previewCommentArea.clientHeight) {
+            previewCommentArea.style.height = previewCommentArea.scrollHeight + 40 + "px";
+        }
+
+    }
+}
+);
+

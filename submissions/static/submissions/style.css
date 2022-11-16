@@ -1,0 +1,103 @@
+#newCommentTextArea[closing] {
+    pointer-events: none;
+    animation: fade-up 10ms forwards;
+  }
+
+#newCommentTextArea[opening] {
+    pointer-events: none;
+    animation-name: fade-in;
+    animation-duration: 250ms;
+    animation-fill-mode: forwards;
+  }
+
+.saved-comments[opening] {
+    display: block;
+    pointer-events: none;
+    animation-name: fade-in;
+    animation-duration: 500ms;
+    animation-fill-mode: forwards;
+  }
+
+.saved-comments[closing] {
+pointer-events: none;
+animation-name: fade-out;
+animation-duration: 100ms;
+animation-fill-mode: forwards;
+}
+
+.bootstrap-select .dropdown-menu { max-width: 100% !important; }
+
+
+
+
+@keyframes fade-out {
+    0% {
+      max-width: 100%;
+      transform: translateX(0%);
+      opacity: 1;
+    }
+    100% {
+        max-width: 0%;
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes fade-up {
+    0% {
+      max-width: 100%;
+      height: 58px;
+      transform: translateY(0%);
+      opacity: 1;
+    }
+    100% {
+        max-width: 100%;
+        height: 0px;
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
+
+
+@keyframes fade-in {
+    0% {
+      max-width: 0%;
+      opacity: 0;
+    }
+    100% {
+        max-width: 100%;
+        opacity: 1;
+    }
+}
+
+@keyframes enlarge {
+    0% {
+      height: 0px;
+    }
+    100% {
+        height: 58px;
+    }
+}
+
+@keyframes shrink {
+    0% {
+        height: 58px;
+    }
+    100% {
+        height: 0px;
+    }
+}
+
+/* apply enlarge followed by fade-in for .preview-comment */
+
+.preview-comment[opening] {
+    animation-name: enlarge, fade-in;
+    animation-duration: 500ms;
+    animation-fill-mode: forwards;
+}
+
+.preview-comment[closing] {
+    animation-name: fade-up;
+    animation-duration: 500ms;
+    animation-fill-mode: forwards;
+}
