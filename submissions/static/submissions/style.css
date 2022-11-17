@@ -108,3 +108,19 @@ animation-fill-mode: forwards;
     animation-duration: 500ms;
     animation-fill-mode: forwards;
 }
+
+/**** comment-tools ****/
+
+/* set this toolbar as a row on the top right of the comment div */
+/* set the background color to raise it above the comment div */
+/* create a shadow on the left and on the bottom to make it look like a toolbar */
+.comment-tools {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 2px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: -1px 1px 5px 0px rgba(0,0,0,0.75);
+    z-index: 1;
+}

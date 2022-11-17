@@ -192,7 +192,7 @@
                                 It is hidden by default and only shown when the user hovers over the div
                                 Its position is absolute so it doesn't affect the layout of the page
                                 {% endcomment %}
-                                <div class="position-absolute center end-0 comment-tools d-none d-flex flex-column-reverse">
+                                <div class="comment-tools btn-group-sm d-none">
                                     {% comment %} add edit, star and trash buttons {% endcomment %}
                                     <button type="button" class="btn btn-edit-comment" aria-label="Edit" data-bs-pk="{{comment.pk}}" title="Edit comment" tabindex="-1">
                                         {% comment %} pen {% endcomment %}
@@ -330,6 +330,37 @@
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-success" id="btnStarCommentConfirmed">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="editCommentModal" tabindex="-1" aria-labelledby="editCommentModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <form method="POST" class="needs-validation" novalidate>
+                            {% csrf_token %}
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editCommentModalLabel">Edit comment</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                {% comment %} add inputs for title and search tags and a text area for the comment text {% endcomment %}
+                                <div class="form-group mb-5">
+                                    <input type="hidden" name="comment_action" value="edit_comment">
+                                    <label for="id_edit_comment_text">Comment</label>
+                                    <textarea class="form-control mb-2" id="id_edit_comment_text" name="text" rows="3" minlength="5"></textarea>
+
+                                    <div class="invalid-feedback">
+                                        Please enter a longer comment.
+                                    </div>
+
+                                </div>
+    
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-success" id="btnEditCommentConfirmed">Save</button>
                             </div>
                         </form>
                     </div>

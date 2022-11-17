@@ -323,8 +323,8 @@ def submission_comment_modify_view(request, course_pk, assignment_pk, submission
             comment.text = data.get('text')
             comment.save()
         # if modified-text is in the request data, then the user is trying to modify the text comment
-        if 'modified-text' in request.POST:
-            comment.text = request.POST.get('modified-text')
+        elif data.get('comment_action') == "edit_comment":
+            comment.text = data.get('text')
             comment.save()
         return JsonResponse({'message': 'success'})
     else:

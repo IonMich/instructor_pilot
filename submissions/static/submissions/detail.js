@@ -532,6 +532,35 @@ oldComments.forEach(comment => {
 }
 );
 
+// add a click event listener to the edit button of each old comment
+oldComments.forEach(comment => {
+    const editBtn = comment.querySelector(".btn-edit-comment");
+    editBtn.addEventListener("click", () => {
+        // get the comment id
+        const commentId = editBtn.getAttribute("data-bs-pk");
+        // get the modal
+        const modalCommentEdit = document.querySelector("#editCommentModal");
+        // get the modal edit button
+        const modalEditBtn = modalCommentEdit.querySelector("#btnEditCommentConfirmed");
+        // set the comment id as data attribute of the modal edit button
+        modalEditBtn.setAttribute("data-bs-pk", commentId);
+        // set the text of the modal text area to the text of the comment
+        // the text is a <p> element inside the comment div with class .comment-text
+        const commentText = comment.querySelector(".comment-text").textContent;
+        const modalCommentText = modalCommentEdit.querySelector("#id_edit_comment_text");
+        modalCommentText.textContent = commentText;
+        // focus the text area
+        modalCommentText.focus();
+
+        // show the modal
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalCommentEdit);
+        // remove was-validated class from the form
+        modalCommentEdit.querySelector("form").classList.remove("was-validated");
+        modalInstance.show();
+    });
+}
+);
+
 
 // add a click event listener to the modal delete button
 // when the user clicks the modal delete button, send a fetch request to delete the comment
@@ -615,8 +644,58 @@ starModalform.addEventListener("submit", (event) => {
         .then(response => response.json())
         .then(data => {
             console.log(data);
-            // hide the modal
+            // update the text on the old comment using data-bs-pk attribute
+            const oldComment = document.querySelector(`.old-comment .btn-edit-comment[data-bs-pk="${commentId}"]`).closest(".old-comment");
+            oldComment.querySelector(".comment-text").textContent = starModalform.querySelector("#id_saved_text").value;
             const modalInstance = bootstrap.Modal.getInstance(starModal);
+            modalInstance.hide();
+        })
+        .catch(error => {
+            console.log(error);
+        });
+}
+);
+
+// add a click event listener to the modal edit button #btnEditCommentConfirmed
+// when the user clicks the modal Save button, send a fetch request to save the comment
+const modalEditBtn = document.querySelector("#btnEditCommentConfirmed");
+const editModal = document.querySelector("#editCommentModal");
+const editModalform = editModal.querySelector("form");
+editModalform.addEventListener("submit", (event) => {
+    console.log("prevent default");
+    event.preventDefault();
+    // if was-validated os in the class list of the form, it means that the form is valid
+    // and we can send the fetch request
+    console.log(editModalform)
+    if (!editModalform.checkValidity()) {
+        return;
+    }
+    // get the comment id
+    const commentId = modalEditBtn.getAttribute("data-bs-pk");
+    // get the csrf token from the modal form
+    const csrfToken = editModalform.querySelector("input[name='csrfmiddlewaretoken']").value;
+    // send a fetch request to delete the comment
+    const url = `/courses/${course_id}/assignments/${assignment_id}/submissions/${pk}/comments/${commentId}/modify/`;
+    const options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
+        },
+        // add text to the body of the request
+        body: JSON.stringify({
+            "comment_action": editModalform.querySelector("input[name='comment_action']").value,
+            "text": editModalform.querySelector("#id_edit_comment_text").value,
+        })
+    };
+    fetch(url, options)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            const oldComment = document.querySelector(`.old-comment .btn-edit-comment[data-bs-pk="${commentId}"]`).closest(".old-comment");
+            oldComment.querySelector(".comment-text").textContent = editModalform.querySelector("#id_edit_comment_text").value;
+            // hide the modal
+            const modalInstance = bootstrap.Modal.getInstance(editModal);
             modalInstance.hide();
         })
         .catch(error => {
