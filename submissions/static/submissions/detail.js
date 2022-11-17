@@ -19,9 +19,10 @@
 })()
 
 function navigatorHandler (event) {
-    let areaIsFocused = (document.activeElement === text_area);
-    if (areaIsFocused && text_area.value !== "") {
-        return
+    // if any textareas are focused and their value is not empty, do not navigate
+    const element_focused = document.activeElement;
+    if (element_focused.tagName === "TEXTAREA" && element_focused.value !== "") {
+        return;
     }
     switch(event.key) {
         case "ArrowLeft":
@@ -852,7 +853,7 @@ savedCommentsSelect.addEventListener("change", (event) => {
         // the scrollHeight is the height of the textarea including the height of the text
         // if the scrollHeight is greater than the height of the textarea, increase the height of the textarea
         if (text_area.scrollHeight > text_area.clientHeight) {
-            text_area.style.height = text_area.scrollHeight + 40 + "px";
+            text_area.style.height = text_area.scrollHeight + 20 + "px";
         }
 
         // if the value of the preview comment div does not fit in the preview comment div, increase the height of the preview comment div
