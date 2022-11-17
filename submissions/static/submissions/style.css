@@ -30,6 +30,10 @@ animation-fill-mode: forwards;
 .large-bootstrap-select .dropdown-menu ul li a span small {
     word-wrap: break-word;
     white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
 }
 
 

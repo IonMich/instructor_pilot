@@ -603,6 +603,7 @@ starModalform.addEventListener("submit", (event) => {
         },
         // add saved_titlte, saved_token, is_saved=True and text to the body of the request
         body: JSON.stringify({
+            "comment_action": starModalform.querySelector("input[name='comment_action']").value,
             "text": starModalform.querySelector("#id_saved_text").value,
             "saved_title": starModalform.querySelector("#id_saved_title").value,
             "saved_token": starModalform.querySelector("#id_saved_token").value,

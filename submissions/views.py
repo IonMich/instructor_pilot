@@ -316,7 +316,7 @@ def submission_comment_modify_view(request, course_pk, assignment_pk, submission
         data = json.loads(request.body)
         print(data)
         
-        if 'saved_title' in data.keys():
+        if data.get('comment_action') == "star_comment":
             comment.saved_title = data.get('saved_title')
             comment.saved_token = data.get('saved_token')
             comment.is_saved = data.get('is_saved')
