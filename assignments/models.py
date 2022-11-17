@@ -76,6 +76,14 @@ class Assignment(models.Model):
     def get_all_submissions(self):
         return self.submissions_papersubmission_related.all()
 
+    def get_all_saved_comments(self, requester):
+        from submissions.models import SubmissionComment
+        return SubmissionComment.objects.filter(
+            paper_submission__assignment=self,
+            is_saved=True,
+            author=requester)
+
+
     def get_grading_progress(self):
         """Returns the grading progress of the assignment as a percentage."""
         submissions = self.get_all_submissions()

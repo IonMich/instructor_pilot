@@ -13,7 +13,7 @@
                     event.preventDefault()
                     event.stopPropagation()
                 }
-                form.classList.add('was-validated')
+                form.classList.add('was-validated');
             }, false)
         })
 })()
@@ -479,6 +479,8 @@ oldComments.forEach(comment => {
     );
 
 
+
+
 }
 );
 
@@ -502,6 +504,34 @@ oldComments.forEach(comment => {
     });
 }
 );
+
+// add a click event listener to the star button of each old comment
+oldComments.forEach(comment => {
+    const starBtn = comment.querySelector(".btn-star-comment");
+    starBtn.addEventListener("click", () => {
+        // get the comment id
+        const commentId = starBtn.getAttribute("data-bs-pk");
+        // get the modal
+        const modalCommentStar = document.querySelector("#starCommentModal");
+        // get the modal star button
+        const modalStarBtn = modalCommentStar.querySelector("#btnStarCommentConfirmed");
+        // set the comment id as data attribute of the modal star button
+        modalStarBtn.setAttribute("data-bs-pk", commentId);
+        // set the text of the modal text area to the text of the comment
+        // the text is a <p> element inside the comment div with class .comment-text
+        const commentText = comment.querySelector(".comment-text").textContent;
+        const modalCommentText = modalCommentStar.querySelector("#id_saved_text");
+        modalCommentText.textContent = commentText;
+
+        // show the modal
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalCommentStar);
+        // remove was-validated class from the form
+        modalCommentStar.querySelector("form").classList.remove("was-validated");
+        modalInstance.show();
+    });
+}
+);
+
 
 // add a click event listener to the modal delete button
 // when the user clicks the modal delete button, send a fetch request to delete the comment
@@ -537,6 +567,55 @@ modalDeleteBtn.addEventListener("click", () => {
             commentDiv.remove();
             // hide the modal
             const modalInstance = bootstrap.Modal.getInstance(modal);
+            modalInstance.hide();
+        })
+        .catch(error => {
+            console.log(error);
+        });
+}
+);
+
+// add a click event listener to the modal star button #btnStarCommentConfirmed
+// when the user clicks the modal Save button, send a fetch request to save the comment
+const modalStarBtn = document.querySelector("#btnStarCommentConfirmed");
+const starModal = document.querySelector("#starCommentModal");
+const starModalform = starModal.querySelector("form");
+starModalform.addEventListener("submit", (event) => {
+    console.log("prevent default");
+    event.preventDefault();
+    // if was-validated os in the class list of the form, it means that the form is valid
+    // and we can send the fetch request
+    console.log(starModalform)
+    if (!starModalform.checkValidity()) {
+        return;
+    }
+    // get the comment id
+    const commentId = modalStarBtn.getAttribute("data-bs-pk");
+    // get the csrf token from the modal form
+    const csrfToken = starModalform.querySelector("input[name='csrfmiddlewaretoken']").value;
+    // send a fetch request to delete the comment
+    const url = `/courses/${course_id}/assignments/${assignment_id}/submissions/${pk}/comments/${commentId}/modify/`;
+    const options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
+        },
+        // add saved_titlte, saved_token, is_saved=True and text to the body of the request
+        body: JSON.stringify({
+            "text": starModalform.querySelector("#id_saved_text").value,
+            "saved_title": starModalform.querySelector("#id_saved_title").value,
+            "saved_token": starModalform.querySelector("#id_saved_token").value,
+            "is_saved": true
+            
+        })
+    };
+    fetch(url, options)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            // hide the modal
+            const modalInstance = bootstrap.Modal.getInstance(starModal);
             modalInstance.hide();
         })
         .catch(error => {

@@ -27,7 +27,10 @@ animation-fill-mode: forwards;
 
 .bootstrap-select .dropdown-menu { max-width: 100% !important; }
 
-
+.large-bootstrap-select .dropdown-menu ul li a span small {
+    word-wrap: break-word;
+    white-space: normal;
+}
 
 
 @keyframes fade-out {
