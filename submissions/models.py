@@ -531,9 +531,34 @@ class SubmissionComment(models.Model):
         default=False,
         )
 
+    is_saved = models.BooleanField(
+        default=False,
+        )
+
+    saved_title = models.CharField(
+        max_length=30,
+        null=True,
+        blank=True,
+        )
+
+    saved_token = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        )
+
+    def get_assignment(self):
+        return self.paper_submission.assignment
 
     def __str__(self):
         return f"Submission Comment {self.pk}"
 
+    # if self.is_saved then title is required
+    def clean(self):
+        if self.is_saved and not self.saved_title:
+            raise ValidationError(
+                "Saved title is required if is_saved is True"
+            )
+            
     class Meta:
         verbose_name_plural = "Submission Comments"

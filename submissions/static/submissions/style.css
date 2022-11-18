@@ -1,0 +1,126 @@
+#newCommentTextArea[closing] {
+    pointer-events: none;
+    animation: fade-up 10ms forwards;
+  }
+
+#newCommentTextArea[opening] {
+    pointer-events: none;
+    animation-name: fade-in;
+    animation-duration: 250ms;
+    animation-fill-mode: forwards;
+  }
+
+.saved-comments[opening] {
+    display: block;
+    pointer-events: none;
+    animation-name: fade-in;
+    animation-duration: 500ms;
+    animation-fill-mode: forwards;
+  }
+
+.saved-comments[closing] {
+pointer-events: none;
+animation-name: fade-out;
+animation-duration: 100ms;
+animation-fill-mode: forwards;
+}
+
+.bootstrap-select .dropdown-menu { max-width: 100% !important; }
+
+.large-bootstrap-select .dropdown-menu ul li a span small {
+    word-wrap: break-word;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+}
+
+
+@keyframes fade-out {
+    0% {
+      max-width: 100%;
+      transform: translateX(0%);
+      opacity: 1;
+    }
+    100% {
+        max-width: 0%;
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes fade-up {
+    0% {
+      max-width: 100%;
+      height: 58px;
+      transform: translateY(0%);
+      opacity: 1;
+    }
+    100% {
+        max-width: 100%;
+        height: 0px;
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
+
+
+@keyframes fade-in {
+    0% {
+      max-width: 0%;
+      opacity: 0;
+    }
+    100% {
+        max-width: 100%;
+        opacity: 1;
+    }
+}
+
+@keyframes enlarge {
+    0% {
+      height: 0px;
+    }
+    100% {
+        height: 58px;
+    }
+}
+
+@keyframes shrink {
+    0% {
+        height: 58px;
+    }
+    100% {
+        height: 0px;
+    }
+}
+
+/* apply enlarge followed by fade-in for .preview-comment */
+
+.preview-comment[opening] {
+    animation-name: enlarge, fade-in;
+    animation-duration: 500ms;
+    animation-fill-mode: forwards;
+}
+
+.preview-comment[closing] {
+    animation-name: fade-up;
+    animation-duration: 500ms;
+    animation-fill-mode: forwards;
+}
+
+/**** comment-tools ****/
+
+/* set this toolbar as a row on the top right of the comment div */
+/* set the background color to raise it above the comment div */
+/* create a shadow on the left and on the bottom to make it look like a toolbar */
+.comment-tools {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 2px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: -1px 1px 5px 0px rgba(0,0,0,0.75);
+    z-index: 1;
+}

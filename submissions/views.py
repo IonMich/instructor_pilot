@@ -213,10 +213,12 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
             print("form is not valid")
     else:
         grading_form = GradingForm(None)
+    print(submission.assignment.get_all_saved_comments(requester=request.user))
     return render(
         request, 
         'submissions/detail.html', 
         {'submission': submission, 
+        'saved_comments': submission.assignment.get_all_saved_comments(requester=request.user),
         'grading_form': grading_form, 
         'grades_zipped': grades_zipped})
 
@@ -296,6 +298,34 @@ def submission_comment_delete_view(request, course_pk, assignment_pk, submission
     comment = get_object_or_404(SubmissionComment, pk=comment_pk)
     if request.method == 'POST':
         comment.delete()
+        return JsonResponse({'message': 'success'})
+    else:
+        return JsonResponse({'message': 'failure'})
+
+@login_required
+def submission_comment_modify_view(request, course_pk, assignment_pk, submission_pk, comment_pk):
+    comment = get_object_or_404(SubmissionComment, pk=comment_pk)
+    if request.method == 'POST':
+        import json
+        # get the data 
+        #     "text"
+        #     "saved_title"
+        #     "saved_token"
+        #     "is_saved"
+        # from the body of the request
+        data = json.loads(request.body)
+        print(data)
+        
+        if data.get('comment_action') == "star_comment":
+            comment.saved_title = data.get('saved_title')
+            comment.saved_token = data.get('saved_token')
+            comment.is_saved = data.get('is_saved')
+            comment.text = data.get('text')
+            comment.save()
+        # if modified-text is in the request data, then the user is trying to modify the text comment
+        elif data.get('comment_action') == "edit_comment":
+            comment.text = data.get('text')
+            comment.save()
         return JsonResponse({'message': 'success'})
     else:
         return JsonResponse({'message': 'failure'})
