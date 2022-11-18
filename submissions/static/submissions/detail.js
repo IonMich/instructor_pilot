@@ -748,9 +748,14 @@ const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comm
         savedCommentsDiv.addEventListener(
             "animationend",
             () => {
-                
                 savedCommentsDiv.removeAttribute("opening");
-                
+                // click on the selectpicker savedCommentsSelect to show the dropdown
+                // this is done by triggering a click event on the button with class "dropdown-toggle"
+
+                // get the button with class "dropdown-toggle"
+                const dropdownToggle = savedCommentsDiv.querySelector(".dropdown-toggle");
+                // trigger a click event on the button
+                dropdownToggle.click();
             },
             { once: true }
             );
