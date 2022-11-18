@@ -11,7 +11,6 @@ from .models import (
 # admin.site.register(PaperSubmission)
 admin.site.register(CanvasQuizSubmission)
 admin.site.register(ScantronSubmission)
-admin.site.register(SubmissionComment)
 
 # currently the admin list page for PaperSubmissions is not user friendly
 # because it is displaying only the names of the PaperSubmission objects.
@@ -44,3 +43,17 @@ class PaperSubmissionImageAdmin(admin.ModelAdmin):
     ]
 
 admin.site.register(PaperSubmissionImage, PaperSubmissionImageAdmin)
+
+# similarly, we can customize the list page for SubmissionComments
+# author, is_saved, submission, submission__assignment, submission__student
+class SubmissionCommentAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'author', 'text', 'get_assignment', 'is_saved', 'saved_title']
+    list_filter = ['author', 'is_saved', 'paper_submission__assignment__course__name', "paper_submission__assignment__assignment_group", "paper_submission__assignment__name"]
+    search_fields = [
+        'paper_submission__assignment__name', 
+        'paper_submission__assignment__course__name',
+        'paper_submission__student__first_name', 
+        'paper_submission__student__last_name',
+    ]
+
+admin.site.register(SubmissionComment, SubmissionCommentAdmin)

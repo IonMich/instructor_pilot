@@ -547,6 +547,8 @@ class SubmissionComment(models.Model):
         blank=True,
         )
 
+    def get_assignment(self):
+        return self.paper_submission.assignment
 
     def __str__(self):
         return f"Submission Comment {self.pk}"
