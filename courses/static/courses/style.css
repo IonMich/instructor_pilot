@@ -1,0 +1,52 @@
+/* sections, assignments, announcements, messages */
+/* using grid-template-areas */
+.wrapper {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    grid-template-rows: minmax(150px,300px) minmax(150px,300px) minmax(150px,400px) minmax(150px,200px);
+    grid-template-areas: 
+        "sections assignments"
+        "sections assignments"
+        "announcements announcements"
+        "messages messages";
+    border-radius: 15px;
+  }
+
+.wrapper > * {
+    border: 1px solid black;
+    display: flex;
+    flex-direction: column;
+    border-radius: 15px;
+    margin: 1em;
+  }
+
+.sections {
+    grid-area: sections;
+  }
+
+.assignments {
+    grid-area: assignments;
+  }
+
+
+.announcements {
+    grid-area: announcements;
+  }
+
+.messages {
+    grid-area: messages;
+  }
+
+.li-header {
+    align-items: center;
+    justify-content: space-between;
+    display: flex;
+    width: 100%;
+}
+
+.assignments-header {
+    align-items: center;
+    justify-content: space-between;
+    display: flex;
+    width: 100%;
+}

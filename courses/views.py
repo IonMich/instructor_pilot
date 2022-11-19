@@ -24,7 +24,7 @@ def course_detail_view(request, pk):
     # print(df_sections)
     return render(
         request, 
-        'courses/detail.html', 
+        'courses/detail copy.html', 
         {'course': course, })
 
 @login_required

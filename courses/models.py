@@ -81,6 +81,11 @@ class Course(models.Model):
                     students.append(student)
         return students
 
+    def get_all_assignment_groups(self):
+        assignment_groups = self.assignments.values_list('assignment_group', flat=True).distinct()
+
+        return assignment_groups
+
 
     def is_canvas_course(self):
         return self.canvas_id is not None
@@ -243,3 +248,6 @@ class Announcement(models.Model):
             announcement.course = course
             announcement.save()
         return cls.objects.filter(course=course)
+    
+    class Meta:
+        ordering = ["-date"]
