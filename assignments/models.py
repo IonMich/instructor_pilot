@@ -1,14 +1,16 @@
-from django.db import models
-from courses.models import Course
-from django.contrib.auth.models import User
-from courses.views import course_detail_view
-from submissions.utils import CommaSeparatedFloatField
-from courses.utils import get_canvas_course
-from django.urls import reverse
-from django.conf import settings
-import tempfile
 import os
 import shutil
+import tempfile
+
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.db import models
+from django.urls import reverse
+
+from courses.models import Course
+from courses.utils import get_canvas_course
+from courses.views import course_detail_view
+from submissions.utils import CommaSeparatedFloatField
 
 # Create your models here.
 
@@ -108,7 +110,9 @@ class Assignment(models.Model):
         grades = [s.grade for s in graded_submissions]
         return round(sum(grades) / len(grades), 2)
 
-    
+    def get_all_grades(self):
+        """Returns the grades of all submissions of the assignment."""
+        return [s.grade for s in self.get_all_submissions().filter(graded_by__isnull=False)]
 
     @classmethod
     def update_from_canvas(
