@@ -719,6 +719,7 @@ const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comm
     event.preventDefault();
     const savedCommentsDiv = document.querySelector("div.saved-comments")
     const previewCommentDiv = document.querySelector("div.preview-comment")
+    const expander = document.querySelector("#expander");
     // if active
     if (showSavedCommentsBtn.classList.contains("active")) {
         // copy the selected text to the textarea
@@ -759,17 +760,19 @@ const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comm
             },
             { once: true }
             );
-        previewCommentDiv.classList.remove("d-none");
-        previewCommentDiv.setAttribute("opening", "");
 
-        previewCommentDiv.addEventListener(
-            "animationend",
-            () => {
+        expander.classList.toggle("expanded");
+        // previewCommentDiv.classList.remove("d-none");
+        // previewCommentDiv.setAttribute("opening", "");
+
+        // previewCommentDiv.addEventListener(
+        //     "animationend",
+        //     () => {
                     
-                    previewCommentDiv.removeAttribute("opening");
+        //             previewCommentDiv.removeAttribute("opening");
                     
-                }
-            );
+        //         }
+        //     );
         
     } else {
         console.log("closing saved comments");
@@ -795,17 +798,19 @@ const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comm
             },
             { once: true }
             );
+        
+        
+        expander.classList.toggle("expanded");
+        // previewCommentDiv.setAttribute("closing", "");
+        // previewCommentDiv.addEventListener(
+        //     "animationend",
+        //     () => {
+        //         previewCommentDiv.removeAttribute("closing");
+        //         previewCommentDiv.classList.add("d-none");
+        //     },
+        //     { once: true }
 
-        previewCommentDiv.setAttribute("closing", "");
-        previewCommentDiv.addEventListener(
-            "animationend",
-            () => {
-                previewCommentDiv.removeAttribute("closing");
-                previewCommentDiv.classList.add("d-none");
-            },
-            { once: true }
-
-        );
+        // );
     }
     
     // const savedCommentsSelect = document.querySelector("#id_assignment_saved_comments");

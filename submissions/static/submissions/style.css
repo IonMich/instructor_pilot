@@ -96,8 +96,27 @@ animation-fill-mode: forwards;
 }
 
 /* apply enlarge followed by fade-in for .preview-comment */
+.preview-comment {
+    min-height: 0;
+    transition: visibility 1s;
+    visibility: hidden;
+}
 
-.preview-comment[opening] {
+.expander {
+    display: grid;
+    grid-template-rows: 0fr;
+    overflow: hidden;
+    transition: grid-template-rows 1s;
+}
+
+.expander.expanded {
+    grid-template-rows: 1fr;
+}
+.expander.expanded .preview-comment {
+    visibility: visible;
+}
+
+/* .preview-comment[opening] {
     animation-name: enlarge, fade-in;
     animation-duration: 500ms;
     animation-fill-mode: forwards;
@@ -107,7 +126,7 @@ animation-fill-mode: forwards;
     animation-name: fade-up;
     animation-duration: 500ms;
     animation-fill-mode: forwards;
-}
+} */
 
 /**** comment-tools ****/
 
