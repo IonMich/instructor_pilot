@@ -271,23 +271,23 @@ class PaperSubmission(Submission):
         if student and len(uploaded_files) > 1:
             raise ValueError("Can only upload one file per student.")
 
+        import fitz
         created_submission_pks = []
         for file_idx, uploaded_file in enumerate(uploaded_files):
             if uploaded_file:
                 try:
                     pdf_path = uploaded_file.temporary_file_path()
+                    doc = fitz.open(pdf_path)
                 except AttributeError as e:
-                    print("Error:", e)
-                    print("Using tempfile module")
-                    import tempfile
-                    fp = tempfile.NamedTemporaryFile()
-                    fp.write(uploaded_file.read())
-                    fp.seek(0)
-                    pdf_path = fp.name
+                    # print("Error:", e)
+                    # print("Reading from bytes")
+                    # this actually not a pdf path but a File bytes object
+                    pdf_path = uploaded_file.file
+                    doc = fitz.open("pdf", pdf_path)
             else:
                 pdf_path = get_quiz_pdf_path(quiz_number, quiz_dir_path)
-            import fitz
-            doc = fitz.open(pdf_path)
+                doc = fitz.open(pdf_path)
+            
             n_pages = doc.page_count
             if student and n_pages != num_pages_per_submission:
                 raise ValueError(
