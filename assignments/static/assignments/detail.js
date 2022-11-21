@@ -411,3 +411,92 @@ function deleteAllSubs(event) {
     );
 }
 
+
+var ctx = document.getElementById('myChart').getContext('2d');
+
+const all_grades = JSON.parse(document.getElementById('all_grades').textContent);
+var histGenerator = d3.bin()
+.domain([0,4])    // TODO: get the min and max of the grades
+.thresholds(39);  // number of thresholds; this will create 19+1 bins
+
+var bins = histGenerator(all_grades);
+console.log(bins);
+x_axis = []
+y_axis = []
+for (var i = 0; i < bins.length; i++) {
+    x_axis.push(bins[i].x0)
+    y_axis.push(bins[i].length)
+}
+data = {
+    labels: x_axis,
+    datasets: [{
+        label: 'Submission Grades',
+        data: y_axis,
+        backgroundColor: [
+            'rgba(255, 99, 132, 0.2)',
+        ],
+        borderColor: [
+            'rgba(255, 99, 132, 1)'
+        ],
+        borderWidth: 1
+    }]
+};
+
+var myChart = new Chart(ctx, {
+    type: 'bar',
+    data: data,
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    autoSkip: true,
+                    maxTicksLimit: 10
+                }
+            },
+            x: {
+                beginAtZero: true,
+                ticks: {
+                    autoSkip: true,
+                    maxTicksLimit: 8
+                }
+            }
+        },
+        
+    }
+});
+
+// add event listener for the .search-bar__button
+// when the button is clicked, focus on the search bar input but only 
+// if the transition ends.
+// If the transition does not end, i.e. if the transition is interrupted 
+// the search bar input will not be focused.
+const searchBar = document.querySelector('.search-bar');
+const searchBarInput = searchBar.querySelector('.search-bar__input');
+const searchBarButton = searchBar.querySelector('.search-bar .search-bar__button');
+
+// searchBarButton.addEventListener('click', function(event) {
+//     // toggle the search bar button class search-is-on
+//     // searchBarButton.classList.toggle('search-is-on');
+//     // if the search bar button has the class search-is-on, focus on the search bar input
+//     if (searchBarButton.classList.contains('search-is-on')) {
+//         searchBar.addEventListener('transitioncancel', function(event) {
+//             searchBarInput.classList.add('transition-cancelled');
+//             console.log('transition cancelled');
+//         }, {once: true});
+
+//         searchBar.addEventListener('transitionstart', function(event) {
+//             searchBarInput.classList.remove('transition-cancelled');
+//             console.log('transition started');
+//         }, {once: true});
+
+//         searchBar.addEventListener('transitionend', function(event) {
+//             if (!searchBarInput.classList.contains('transition-cancelled')) {
+//                 searchBarInput.focus();
+//                 console.log('transition ended. input focused');
+//             } else {
+//                 console.log('transition ended, but input not focused because transition was cancelled');
+//             }
+//         }, {once: true});
+//     }
+// });

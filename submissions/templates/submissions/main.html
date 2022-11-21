@@ -1,20 +1,26 @@
 {% load submission_extras %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'assignments/style.css' %}">
+<link rel="stylesheet" href="{% static 'submissions/style.css' %}">
 
 {% load crispy_forms_tags%}
 
   {% block content %}
-  {% comment %} <div class="gradient-pattern"> {% endcomment %}
-{% comment %} add {{title}} and button with id btn-delete-all. Use CSS flexbox{% endcomment %}
-<div class="mt-5" style="display: flex; justify-content: space-between; align-items: center;">
+<div class="submissions-header">
     <h3>{{title}}</h3>
-    {% comment %} button to add submission {% endcomment %}
-    <div role="group" aria-label="Submission Actions">
-      <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#add-sub-modal" title="Add new submissions">
+    {% comment %} button to search, add, remove {% endcomment %}
+    <div class="submissions-header__tools">
+      
+      <div class="search-bar">
+          <input type="text" class="search-bar__input" placeholder="Student Name" aria-label="search student name input" tabindex="-1"/>
+          <button class="btn btn-outline-success search-bar__button" aria-label="submit search">
+            <i class="bi bi-search search-bar__button--search"></i>
+            <i class="bi bi-x-lg search-bar__button--clear"></i>
+          </button>
+      </div>
+      <button type="button m-2" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#add-sub-modal" title="Add new submissions">
         <i class="bi-file-earmark-plus-fill"></i>
       </button>
-      <button type="button" class="btn btn-outline-danger" id="btn-delete-all" title="Delete all submissions">
+      <button type="button m-2" class="btn btn-outline-danger" id="btn-delete-all" title="Delete all submissions">
         <i class="bi-trash-fill"></i>
       </button>
     </div>

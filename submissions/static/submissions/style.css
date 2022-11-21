@@ -1,3 +1,9 @@
+:root {
+    --toolbar-button-size: 2.5em;
+    --search-bar-input-width: 15em;
+    --duration: 0.5s;
+}
+
 #newCommentTextArea[closing] {
     pointer-events: none;
     animation: fade-up 10ms forwards;
@@ -143,3 +149,134 @@ animation-fill-mode: forwards;
     box-shadow: -1px 1px 5px 0px rgba(0,0,0,0.75);
     z-index: 1;
 }
+
+.submissions-header {
+    display: flex; 
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 2em;
+    position: relative;
+}
+
+.submissions-header__tools {
+    display: flex; 
+    flex-direction: row;
+    align-items: center;
+    gap: 0.2em;
+    position: relative;
+}
+
+.search-bar {
+    display: flex; 
+    flex-direction: row;
+    gap: 0.5em;
+    margin-right: 0.4em;
+    position: relative;
+}
+
+
+
+
+.search-bar__input {
+    box-sizing: border-box;
+    border: 3px solid #ccc;
+    position: absolute;
+    left: 0px;
+    width: 10px;
+    top: -2px;
+    border-right: transparent;
+    height: calc(var(--toolbar-button-size) + 4px);
+    border-radius: 5px;
+    border-bottom-right-radius: 0px;
+    border-top-right-radius: 0px;
+    z-index: 3;
+    padding:  0 1.1em 0 1em;
+    opacity: 0;
+    cursor: pointer;
+    color:rgba(255, 255, 255, 0);
+
+    transition: 
+        z-index var(--duration) ease-out,
+        border-radius var(--duration) ease-in-out,
+        width var(--duration) ease-in-out,
+        left var(--duration) ease-in-out,
+        opacity var(--duration) ease-in-out,
+        border-color var(--duration) ease-in-out, 
+        box-shadow var(--duration) ease-in-out,
+        color var(--duration) ease-in-out;
+}
+
+.search-bar__button {
+    width: var(--toolbar-button-size);
+    height: var(--toolbar-button-size);
+    border-radius: 5px;
+    background-color: white;
+    margin-left: auto;
+    z-index: 2;
+    transition: border-radius var(--duration) ease-in-out;
+}
+
+.search-bar__button:hover {
+    color: var(--bs-success);
+    background-color: #fff;
+}
+
+.search-bar__button:active {
+    color: var(--bs-success);
+    background-color: #fff;
+}
+
+.add-subs-button {
+    width: var(--toolbar-button-size);
+    height: var(--toolbar-button-size);
+    border-radius: 5px;
+}
+
+.delete-subs-button {
+    width: var(--toolbar-button-size);
+    height: var(--toolbar-button-size);
+    border-radius: 5px;
+    background-color: #fff;
+}
+
+.search-bar__input:focus {
+    width: calc(min(15em,50vw));
+    left: calc(max(-15em,-50vw) + var(--toolbar-button-size));
+    border-radius: calc(var(--toolbar-button-size)/2);
+    opacity: 1;
+    z-index: 1;
+    border-color: rgba(53, 83, 47, 0.8);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(49, 79, 44, 0.6);
+    outline: 0 none;
+    color:rgba(0,0,0, 1);
+}
+
+.search-bar__input:focus + .search-bar__button {
+    background-color: #fff;
+    border-radius: calc(var(--toolbar-button-size)/2);
+}
+
+.search-bar__button--search {
+    position: absolute;
+    top: calc(var(--toolbar-button-size)/4);
+    left: calc(var(--toolbar-button-size)/5 + 4px);
+    opacity: 1;
+    transition: opacity calc(var(--duration)/2) ease-out calc(var(--duration)/2);
+}
+
+.search-bar__button--clear {
+    position: absolute;
+    top: calc(var(--toolbar-button-size)/4);
+    left: calc(var(--toolbar-button-size)/5 + 4px);
+    opacity: 0;
+    transition: opacity calc(var(--duration)/2) ease-in calc(var(--duration)/2);
+}
+
+.search-bar__input:focus + .search-bar__button .search-bar__button--search {
+    opacity: 0;
+}
+
+.search-bar__input:focus + .search-bar__button .search-bar__button--clear {
+    opacity: 1;                             
+}
+
