@@ -34,3 +34,9 @@ def user_list_view(request):
         request, 
         'courses/user_list.html', 
         {'courses': courses, })
+
+@login_required
+def course_create_view(request):
+    # handle the ajax POST request by creating a new course
+    if request.method == 'POST':
+        pass
