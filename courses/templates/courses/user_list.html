@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% comment %} display cards for all courses of user {% endcomment %}
 
 {% block styles %}
@@ -31,6 +32,12 @@
 
 {% endblock styles %}
 
+{% block scripts %}
+    <script src="{% static 'courses/user_list.js' %}" defer>
+        
+    </script>
+{% endblock scripts %}
+
 
 {% block navbar %}
 
@@ -47,7 +54,7 @@
     padding-left: 1rem;'>
         <div style="margin-right:1rem">
             <h1>My Courses
-                <button class='btn btn-outline-success' data-toggle='modal' data-target='#addCourseModal'>
+                <button class='btn btn-outline-success' data-bs-toggle='modal' data-bs-target='#addCourseModal'>
                     <i class='bi bi-plus-circle'></i>
                 </button>
             </h1>
@@ -65,28 +72,71 @@
 
 {% block content %}
 
-    {% for course in courses %}
-    
-        <div class="card" 
-        style='
-        display: flex; 
-        flex-direction: column;
-        '>
-            {% if course.image %}
-                <img class="card-img-top" src="{{ course.image.url }}" alt="{{ course.course_code }}">
+{% for course in courses %}
+
+    <div class="card course-card" 
+    style='
+    display: flex; 
+    flex-direction: column;
+    '>
+        {% if course.image %}
+            <img class="card-img-top" src="{{ course.image.url }}" alt="{{ course.course_code }}">
+        {% else %}
+            <img class="card-img-top">
+
+        {% endif %}
+        
+        <div class="card-body">
+            <h5 class="card-title">{{ course.course_code }} ({{course.term}})</h5>
+            {% if course.description != "" %}
+                <p> {{ course.description|truncatechars:50 }} </p>            
             {% endif %}
-            
-            <div class="card-body">
-                <h5 class="card-title">{{ course.course_code }} ({{course.term}})</h5>
-                {% if course.description != "" %}
-                    <p> {{ course.description|truncatechars:50 }} </p>
-                {% endif %}
-                <a href="{% url 'courses:detail' pk=course.pk %}" class="stretched-link"></a>
+            <a href="{% url 'courses:detail' pk=course.pk %}" class="stretched-link"></a>
+        </div>
+    </div>
+    
+{% endfor %}
+
+<div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCourseModalLabel">Add Course</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="addCourseForm" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="course_code" class="form-label">Course Code</label>
+                        <input type="text" class="form-control" id="course_code" name="course_code">
+                    </div>
+                    <div class="mb-3 has-validation">
+                        <label for="term" class="form-label" for="term">Term</label>
+                        <input type="text" class="form-control" id="term" name="term" aria-describedby="course_code_feedback">
+                        <div class="invalid-feedback" id="course_code_feedback">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="image" class="form-label">Image</label>
+                        <input type="file" class="form-control" id="image" name="image">
+                    </div>
+                    {% comment %} add a checkmark input to try to sync with canvas {% endcomment %}
+                    <div class="mb-4 form-check form-switch">
+                        <input type="checkbox" class="form-check-input" id="sync" name="sync_with_canvas">
+                        <label for="sync" class="form-check-label">Sync from Canvas</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Next</button>
+                </form>
             </div>
         </div>
-        
-    {% endfor %}
-    
+    </div>
+</div>
 
 {% endblock content %}
 
@@ -102,7 +152,5 @@
     </a>
 </footer>
 
-
-
-    {% endblock footer %}
+{% endblock footer %}
 

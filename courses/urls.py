@@ -10,5 +10,5 @@ app_name = 'courses'
 urlpatterns = [
     path('', user_list_view, name='home'),
     path('courses/<pk>/', course_detail_view, name='detail'),
-    path('courses/create/', course_create_view, name='create'),
+    path('courses/', course_create_view, name='create'),
 ]

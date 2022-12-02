@@ -31,8 +31,7 @@ def get_canvas_course(course_code=None, term_name=None, canvas_id=None):
             int(canvas_id), 
             use_sis_id=False,
             include=list_to_include)
-    canvas_courses = canvas.get_courses(
-        enrollment_state="active", 
+    canvas_courses = canvas.get_courses( 
         include=list_to_include)
 
     # TODO: much more info is available in the Canvas API

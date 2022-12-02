@@ -6,7 +6,7 @@ from django.urls import reverse
 
 # Create your models here.
 
-semesters=(
+semesters = (
         ("F","Fall"), 
         ("SP","Spring"),
         ("SU","Summer"),
@@ -98,7 +98,17 @@ class Course(models.Model):
             canvas_course = get_canvas_course(self.course_code, self.term)
             if canvas_course is None:
                 print("Canvas course not found")
-                return None
+                # list available courses on canvas
+                canvas_courses = get_canvas_object().get_courses()
+                print("Available Canvas Courses:")
+                for course in canvas_courses:
+                    try:
+                        description = f"{course}"
+                        print(description)
+                    except Exception as e:
+                        print(e)
+                        print(course.id)
+                return
             self.canvas_id = canvas_course.id
         else:
             canvas_course = get_canvas_course(canvas_id=self.canvas_id)
@@ -109,11 +119,14 @@ class Course(models.Model):
                 self.semester_type = item[0]
                 self.year = term_splitted[-1]
                 break
-        university_code = canvas_course.sis_course_id.split(".")[0].lower()
+        
         try:
+            university_code = canvas_course.sis_course_id.split(".")[0].lower()
             university = University.objects.get(university_code=university_code)
-        except University.DoesNotExist:
-            raise Exception(f"University with code {university_code} does not exist in the database.")
+        except Exception as e:
+            print(e)
+            print("University not found. Assigning to first university.")
+            university = University.objects.first()
         print(canvas_course.__dict__)
         self.university = university
         self.name = canvas_course.name
@@ -140,14 +153,14 @@ class Course(models.Model):
                 self.end_date = d_end.strftime(new_format)
 
         image_url = canvas_course.image_download_url
-        from urllib import request
-        import os
-        from django.core.files import File
-        result = request.urlretrieve(image_url)
-        self.image.save(
-            f"{self.course_code}_{self.term}.png",
-            File(open(result[0], 'rb'))
-            )
+        if image_url not in [None,'']:
+            from urllib import request
+            from django.core.files import File
+            result = request.urlretrieve(image_url)
+            self.image.save(
+                f"{self.course_code}_{self.term}.png",
+                File(open(result[0], 'rb'))
+                )
 
         self.save(update_fields=
             ["university",
@@ -171,10 +184,26 @@ class Course(models.Model):
 
         # now update the sections
         from sections.models import Section
+        print(canvas_course.sections)
+        # if all the sections have the same name as the course name, then
+        # we can assume that the course designers did not add the TAs to their
+        # individual sections, but rather to the course itself. In this case,
+        # use other methods to get the sections for this TA.
+        if all([section["name"] == canvas_course.name for section in canvas_course.sections]):
+            print("No section enrollments found in the course for this user. "
+                "Will try to find sections for this user.")
+            # get all the sections in canvas 
+            canvas_sections = canvas_course.get_sections(include=["students","avatar_url","enrollments"])
+            only_enrolled_sections = False
+        else:
+            canvas_sections = canvas_course.sections
+            only_enrolled_sections = True
         sections = Section.update_from_canvas(
             requester=requester,
             course=self, 
-            canvas_sections=canvas_course.sections)
+            canvas_sections=canvas_sections,
+            only_enrolled_sections=only_enrolled_sections)
+        
         # now update the assignments
         self.update_assignments_from_canvas(canvas_course)
 

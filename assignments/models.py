@@ -117,41 +117,57 @@ class Assignment(models.Model):
     @classmethod
     def update_from_canvas(
         cls, 
-        course, canvas_course, 
-        max_question_scores={
-            "Quizzes": "2,2",
-        }
+        course, canvas_course,
         ):
         # I should probably rename to bulk_update_from_canvas 
         course_assignments = course.assignments.all()
         canvas_assignment_groups = canvas_course.get_assignment_groups(
             include=["assignments", "submission", "score_statistics", "overrides"]
             )
+        
         for canvas_assignment_group in canvas_assignment_groups:
             for canvas_assignment in canvas_assignment_group.assignments:
-                print(canvas_assignment)
+                print(canvas_assignment["name"])
+                print(canvas_assignment["points_possible"], type(canvas_assignment["points_possible"]))
+                if canvas_assignment["points_possible"] in [None, "", 0]:
+                    max_question_scores = "0"                    
+                elif isinstance(canvas_assignment["points_possible"], float):
+                    # if it is close to a positive integer, then break it into N questions with scores of 1
+                    if abs(canvas_assignment["points_possible"] - round(canvas_assignment["points_possible"])) < 0.001:
+                        max_question_scores = ["1" for i in range(int(canvas_assignment["points_possible"]))]
+                        max_question_scores = ",".join(max_question_scores)
+                    else:
+                        max_question_scores = str(canvas_assignment["points_possible"])
+                else:
+                    max_question_scores = str(canvas_assignment["points_possible"])
+                    
+                
                 if str(canvas_assignment["id"]) in [a.canvas_id for a in course_assignments]:
                     assignment = course_assignments.get(canvas_id=str(canvas_assignment["id"]))
                     assignment.name = canvas_assignment["name"]
                     assignment.description = canvas_assignment["description"]
-                    assignment.assignment_group = canvas_assignment_group.name             
+                    assignment.assignment_group = canvas_assignment_group.name    
+                    if assignment.max_question_scores is None or assignment.max_question_scores == "":
+                        assignment.max_question_scores = max_question_scores
+                    elif assignment.max_question_scores != max_question_scores:
+                        # The grades per question have changed.
+                        # In order to avoid losing the grades of the submissions,
+                        # check if any submission has been graded. If so, do not update the grades per question.
+                        if assignment.get_all_submissions().filter(graded_by__isnull=False).count() == 0:
+                            assignment.max_question_scores = max_question_scores
+                            print("The grades per question have changed, because there are no graded submissions.")
+                        else:
+                            print("The grades per question have changed, but there are submissions that have been graded. The grades per question will not be updated.")
                 else:
                     assignment = cls.objects.create(
                         name=canvas_assignment["name"],
                         description=canvas_assignment["description"],
+                        assignment_group=canvas_assignment_group.name,
                         course=course,
                         canvas_id=str(canvas_assignment["id"]),
-                        max_question_scores=str(canvas_assignment["points_possible"])
+                        max_question_scores=max_question_scores,
                         )
-                
-                # if canvas_assignment["due_at"] is not None:
-                #     assignment.start_date = canvas_assignment["due_at"]
-                #     assignment.due_date = canvas_assignment["due_at"]
-                #     assignment.ready_by = canvas_assignment["due_at"]
-                assignment.assignment_group = canvas_assignment_group.name  
-                assignment.max_question_scores = max_question_scores.get(canvas_assignment_group.name,None)
-                if assignment.max_question_scores is None:
-                    assignment.max_question_scores = str(canvas_assignment["points_possible"])
+
                 assignment.save()
 
         return course_assignments

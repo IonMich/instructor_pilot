@@ -44,26 +44,28 @@
             <div class="pt-3 ps-3 pb-1">
                 <h3>Sections</h3>
             </div>
-            <ul class="list-group">
-            {% for section in course.sections.all %}
-                <a  href="sections/{{section.pk}}/students/" class="list-group-item list-group-item-action">
-                    <div class="li-header">
-                        <h5 class="mb-1">{{section.name}}</h5>
-                        <span class="badge bg-primary rounded-pill">
-                            <i class="bi bi-person-fill"></i>
-                            {{section.students.count}}
-                        </span>
-                    </div>
-                    <div class="li-body">
-                        {% for meeting in section.meetings.all %}
-                            <p class="mb-1">{{meeting}}</p>
-                        {% endfor %}
-                    </div>
-                </a>
-            {% endfor %}
-            </ul>
+            <div style="overflow-y:auto; margin-bottom: 1em">
+                <ul class="list-group">
+                {% for section in course.sections.all %}
+                    <a  href="sections/{{section.pk}}/students/" class="list-group-item list-group-item-action">
+                        <div class="li-header">
+                            <h5 class="mb-1">{{section.name}}</h5>
+                            <span class="badge bg-primary rounded-pill">
+                                <i class="bi bi-person-fill"></i>
+                                {{section.students.count}}
+                            </span>
+                        </div>
+                        <div class="li-body">
+                            {% for meeting in section.meetings.all %}
+                                <p class="mb-1">{{meeting}}</p>
+                            {% endfor %}
+                        </div>
+                    </a>
+                {% endfor %}
+                </ul>
+            </div>
         {% else %}
-            <h2 class="text-muted fs-1 fst-italic">No sections</h2>
+            <p class="text-muted fs-1 fst-italic d-flex m-auto">No Sections</p>
         {% endif %}
 
     </div>
@@ -136,7 +138,7 @@
 
                     
         {% else %}
-            <h2 class="text-muted fs-1 fst-italic">No assignments</h2>
+        <p class="text-muted fs-1 fst-italic d-flex m-auto">No Assignments</p>
         {% endif %}
     </div>
     <div class="announcements">
@@ -167,7 +169,7 @@
             {% endfor %}
             </ul>
         {% else %}
-            <h2 class="text-muted fs-1 fst-italic">No announcements</h2>
+        <p class="text-muted fs-1 fst-italic d-flex m-auto">No Announcements</p>
         {% endif %}
     </div>
     <div class="messages">
