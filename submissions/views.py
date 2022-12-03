@@ -175,6 +175,7 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
             request.POST._mutable = _mutable
 
         print(f"text: {request.POST.get('new_comment')}")
+        print(f"file: {request.FILES.get('comment_files')}")
 
         grading_form = GradingForm(
             request.POST,
@@ -185,11 +186,10 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         if grading_form.is_valid():
             print("form is valid")
             print(grading_form.cleaned_data)
-            # submission.grader_comments = grading_form.cleaned_data.get('grader_comments')
-            # add new comment from cleaned data to a new SubmissionComment instance
+            
+            # add new comment from request.POST to a new SubmissionComment instance
             # assigned to the submission and authored by the request.user
             
-            submission.comment_files = grading_form.cleaned_data.get('comment_files')
             submission.save()
 
             if request.POST.get('new_comment').strip():
@@ -198,6 +198,18 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
                     author=request.user,
                     text=request.POST.get('new_comment'))
                 comment.save()
+            print("comment saved")
+            # add new file from request.FILES to a new SubmissionFile instance
+            # assigned to the submission and authored by the request.user
+            if request.FILES.get('comment_files'):
+                # use the class method add_commentfile_to_db of SubmissionComment
+                # to add the file to the database
+                print("adding file(s)")
+                SubmissionComment.add_commentfiles_to_db(
+                    submission_target=submission,
+                    uploaded_files=request.FILES.getlist('comment_files'),
+                    author=request.user)
+
             print("question grades", submission.question_grades)
             grades_zipped = list(zip_longest(
                 submission.get_question_grades(), 

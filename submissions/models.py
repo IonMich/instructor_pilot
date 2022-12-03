@@ -514,6 +514,11 @@ class SubmissionComment(models.Model):
         null=True,
         blank=True)
 
+    comment_file = models.FileField(
+        upload_to="submissions/comments/", 
+        null=True, 
+        blank=True)
+
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -550,6 +555,9 @@ class SubmissionComment(models.Model):
     def get_assignment(self):
         return self.paper_submission.assignment
 
+    def filename(self):
+        return os.path.basename(self.comment_file.name)
+
     def __str__(self):
         return f"Submission Comment {self.pk}"
 
@@ -562,3 +570,81 @@ class SubmissionComment(models.Model):
             
     class Meta:
         verbose_name_plural = "Submission Comments"
+
+    @classmethod
+    def add_commentfiles_to_db(cls,
+        submission_target,
+        uploaded_files,
+        author,
+        ):
+        """
+        This method adds paper submissions to the database.
+        It also saves the pdfs and images to the media directory
+        by splitting the original pdf(s) into individual submissions.
+        """
+        print("submission is:", submission_target)
+        new_comment_file_dir = os.path.join(
+            settings.MEDIA_ROOT, 
+            "submissions", 
+            f"course_{submission_target.assignment.course.pk}", 
+            f"assignment_{submission_target.assignment.pk}",
+            "comment")
+
+        if not os.path.exists(new_comment_file_dir):
+            os.makedirs(new_comment_file_dir)
+
+        created_comment_pks = []
+        for file_idx, uploaded_file in enumerate(uploaded_files):
+            print(uploaded_file.__dict__)
+            try:
+                file_path = uploaded_file.temporary_file_path()
+            except AttributeError as e:
+                # print("Error:", e)
+                # print("Reading from bytes")
+                # this actually not a pdf path but a File bytes object
+                file_path = uploaded_file.file
+            
+        
+            # copy file to new location, while keeping the original name
+            new_file_path = os.path.join(
+                new_comment_file_dir,
+                uploaded_file.name,
+            )
+
+            # copy file to new location
+            import shutil
+            try:
+                shutil.copyfile(file_path, new_file_path)
+            except Exception as e:
+                # we need to handle the case where the
+                # file_path is a bytes object
+                print("Error:", e)
+                print("Reading from bytes")
+                # this actually not a pdf path but a File bytes object
+                with open(new_file_path, "wb") as f:
+                    f.write(file_path.read())
+
+            
+           
+            print(f"New: {file_path}\n")
+                
+            # we want to avoid name collisions, so we generate a random string
+            # to append to the filename
+            # random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+            # file_name = f'submission_batch_{file_idx}_{start_page}-{end_page}_{random_string}.pdf'
+            # new_pdf_fpath = os.path.join(new_pdf_dir, file_name)
+            # doc_new = fitz.open()
+            # doc_new.insert_pdf(doc, from_page=start_page, to_page=end_page)
+            # doc_new.save(new_pdf_fpath)
+
+            new_comment_file = SubmissionComment.objects.create(
+                paper_submission=submission_target,
+                comment_file=uploaded_file,
+                author=author,
+            )
+            new_comment_file.save()
+            
+            created_comment_pks.append(new_comment_file.pk)
+            
+
+        return created_comment_pks

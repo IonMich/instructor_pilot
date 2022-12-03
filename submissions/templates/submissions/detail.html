@@ -117,7 +117,7 @@
         </div>
 
         <div class="col-sm-3">
-            <form action='{% url "submissions:detail" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}' method="post">
+            <form action='{% url "submissions:detail" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}' method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="row" >                    
                     <div class="col-xs-12 mb-5" style="height:30%;">
@@ -192,6 +192,7 @@
                                 It is hidden by default and only shown when the user hovers over the div
                                 Its position is absolute so it doesn't affect the layout of the page
                                 {% endcomment %}
+                                {% if comment.text %}
                                 <div class="comment-tools btn-group-sm d-none">
                                     {% comment %} add edit, star and trash buttons {% endcomment %}
                                     <button type="button" class="btn btn-edit-comment" aria-label="Edit" data-bs-pk="{{comment.pk}}" title="Edit comment" tabindex="-1">
@@ -208,6 +209,10 @@
                                     </button>
                                 </div>
                                 <p name="old_comment_{{forloop.counter}}" class="form-control comment-text" id="{{ comment.id_for_label }}">{{comment.text}}</p>
+                                {% endif %}
+                                {% if comment.comment_file%}
+                                <p>{{comment.filename}}</p>
+                                {% endif %}
                             </div>
                             {% endfor %}
                             {% comment %} create modal for comment delete confirmation {% endcomment %}
@@ -263,15 +268,12 @@
                             </div>
                         </div>
                     </div>
-
-
-                    
-                    
+                   
                     <div class="col-xs-12 mt-1">
                         <div class="form-outline">
                             {{ grading_form.comment_files.errors }}
                             <label for="{{ grading_form.comment_files.id_for_label }}" style="font-size:20px;">File</label>
-                            <input type="file" name="comment_files" class="form-control" id="{{ grading_form.comment_files.id_for_label }}">
+                            <input type="file" name="comment_files" class="form-control" id="{{ grading_form.comment_files.id_for_label }}" multiple>
                         </div>
                     </div>
                     <div class="row justify-content-center">

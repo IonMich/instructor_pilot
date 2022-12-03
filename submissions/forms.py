@@ -150,11 +150,12 @@ class GradingForm(forms.ModelForm):
     
     class Meta:
         model = PaperSubmission
-        fields = ['student', 'question_grades', 'comment_files']        
+        fields = ['student', 'question_grades']        
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.new_comment = forms.Textarea()
+        self.comment_file = forms.FileField()
 
 class SubmissionFilesUploadForm(forms.Form):
     def __init__(self,*args,**kwargs):
