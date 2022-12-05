@@ -555,7 +555,7 @@ class SubmissionComment(models.Model):
     def get_assignment(self):
         return self.paper_submission.assignment
 
-    def filename(self):
+    def get_filename(self):
         return os.path.basename(self.comment_file.name)
 
     def __str__(self):

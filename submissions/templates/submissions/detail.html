@@ -211,7 +211,7 @@
                                 <p name="old_comment_{{forloop.counter}}" class="form-control comment-text" id="{{ comment.id_for_label }}">{{comment.text}}</p>
                                 {% endif %}
                                 {% if comment.comment_file%}
-                                <p>{{comment.filename}}</p>
+                                <p>{{comment.get_filename}}</p>
                                 {% endif %}
                             </div>
                             {% endfor %}
