@@ -108,7 +108,7 @@ def upload_files_view(request, assignment_pk=None):
 
 @login_required
 def submission_classify_view(request):
-    message = "Use this form to to classify submission by student name and university ID using Deep Learning methods"
+    message = "Use this form to to classify submission by student name and university ID using ML"
     form = StudentClassifyForm()
     if request.method == 'POST':
         form = StudentClassifyForm(request.POST)

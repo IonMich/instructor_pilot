@@ -150,6 +150,14 @@ animation-fill-mode: forwards;
     z-index: 1;
 }
 
+.comment-text {
+    margin-bottom: 0;
+}
+
+.comment-file {
+    margin-bottom: 0;
+}
+
 .submissions-header {
     display: flex; 
     flex-direction: row;

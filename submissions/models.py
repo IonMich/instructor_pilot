@@ -558,6 +558,17 @@ class SubmissionComment(models.Model):
     def get_filename(self):
         return os.path.basename(self.comment_file.name)
 
+    def get_filesize(self):
+        size = os.path.getsize(self.comment_file.path)
+        if size < 1024:
+            return f"{size} B"
+        elif size < 1024**2:
+            return f"{size/1024:.1f} KB"
+        elif size < 1024**3:
+            return f"{size/1024**2:.1f} MB"
+        else:
+            return f"{size/1024**3:.1f} GB"
+
     def __str__(self):
         return f"Submission Comment {self.pk}"
 
@@ -583,12 +594,14 @@ class SubmissionComment(models.Model):
         by splitting the original pdf(s) into individual submissions.
         """
         print("submission is:", submission_target)
-        new_comment_file_dir = os.path.join(
-            settings.MEDIA_ROOT, 
+        new_comment_file_dir_in_media = os.path.join(
             "submissions", 
             f"course_{submission_target.assignment.course.pk}", 
             f"assignment_{submission_target.assignment.pk}",
             "comment")
+        new_comment_file_dir = os.path.join(
+            settings.MEDIA_ROOT, 
+            new_comment_file_dir_in_media)
 
         if not os.path.exists(new_comment_file_dir):
             os.makedirs(new_comment_file_dir)
@@ -606,6 +619,10 @@ class SubmissionComment(models.Model):
             
         
             # copy file to new location, while keeping the original name
+            new_file_path_in_media = os.path.join(
+                new_comment_file_dir_in_media,
+                uploaded_file.name,
+            )
             new_file_path = os.path.join(
                 new_comment_file_dir,
                 uploaded_file.name,
@@ -627,19 +644,10 @@ class SubmissionComment(models.Model):
             
            
             print(f"New: {file_path}\n")
-                
-            # we want to avoid name collisions, so we generate a random string
-            # to append to the filename
-            # random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-            # file_name = f'submission_batch_{file_idx}_{start_page}-{end_page}_{random_string}.pdf'
-            # new_pdf_fpath = os.path.join(new_pdf_dir, file_name)
-            # doc_new = fitz.open()
-            # doc_new.insert_pdf(doc, from_page=start_page, to_page=end_page)
-            # doc_new.save(new_pdf_fpath)
-
+            
             new_comment_file = SubmissionComment.objects.create(
                 paper_submission=submission_target,
-                comment_file=uploaded_file,
+                comment_file=new_file_path_in_media,
                 author=author,
             )
             new_comment_file.save()

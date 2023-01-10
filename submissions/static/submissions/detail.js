@@ -509,6 +509,11 @@ oldComments.forEach(comment => {
 // add a click event listener to the star button of each old comment
 oldComments.forEach(comment => {
     const starBtn = comment.querySelector(".btn-star-comment");
+    // if there is no .comment-text element, the comment probably has a file
+    // disable the star button
+    if (!comment.querySelector(".comment-text")) {
+        starBtn.setAttribute("disabled", "");
+    } 
     starBtn.addEventListener("click", () => {
         // get the comment id
         const commentId = starBtn.getAttribute("data-bs-pk");
@@ -536,6 +541,11 @@ oldComments.forEach(comment => {
 // add a click event listener to the edit button of each old comment
 oldComments.forEach(comment => {
     const editBtn = comment.querySelector(".btn-edit-comment");
+    // if there is no .comment-text element, the comment probably has a file
+    // disable the edit button
+    if (!comment.querySelector(".comment-text")) {
+        editBtn.setAttribute("disabled", "");
+    }
     editBtn.addEventListener("click", () => {
         // get the comment id
         const commentId = editBtn.getAttribute("data-bs-pk");
@@ -695,6 +705,11 @@ editModalform.addEventListener("submit", (event) => {
             console.log(data);
             const oldComment = document.querySelector(`.old-comment .btn-edit-comment[data-bs-pk="${commentId}"]`).closest(".old-comment");
             oldComment.querySelector(".comment-text").textContent = editModalform.querySelector("#id_edit_comment_text").value;
+            // change the updated_at date in comment-info to the current date and time
+            // display it in the format "Updated MMM. DD YYYY, HH:MM:SS a.m/p.m."
+            current_date = new Date();
+            display_date = current_date.toLocaleString("en-US", {month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "numeric", hour12: true});
+            oldComment.querySelector(".comment-info").textContent = `Updated ${display_date}`;
             // hide the modal
             const modalInstance = bootstrap.Modal.getInstance(editModal);
             modalInstance.hide();
