@@ -8,7 +8,7 @@ from django.db import models
 from django.urls import reverse
 
 from courses.models import Course
-from courses.utils import get_canvas_course
+from courses.utils import get_canvas_course, get_canvas_object
 from courses.views import course_detail_view
 from submissions.utils import CommaSeparatedFloatField
 
@@ -201,7 +201,8 @@ class Assignment(models.Model):
     def upload_graded_submissions_to_canvas(self, 
             submission_sync_option,
             comment_sync_option,
-            specific_submissions=None
+            request_user,
+            specific_submissions=None,
     ):
         """Uploads the grades and comments of the submissions to canvas.
 
@@ -269,38 +270,60 @@ class Assignment(models.Model):
             if submission_sync_option == "specific" and submission not in specific_submissions:
                 print(f"Will not upload grade for {canvas_submission.user['name']} because it is not in the specific selection.")
                 continue
-
-            # continue
             
             for comment in submission.submissions_submissioncomment_related.all():
                 print(f'Comment: {comment.text}')
+
+            # upload the grade and a comment with the question grades to canvas
             score = submission.grade
-            question_grades_comment = ""
+            new_question_grades_comment = ""
             for idx, question_grade in enumerate(submission.get_question_grades()):
-                question_grades_comment += f"Question {idx+1} Grade: {question_grade}\n"
+                new_question_grades_comment += f"Question {idx+1} Grade: {question_grade}\n"
             print(f'Student grade: {score}')
-            print(f'Question grades comment: {question_grades_comment}')
+            print(f'Question grades comment: {new_question_grades_comment}')
+
+            # get or create the grade comment for this submission
+            grade_comment = submission.submissions_submissioncomment_related.filter(
+                is_grade_summary=True,
+                author=request_user,
+                ).first()
+            if grade_comment is None:
+                grade_comment = submission.submissions_submissioncomment_related.create(
+                    is_grade_summary=True,
+                    author=request_user,
+                    text=new_question_grades_comment,
+                    )
+            else:
+                grade_comment.text = new_question_grades_comment
+                grade_comment.save()
+
             uploaded_canvas_submission = canvas_submission.edit(submission={
                 'posted_grade': score},
                 comment= 
-                    {"text_comment":question_grades_comment,
+                    {"text_comment":new_question_grades_comment,
                     },
                 )
-            # TODO: use the following to use comment_sync_option
-            # print(uploaded_canvas_submission.__dict__)
-            # for comment in uploaded_canvas_submission.submission_comments:
-            #     if (comment["comment"] == question_grades_comment.strip("\n") 
-            #     and comment["author_id"] == uploaded_canvas_submission.grader_id):
-            #         print(f"Found comment in canvas submission: {comment['comment']}")
-            #         print(f"Comment id: {comment['id']}")
-            #         submission.canvas_comment_id = comment["id"]
-            #         submission.save()
-            #         break
+
+            # find the canvas_comment_id from the newly edited submission
+            canvas_comment_id = uploaded_canvas_submission.submission_comments[-1]['id']
+            grade_comment.canvas_id = canvas_comment_id
+            grade_comment.save()
+
             print(f"Uploaded grade and grade comment for {canvas_submission.user['name']}")
-            
+
             for comment in submission.submissions_submissioncomment_related.all():
+                if comment.is_grade_summary:
+                    continue
                 # if the comment contains a file, we upload the file to canvas
                 # if the comment does not contain a file, we upload the comment text to canvas
+
+                # if the comment's author is not the current user, we skip it
+                # because we only want to upload comments that were created by the current user
+                if comment.author != request_user:
+                    print(f"Will not upload the following comment by {comment.author} because "
+                            f"it was not created by the current user:\n"
+                            f"{comment.text}")
+                    continue
 
                 if not comment.comment_file:
                     print(f'Comment: {comment.text}')
@@ -323,6 +346,7 @@ class Assignment(models.Model):
                         )
                         if uploaded:
                             print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
+            
             print(f'Submission comment file url: {submission.pdf}')
             
             new_file_name = f"submission_{submission.student.first_name}_{submission.student.last_name}.pdf"

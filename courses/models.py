@@ -13,6 +13,7 @@ semesters = (
         ("SUA","Summer A"),
         ("SUB","Summer B"),
         ("SUC","Summer C"),
+        ("D", "Development"),
 )
 
 
@@ -113,12 +114,17 @@ class Course(models.Model):
         else:
             canvas_course = get_canvas_course(canvas_id=self.canvas_id)
 
-        for item in semesters:
-            term_splitted = self.term.split(" ")
-            if item[1] == " ".join(term_splitted[:-1]):
-                self.semester_type = item[0]
-                self.year = term_splitted[-1]
-                break
+        if self.term == "Development Term":
+            self.semester_type = "D"
+            import datetime
+            self.year = str(datetime.datetime.now().year)
+        else:
+            for item in semesters:
+                term_splitted = self.term.split(" ")
+                if item[1] == " ".join(term_splitted[:-1]):
+                    self.semester_type = item[0]
+                    self.year = term_splitted[-1]
+                    break
         
         try:
             university_code = canvas_course.sis_course_id.split(".")[0].lower()
@@ -137,20 +143,29 @@ class Course(models.Model):
                 self.start_date = canvas_course.start_at
             else:
                 import datetime
-                d_start = datetime.datetime.strptime(canvas_course.term["start_at"],"%Y-%m-%dT%H:%M:%SZ")
-                new_format = "%Y-%m-%d"
-                self.start_date = d_start.strftime(new_format)
+                try:
+                    d_start = datetime.datetime.strptime(canvas_course.term["start_at"],"%Y-%m-%dT%H:%M:%SZ")
+                    new_format = "%Y-%m-%d"
+                    self.start_date = d_start.strftime(new_format)
+                except Exception as e:
+                    now = datetime.datetime.now()
+                    self.start_date = now.strftime("%Y-%m-%d")
         try:
             self.end_date = canvas_course.end_at_date
         except AttributeError:
             if canvas_course.end_at is not None:
                 self.end_date = canvas_course.end_at
             else:
-                self.end_date = canvas_course.term["end_at"]
                 import datetime
-                d_end = datetime.datetime.strptime(canvas_course.term["end_at"],"%Y-%m-%dT%H:%M:%SZ")
-                new_format = "%Y-%m-%d"
-                self.end_date = d_end.strftime(new_format)
+                try:
+                    d_end = datetime.datetime.strptime(canvas_course.term["end_at"],"%Y-%m-%dT%H:%M:%SZ")
+                    new_format = "%Y-%m-%d"
+                    self.end_date = d_end.strftime(new_format)
+                except Exception as e:
+                    now = datetime.datetime.now()
+                    # add 4 months
+                    end_date = now + datetime.timedelta(days=90)
+                    self.end_date = end_date.strftime("%Y-%m-%d")
 
         image_url = canvas_course.image_download_url
         if image_url not in [None,'']:
@@ -210,6 +225,8 @@ class Course(models.Model):
         # # now update the students
         self.update_students_from_canvas(canvas_course)
 
+        # # now update the submission comments
+        self.update_submission_comments_from_canvas()
         
         
         
@@ -234,6 +251,78 @@ class Course(models.Model):
         students = Student.update_from_canvas(
             course=self, canvas_students=canvas_students)
         return students
+        
+    def get_all_submission_student_comments(self, assignment_group_name,):
+        """
+        Return all submission comments in a course for a given assignment group.
+        Keep only the comments that were written by someone other than the current user.
+        """
+        # get the corresponding canvas course
+        try:
+            canvas_course = get_canvas_course(self.canvas_id)
+        except Exception as e:
+            print(e)
+            print("Canvas Id for this course is not valid.")
+            print(f"{self.canvas_id=}")
+            return None
+        # find the canvas id of the assignment group with the given name
+        assignment_groups = canvas_course.get_assignment_groups(
+            include=["assignments"])
+        for assignment_group in assignment_groups:
+            if assignment_group.name == assignment_group_name:
+                assignment_group_id = assignment_group.id
+                break
+        else:
+            print("Assignment group not found")
+            raise ValueError("Assignment group not found")
+            # return None
+
+        # get list of canvas assignment ids in the assignment group with id assignment_group_id
+        assignment_ids = []
+        for assignment in assignment_group.assignments:
+            assignment_ids.append(assignment["id"])
+
+        submissions = canvas_course.get_multiple_submissions(
+            student_ids="all",
+            assignment_ids=assignment_ids,
+            include=["submission_comments"],
+        )
+
+        # get all submission comments not written by the requestor
+
+        # get the canvas id of the requestor
+        canvas = get_canvas_object()
+        requestor_canvas_id = canvas.get_current_user().id
+
+        # store them in a list of dictionaries
+        # each dictionary has keys "author_canvas_id", "submission_id", "text", "created_at"
+
+        submission_comments = []
+        for submission in submissions:
+            for comment in submission.submission_comments:
+                if comment["author_id"] != requestor_canvas_id:
+                    print(f"author name: {comment['author_name']}\n"
+                            f"submission id: {submission.id}\n"
+                            f"comment: {comment['comment']}\n"
+                            f"created at: {comment['created_at']}\n")
+                    submission_comments.append(
+                        {
+                            "author_canvas_id": comment["author_id"],
+                            "submission_canvas_id": submission.id,
+                            "text": comment["comment"],
+                            "created_at": comment["created_at"],
+                        }
+                    )
+                    
+        return submission_comments
+
+    def update_submission_comments_from_canvas(self):
+        try:
+            canvas_submission_comments = self.get_all_submission_student_comments("Quizzes")
+            print(canvas_submission_comments)
+        except Exception as e:
+            print(e)
+            return None
 
 
 class Announcement(models.Model):

@@ -529,6 +529,7 @@ class SubmissionComment(models.Model):
 
     created_at = models.DateTimeField(
         auto_now_add=True)
+
     updated_at = models.DateTimeField(
         auto_now=True)
 
@@ -551,6 +552,11 @@ class SubmissionComment(models.Model):
         null=True,
         blank=True,
         )
+
+    canvas_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True)
 
     def get_assignment(self):
         return self.paper_submission.assignment

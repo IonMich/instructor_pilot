@@ -187,51 +187,55 @@
                         <label class="mt-3" for="old-comments" style="font-size:20px;">Old Comments</label>
                         <div class="col-xs-12 mt-2" style="height:70%;" id="old-comments">
                             {% for comment in submission.submissions_submissioncomment_related.all %}
-                                <div class="form-outline old-comment mb-2" id="old-comment-{{forloop.counter}}" style="position:relative;">
-                                    {% comment %} add the old comment and a button to delete it at the top right corner of the div 
-                                    It is hidden by default and only shown when the user hovers over the div
-                                    Its position is absolute so it doesn't affect the layout of the page
-                                    {% endcomment %}
+                                {% if comment.is_grade_summary %}
                                     
-                                    <div class="comment-tools btn-group-sm d-none">
-                                        {% comment %} add edit, star and trash buttons {% endcomment %}
-                                        <button type="button" class="btn btn-edit-comment" aria-label="Edit" data-bs-pk="{{comment.pk}}" title="Edit comment" tabindex="-1">
-                                            {% comment %} pen {% endcomment %}
-                                            <i class="bi bi-pencil-fill"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-star-comment" aria-label="Star" data-bs-pk="{{comment.pk}}" title="Star comment" tabindex="-1">
-                                            {% comment %} star {% endcomment %}
-                                            <i class="bi bi-star-fill"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-delete-comment" aria-label="Close" data-bs-pk="{{comment.pk}}" title="Delete comment" tabindex="-1">
-                                            {% comment %} trash {% endcomment %}
-                                            <i class="bi bi-trash-fill"></i>
-                                        </button>
+                                {% else %}
+                                    <div class="form-outline old-comment mb-2" id="old-comment-{{forloop.counter}}" style="position:relative;">
+                                        {% comment %} add the old comment and a button to delete it at the top right corner of the div 
+                                        It is hidden by default and only shown when the user hovers over the div
+                                        Its position is absolute so it doesn't affect the layout of the page
+                                        {% endcomment %}
+                                        
+                                        <div class="comment-tools btn-group-sm d-none">
+                                            {% comment %} add edit, star and trash buttons {% endcomment %}
+                                            <button type="button" class="btn btn-edit-comment" aria-label="Edit" data-bs-pk="{{comment.pk}}" title="Edit comment" tabindex="-1">
+                                                {% comment %} pen {% endcomment %}
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-star-comment" aria-label="Star" data-bs-pk="{{comment.pk}}" title="Star comment" tabindex="-1">
+                                                {% comment %} star {% endcomment %}
+                                                <i class="bi bi-star-fill"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-delete-comment" aria-label="Close" data-bs-pk="{{comment.pk}}" title="Delete comment" tabindex="-1">
+                                                {% comment %} trash {% endcomment %}
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </div>
+                                        {% if comment.text %}
+                                            <p name="old_comment_{{forloop.counter}}" class="comment-text" id="{{ comment.id_for_label }}">{{comment.text}}</p>
+                                        {% endif %}
+                                        {% if comment.comment_file%}
+                                            <a name="old_comment_{{forloop.counter}}-file" class="comment-file" id="{{ comment.id_for_label }}-file" href="{{comment.comment_file.url}}" target="_blank">
+                                                {{comment.get_filename}}
+                                            </a>
+                                        {% endif %}
+                                        {% comment %} add author and date in small text anchor to the bottom right corner of the div {% endcomment %}
+                                        {% comment %} note that if float:right interferes with the comment text, so 
+                                        we can use float:left and then add a margin to the text {% endcomment %}
+                                        <div class="d-flex">
+                                            <small class="ms-auto comment-info text-muted">
+                                                {% comment %} add author {% endcomment %}
+                                                <span class="comment-author">{{comment.author.first_name}} - </span>
+                                                {% comment %} add date {% endcomment %}
+                                                <span class="comment-date">{{comment.updated_at}}</span>
+                                                {% comment %} if file, add filesize {% endcomment %}
+                                                {% if comment.comment_file %}
+                                                    <span class="comment-filesize">({{comment.get_filesize}})</span>
+                                                {% endif %}
+                                            </small>
+                                        </div>
                                     </div>
-                                    {% if comment.text %}
-                                        <p name="old_comment_{{forloop.counter}}" class="comment-text" id="{{ comment.id_for_label }}">{{comment.text}}</p>
-                                    {% endif %}
-                                    {% if comment.comment_file%}
-                                        <a name="old_comment_{{forloop.counter}}-file" class="comment-file" id="{{ comment.id_for_label }}-file" href="{{comment.comment_file.url}}" target="_blank">
-                                            {{comment.get_filename}}
-                                        </a>
-                                    {% endif %}
-                                    {% comment %} add author and date in small text anchor to the bottom right corner of the div {% endcomment %}
-                                    {% comment %} note that if float:right interferes with the comment text, so 
-                                    we can use float:left and then add a margin to the text {% endcomment %}
-                                    <div class="d-flex">
-                                        <small class="ms-auto comment-info text-muted">
-                                            {% comment %} add author {% endcomment %}
-                                            <span class="comment-author">{{comment.author.first_name}} - </span>
-                                            {% comment %} add date {% endcomment %}
-                                            <span class="comment-date">{{comment.updated_at}}</span>
-                                            {% comment %} if file, add filesize {% endcomment %}
-                                            {% if comment.comment_file %}
-                                                <span class="comment-filesize">({{comment.get_filesize}})</span>
-                                            {% endif %}
-                                        </small>
-                                    </div>
-                                </div>
+                                {% endif %}
                             {% endfor %}
                         </div>
                     {% endif %}
