@@ -107,4 +107,68 @@ def course_create_view(request):
 
         course.save()
 
+@login_required
+def grading_scheme_update_view(request, course_pk):
+    """
+    The request.body contains e.g.
+    'num_questions': '2', 'equal_grades': True, 'max_grades': '5,5', 'apply_to_all': False, 'assignment_id':42
 
+    if equal_grades is True, then take num_questions, divide max_grades by num_questions 
+    and create a list of length num_questions with the same value. Finally, convert the list to a comma-separated string
+
+    if equal_grades is False, then take the max_grades directly
+
+    if apply_to_all is True, then apply the grading scheme to all assignments in the same assignment_group
+    """
+    status = 'success'
+    course = get_object_or_404(Course, pk=course_pk)
+    if request.method == 'POST':
+        data = json.loads(request.body.decode("utf-8"))
+
+        num_questions = int(data.get('num_questions'))
+        equal_grades = data.get('equal_grades')
+        max_grades = data.get('max_grades')
+        apply_to_all = data.get('apply_to_all')
+        assignment_id = data.get('assignment_id')
+
+        assignment_of_request = course.assignments.get(pk=assignment_id)
+        assignment_group = assignment_of_request.assignment_group
+
+        if equal_grades:
+            max_grades = [assignment_of_request.max_score / num_questions] * num_questions
+            max_grades = ",".join(map(str, max_grades))
+        else:
+            max_grades = max_grades
+
+        if apply_to_all:
+            assignments_to_update = course.assignments.filter(
+                assignment_group=assignment_group
+            )
+        else:
+            assignments_to_update = [assignment_of_request]
+
+
+        for assignment in assignments_to_update:
+            # check if the assignment has graded submissions
+            # if it does, do not update the grading scheme
+            if assignment.get_all_submissions().filter(graded_by__isnull=False).count() == 0:
+                print(f"Updating to grading scheme {max_grades} for assignment {assignment.name}")
+                assignment.max_question_scores = max_grades
+                assignment.save()
+            else:
+                print("Assignment has graded submissions. Not updating grading scheme.")
+                status = 'warning'
+
+        response = {
+            'message': 'Grading scheme updated!',
+            'status': status
+        }
+        return JsonResponse(response)
+
+
+
+
+
+        
+        
+        

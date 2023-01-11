@@ -3,6 +3,10 @@
 {% load static %}
 {% load crispy_forms_tags%}
 
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'assignments/style.css' %}">
+{% endblock %}
+
 {% block scripts %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <script src="https://d3js.org/d3.v7.min.js" defer></script>

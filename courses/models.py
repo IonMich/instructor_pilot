@@ -88,7 +88,6 @@ class Course(models.Model):
 
         return assignment_groups
 
-
     def is_canvas_course(self):
         return self.canvas_id is not None
 

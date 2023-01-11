@@ -7,3 +7,26 @@
 .carousel {
     margin-bottom: 0;
 }
+
+#grades_input_group {
+    min-height: 0;
+    transition: visibility 0.5s;
+    visibility: hidden;
+}
+
+.expander {
+    margin-bottom: 1rem;
+    display: grid;
+    grid-template-rows: 0fr;
+    overflow: hidden;
+    transition: grid-template-rows 0.5s;
+}
+
+.expander.expanded {
+    grid-template-rows: 1fr;
+}
+
+.expander.expanded #grades_input_group {
+    visibility: visible;
+}
+

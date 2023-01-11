@@ -2,6 +2,10 @@
 {% load crispy_forms_tags%}
 
 {% block content %}
+{% block scripts %}
+    {{ assignment.max_score|json_script:"max_score"}}
+    {{ assignment.course.pk|json_script:"course_id"}}
+{% endblock scripts %}
 
 {% comment %} add two forms side to side via a css grid {% endcomment %}
 <div class="mt-3" style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 10px;">
@@ -17,30 +21,40 @@
     <div class="update-grade-scheme" style= "justify-self: center;">
         <h3 >Choose grading scheme</h3>
         <hr>
-        <form action="" enctype="multipart/form-data" method="POST">
+        <form action="" enctype="multipart/form-data" method="POST" id="gradingSchemeForm">
             {% csrf_token %}
             {% comment %} add slider for the number of questions. max is the total grade{% endcomment %}
             <label for="num_questions">Number of questions</label>
             <div class="d-flex justify-content-between align-items-center">
                 <input type="range" class="form-range" id="num_questions" name="num_questions" min="1" max="{{assignment.max_score}}" value="{{assignment.number_of_questions}}" oninput="this.form.num_questions_output.value = this.value">
-                <input type="number" class="form-control" name="num_questions_output" value="{{assignment.number_of_questions}}" min="1" max="{{assignment.max_score}}" style="width: 50px; margin-left:1rem" oninput="this.form.num_questions.value = this.value">
+                <input type="number" class="form-control" name="num_questions_output" value="{{assignment.number_of_questions}}" min="1" max="{{assignment.max_score}}" style="width: 60px; margin-left:1rem" oninput="this.form.num_questions.value = this.value">
             </div>
             {% comment %} add a switch for equal or not equal grades for each question{% endcomment %}
             <div class="form-check form-switch mt-4">
-                <input class="form-check-input" type="checkbox" role="switch" id="equal_grades" name="equal_grades" {% if assignment.has_equal_question_scores %}checked{% endif %}>
+                <input class="form-check-input" type="checkbox" role="switch" id="equal_grades" name="equal_grades" 
+                {% if assignment.has_equal_question_scores %}
+                    checked
+                {% endif %}
+                >
                 <label for="equal_grades" class="">Equal maximum scores for all questions</label>
             </div>
-            {% comment %} input for the maximum grade for each question{% endcomment %}
-            {% comment %} E.g. 3,2 for 2 questions with 3 and 2 points respectively{% endcomment %}
-            <div class="form-group mt-4">
-                <label for="max_grades">Maximum grades for each question</label>
-                <input type="text" class="form-control" id="max_grades" name="max_grades" value="{{assignment.max_question_scores}}" placeholder="E.g. 3,2 for two questions with 3 and 2 points respectively">
+            
+            <div class="expander" id="expander">
+                <div class="form-group mt-1 ms-1 me-2 mb-2" id="grades_input_group">
+                    {% comment %} input for the maximum grade for each question{% endcomment %}
+                    {% comment %} E.g. 3,2 for 2 questions with 3 and 2 points respectively{% endcomment %}
+                    <label for="max_grades" class="mt-1">Maximum grades for each question:</label>
+                    <input type="text" class="form-control" id="max_grades" name="max_grades" value="{{assignment.max_question_scores}}" placeholder="E.g. 3,2 for two questions with 3 and 2 points respectively">
+                </div>
             </div>
             {% comment %} add switch to apply the same grading scheme to all assignments in the same assignment group{% endcomment %}
-            <div class="form-check form-switch mt-4">
+            <div class="form-check form-switch mt-3">
                 <input class="form-check-input" type="checkbox" role="switch" id="apply_to_all" name="apply_to_all">
-                <label for="apply_to_all" class="">Apply to all assignments in "{{assignment.assignment_group}}"</label>
-            <button type="button" name="submit-update" class="btn btn-primary mt-3" style="display:block; margin:0 auto;">Update</button>
+                <label for="apply_to_all" class="">Apply to assignments in "{{assignment.assignment_group}}"</label>
+            </div>
+            {% comment %} add a hidden input for the assignment_id {% endcomment %}
+            <input type="hidden" name="assignment_id" value="{{assignment.pk}}" id="assignment_id">
+            <button type="button" name="update_grading_scheme" id="updateGradingSchemeBtn" class="btn btn-primary mt-3" style="display:block; margin:0 auto;">Update</button>
         </form>
 <br>
 {% if request.method == "POST" %}

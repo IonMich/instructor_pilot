@@ -317,15 +317,15 @@ for (const btn of btnCarouselNext) {
 // and set the width of all images to auto.
 
 const loadImage = src =>
-        new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => {
-                resolve(img);
-                console.log("img loaded");
-            };
-            img.onerror = reject;
-            img.src = src;
-        });
+    new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            resolve(img);
+            console.log("img loaded");
+        };
+        img.onerror = reject;
+        img.src = src;
+    });
     
 // get all image tags in the div
 const imgs = document.querySelectorAll(".sub-img");
@@ -363,27 +363,34 @@ Promise.all(imageUrls.map(loadImage)).then(images => {
 // handle modal close
 // when the modal is closed, resume the carousel of all cards
 const deleteModal = document.getElementById('modal-delete-sub');
-const btnDeleteConfirmed = deleteModal.querySelector('.btn-delete-confirmed');
+if (deleteModal) {
+    const btnDeleteConfirmed = deleteModal.querySelector('.btn-delete-confirmed');
 
-btnDeleteConfirmed.addEventListener('click', function(event) {
-    deleteSub(event);
-});
+    btnDeleteConfirmed.addEventListener('click', function(event) {
+        deleteSub(event);
+    });
+}
+
 
 // add event listener for the btn-delete-all button
 // when the button is clicked, show the modal to delete all submissions
 const btnDeleteAll = document.getElementById('btn-delete-all');
-btnDeleteAll.addEventListener('click', function(event) {
-    const deleteAllModal = document.getElementById('modal-delete-all');
-    const bsDeleteAllModal = bootstrap.Modal.getOrCreateInstance(deleteAllModal);
-    bsDeleteAllModal.show();
-});
+if (btnDeleteAll) {
+    btnDeleteAll.addEventListener('click', function(event) {
+        const deleteAllModal = document.getElementById('modal-delete-all');
+        const bsDeleteAllModal = bootstrap.Modal.getOrCreateInstance(deleteAllModal);
+        bsDeleteAllModal.show();
+    });
+}
 
 // add event listener for the btn-delete-all-confirmed button
 // when the button is clicked, delete all submissions
 const btnDeleteAllConfirmed = document.getElementById('btn-delete-all-confirmed');
-btnDeleteAllConfirmed.addEventListener('click', function(event) {
-    deleteAllSubs(event);
-});
+if (btnDeleteAllConfirmed) {
+    btnDeleteAllConfirmed.addEventListener('click', function(event) {
+        deleteAllSubs(event);
+    });
+}
 
 function deleteAllSubs(event) {
     event.preventDefault();
@@ -412,59 +419,62 @@ function deleteAllSubs(event) {
 }
 
 
-var ctx = document.getElementById('myChart').getContext('2d');
+var chart = document.getElementById('myChart')
+if (chart) {
+    var ctx = chart.getContext('2d');
 
-const all_grades = JSON.parse(document.getElementById('all_grades').textContent);
-var histGenerator = d3.bin()
-.domain([0,4])    // TODO: get the min and max of the grades
-.thresholds(39);  // number of thresholds; this will create 19+1 bins
+    const all_grades = JSON.parse(document.getElementById('all_grades').textContent);
+    var histGenerator = d3.bin()
+    .domain([0,4])    // TODO: get the min and max of the grades
+    .thresholds(39);  // number of thresholds; this will create 19+1 bins
 
-var bins = histGenerator(all_grades);
-console.log(bins);
-x_axis = []
-y_axis = []
-for (var i = 0; i < bins.length; i++) {
-    x_axis.push(bins[i].x0)
-    y_axis.push(bins[i].length)
-}
-data = {
-    labels: x_axis,
-    datasets: [{
-        label: 'Submission Grades',
-        data: y_axis,
-        backgroundColor: [
-            'rgba(255, 99, 132, 0.2)',
-        ],
-        borderColor: [
-            'rgba(255, 99, 132, 1)'
-        ],
-        borderWidth: 1
-    }]
-};
+    var bins = histGenerator(all_grades);
+    console.log(bins);
+    x_axis = []
+    y_axis = []
+    for (var i = 0; i < bins.length; i++) {
+        x_axis.push(bins[i].x0)
+        y_axis.push(bins[i].length)
+    }
+    data = {
+        labels: x_axis,
+        datasets: [{
+            label: 'Submission Grades',
+            data: y_axis,
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
 
-var myChart = new Chart(ctx, {
-    type: 'bar',
-    data: data,
-    options: {
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    autoSkip: true,
-                    maxTicksLimit: 10
+    var myChart = new Chart(ctx, {
+        type: 'bar',
+        data: data,
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 10
+                    }
+                },
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 8
+                    }
                 }
             },
-            x: {
-                beginAtZero: true,
-                ticks: {
-                    autoSkip: true,
-                    maxTicksLimit: 8
-                }
-            }
-        },
-        
-    }
-});
+            
+        }
+    });
+}
 
 // add event listener for the .search-bar__button
 // when the button is clicked, focus on the search bar input but only 
@@ -472,31 +482,150 @@ var myChart = new Chart(ctx, {
 // If the transition does not end, i.e. if the transition is interrupted 
 // the search bar input will not be focused.
 const searchBar = document.querySelector('.search-bar');
-const searchBarInput = searchBar.querySelector('.search-bar__input');
-const searchBarButton = searchBar.querySelector('.search-bar .search-bar__button');
+if (searchBar) {
+    const searchBarInput = searchBar.querySelector('.search-bar__input');
+    const searchBarButton = searchBar.querySelector('.search-bar .search-bar__button');
 
-// searchBarButton.addEventListener('click', function(event) {
-//     // toggle the search bar button class search-is-on
-//     // searchBarButton.classList.toggle('search-is-on');
-//     // if the search bar button has the class search-is-on, focus on the search bar input
-//     if (searchBarButton.classList.contains('search-is-on')) {
-//         searchBar.addEventListener('transitioncancel', function(event) {
-//             searchBarInput.classList.add('transition-cancelled');
-//             console.log('transition cancelled');
-//         }, {once: true});
+    // searchBarButton.addEventListener('click', function(event) {
+    //     // toggle the search bar button class search-is-on
+    //     // searchBarButton.classList.toggle('search-is-on');
+    //     // if the search bar button has the class search-is-on, focus on the search bar input
+    //     if (searchBarButton.classList.contains('search-is-on')) {
+    //         searchBar.addEventListener('transitioncancel', function(event) {
+    //             searchBarInput.classList.add('transition-cancelled');
+    //             console.log('transition cancelled');
+    //         }, {once: true});
 
-//         searchBar.addEventListener('transitionstart', function(event) {
-//             searchBarInput.classList.remove('transition-cancelled');
-//             console.log('transition started');
-//         }, {once: true});
+    //         searchBar.addEventListener('transitionstart', function(event) {
+    //             searchBarInput.classList.remove('transition-cancelled');
+    //             console.log('transition started');
+    //         }, {once: true});
 
-//         searchBar.addEventListener('transitionend', function(event) {
-//             if (!searchBarInput.classList.contains('transition-cancelled')) {
-//                 searchBarInput.focus();
-//                 console.log('transition ended. input focused');
-//             } else {
-//                 console.log('transition ended, but input not focused because transition was cancelled');
-//             }
-//         }, {once: true});
-//     }
-// });
+    //         searchBar.addEventListener('transitionend', function(event) {
+    //             if (!searchBarInput.classList.contains('transition-cancelled')) {
+    //                 searchBarInput.focus();
+    //                 console.log('transition ended. input focused');
+    //             } else {
+    //                 console.log('transition ended, but input not focused because transition was cancelled');
+    //             }
+    //         }, {once: true});
+    //     }
+    // });
+}
+
+// add event listener for the equal-grades checkbox switch of the upload_files.html
+// when the checkbox is not checked, add the .expanded class to the .expander container of #grades_input_group
+// when the checkbox is checked, remove the .expanded class from the .expander container
+const equalGradesCheckbox = document.getElementById('equal_grades');
+if (equalGradesCheckbox) {
+    const expander = document.querySelector('.expander:has(#grades_input_group)');
+    equalGradesCheckbox.addEventListener('change', function(event) {
+        console.log('checkbox changed');
+        if (equalGradesCheckbox.checked) {
+            expander.classList.remove('expanded');
+            
+            // also change the value of #max_grades to "x,x,x,...,x", where x=assignment.max_score/N, and N is the value of input #num_questions
+            const numQuestions = document.getElementById('num_questions').value;
+            const numGradesInput = document.getElementById('max_grades')
+            const maxScore = JSON.parse(document.getElementById('max_score').textContent);
+            var equalGrade = maxScore / numQuestions;
+            // round the equalGrade to 4 decimal places
+            equalGrade = Math.round(equalGrade * 10000) / 10000;
+            var roundingError = maxScore - equalGrade * numQuestions;
+
+            // create an array of length numQuestions with all elements equal to equalGrade
+            const equalGrades = Array(parseInt(numQuestions)).fill(equalGrade);
+            // add the rounding error to the last element of the array
+            equalGrades[equalGrades.length - 1] += Math.round(roundingError * 10000) / 10000;
+            
+            numGradesInput.value = equalGrades.join(',');
+            
+        } else {
+            expander.classList.add('expanded');
+        }
+    });
+}
+
+// when num_questions is changed, update the value of max_grades
+// set the value of max_grades to "x,x,x,...,x
+// where x = assignment.max_score / num_questions
+
+const numQuestionsInput = document.getElementById('num_questions');
+if (numQuestionsInput) {
+    const maxGradesInput = document.getElementById('max_grades');
+    numQuestionsInput.addEventListener('input', function(event) {
+        const maxScore = JSON.parse(document.getElementById('max_score').textContent);
+        const numQuestions = numQuestionsInput.value;
+        var equalGrade = maxScore / numQuestions;
+        // round the equalGrade to 4 decimal places
+        equalGrade = Math.round(equalGrade * 10000) / 10000;
+        var roundingError = maxScore - equalGrade * numQuestions;
+
+        // create an array of length numQuestions with all elements equal to equalGrade
+        const equalGrades = Array(parseInt(numQuestions)).fill(equalGrade);
+        // add the rounding error to the last element of the array
+        equalGrades[equalGrades.length - 1] = Math.round( (equalGrades[equalGrades.length - 1] + roundingError) * 10000) / 10000;
+        
+        maxGradesInput.value = equalGrades.join(',');
+    });
+}
+
+// add event listener for the update button of the grading scheme
+// send a fetch request to the server to update the grading scheme
+// and change the button text to a spinner
+// when the request is complete, change the button text back to "Update"
+// and change the button class to "btn-success"
+const updateGradingSchemeButton = document.getElementById('updateGradingSchemeBtn');
+if (updateGradingSchemeButton) {
+    updateGradingSchemeButton.addEventListener('click', function(event) {
+        // change the button text to a spinner
+        updateGradingSchemeButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
+        // disable the button
+        updateGradingSchemeButton.disabled = true;
+        
+        // get num_questions, equal_grades, max_grades, apply_to_all, assignment_id
+        const numQuestions = document.getElementById('num_questions').value;
+        const equalGrades = document.getElementById('equal_grades').checked;
+        const maxGrades = document.getElementById('max_grades').value;
+        const applyToAll = document.getElementById('apply_to_all').checked;
+        const assignmentId = document.getElementById('assignment_id').value;
+        
+        courseId = JSON.parse(document.getElementById('course_id').textContent);
+
+        const url = '/course/' + courseId + '/grading_scheme/update/';
+        const data = {
+            num_questions: numQuestions,
+            equal_grades: equalGrades,
+            max_grades: maxGrades,
+            apply_to_all: applyToAll,
+            assignment_id: assignmentId
+        };
+
+        const gradingSchemeForm = document.getElementById('gradingSchemeForm');
+        const csrfToken = gradingSchemeForm.querySelector("input[name='csrfmiddlewaretoken']").value;
+
+        options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                
+            },
+            body: JSON.stringify(data)
+        };
+
+        fetch(url, options)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            // change the button text back to "Update"
+            updateGradingSchemeButton.innerHTML = 'Update';
+            // enable the button
+            updateGradingSchemeButton.disabled = false;
+            // change the button class to "btn-success"
+            updateGradingSchemeButton.classList.remove('btn-primary');
+            updateGradingSchemeButton.classList.add('btn-success');
+        }
+        );
+    });
+}

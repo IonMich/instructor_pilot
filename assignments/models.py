@@ -88,7 +88,6 @@ class Assignment(models.Model):
             is_saved=True,
             author=requester)
 
-
     def get_grading_progress(self):
         """Returns the grading progress of the assignment as a percentage."""
         submissions = self.get_all_submissions()
