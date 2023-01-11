@@ -1,7 +1,8 @@
-import cv2
-import numpy as np
 import copy
 import os
+
+import cv2
+import numpy as np
 import pandas as pd
 
 UFID_LENGTH = 8
@@ -324,6 +325,7 @@ def preprocess_digit_box(
     Following the description in the MNIST dataset website.
     """
     import tensorflow as tf
+
     # convert to black background and white foreground
     digit_box_inv = 255 - digit_box    
     

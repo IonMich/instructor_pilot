@@ -1,27 +1,23 @@
-from django.db import models
-from assignments.models import Assignment
-from students.models import Student
-from django.contrib.auth.models import User
-from django.utils import timezone
-from django.urls import reverse
-from django.conf import settings
-import uuid
-from django.core.exceptions import ValidationError
-from submissions.utils import (
-    CommaSeparatedFloatField, 
-    get_quiz_pdf_path,
-    convert_pdf_to_images,
-)
 import os
-from PIL import Image
 import random
 import string
+import uuid
 
-from submissions.digits_classify import (
-    import_tf_model,
-    import_students_from_db,
-    classify,
-)
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.urls import reverse
+from django.utils import timezone
+from PIL import Image
+
+from assignments.models import Assignment
+from students.models import Student
+from submissions.digits_classify import (classify, import_students_from_db,
+                                         import_tf_model)
+from submissions.utils import (CommaSeparatedFloatField, convert_pdf_to_images,
+                               get_quiz_pdf_path)
+
 # Create your models here.
 
 class Submission(models.Model):

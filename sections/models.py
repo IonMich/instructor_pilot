@@ -1,11 +1,14 @@
-from django.db import models
+import re
+from datetime import datetime
+
 from django.contrib.auth.models import User
+from django.db import models
+from django.db.models import Q
+from django.urls import reverse
+
 from courses.models import Course
 from universities.models import University
-from django.urls import reverse
-from django.db.models import Q
-from datetime import datetime
-import re
+
 
 # Create your models here.
 class Meeting(models.Model):

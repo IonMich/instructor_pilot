@@ -1,8 +1,10 @@
+import re
+
 from django.db import models
+from django.db.models import Q
+
 from sections.models import Section
 from universities.models import University
-from django.db.models import Q
-import re
 
 # Create your models here.
 
@@ -99,8 +101,9 @@ class Student(models.Model):
             profile = student.profile
             profile.bio = canvas_student.bio if canvas_student.bio else ""
             avatar_url = canvas_student.avatar_url
-            from urllib import request
             import os
+            from urllib import request
+
             from django.core.files import File
             result = request.urlretrieve(avatar_url)
             profile.avatar.save(

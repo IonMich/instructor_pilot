@@ -1,9 +1,10 @@
-from django.shortcuts import render
-from django.views.generic import ListView, DetailView
-from .models import Document
-from django.shortcuts import get_object_or_404
-from .forms import DocumentSearchForm
 import pandas as pd
+from django.shortcuts import get_object_or_404, render
+from django.views.generic import DetailView, ListView
+
+from .forms import DocumentSearchForm
+from .models import Document
+
 # Create your views here.
 
 def home_view(request):

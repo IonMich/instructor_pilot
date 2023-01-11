@@ -1,11 +1,12 @@
-from django.db import models
-from django.core.validators import RegexValidator
-from django.utils.translation import gettext as _
-import re
-import os
 import glob
-from PIL import Image
+import os
+import re
+
 import fitz
+from django.core.validators import RegexValidator
+from django.db import models
+from django.utils.translation import gettext as _
+from PIL import Image
 
 comma_separated_float_list_re = re.compile('^([-+]?\d*\.?\d+[,\s]*)+$')
 validate_comma_separated_float_list = RegexValidator(

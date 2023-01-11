@@ -1,12 +1,12 @@
-import pandas as pd
-import autocanvas.core as ac
-from autocanvas.core.conversions import (
-    series_from_api_object,
-    df_from_api_list)
 import os
-from autocanvas.config import get_API_key
-from autocanvas.config import INPUT_DIR, OUTPUT_DIR
+
+import autocanvas.core as ac
+import pandas as pd
+from autocanvas.config import INPUT_DIR, OUTPUT_DIR, get_API_key
+from autocanvas.core.conversions import (df_from_api_list,
+                                         series_from_api_object)
 from canvasapi import Canvas
+
 API_URL = "https://ufl.instructure.com/"
 CANVAS_API_KEY = get_API_key()
 

@@ -1,11 +1,9 @@
 from django.contrib import admin
-from .models import (
-    PaperSubmission, 
-    CanvasQuizSubmission, 
-    ScantronSubmission,
-    PaperSubmissionImage,
-    SubmissionComment,
-    )
+
+from .models import (CanvasQuizSubmission, PaperSubmission,
+                     PaperSubmissionImage, ScantronSubmission,
+                     SubmissionComment)
+
 # # Register your models here.
 
 # admin.site.register(PaperSubmission)

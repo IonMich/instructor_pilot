@@ -1,9 +1,11 @@
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Column, Layout, Row, Submit
 from django import forms
+
 from assignments.models import Assignment
 from students.models import Student
-from submissions.models import PaperSubmission, CanvasQuizSubmission, ScantronSubmission, PaperSubmissionImage
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Row, Column
+from submissions.models import (CanvasQuizSubmission, PaperSubmission,
+                                PaperSubmissionImage, ScantronSubmission)
 
 
 # create a class for the form that will be used 

@@ -1,5 +1,7 @@
 from django import forms
+
 from courses.models import Course
+
 
 class SyncFromCanvasForm(forms.ModelForm):
     class Meta:
@@ -19,6 +21,7 @@ class CreateCourseForm(forms.ModelForm):
 
     def create_course(self, requester):
         import datetime
+
         from django.utils import timezone
 
         # cal

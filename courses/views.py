@@ -1,14 +1,17 @@
-from django.shortcuts import render
-from .models import Course, semesters
-from universities.models import University
-from courses.forms import SyncFromCanvasForm
-# Create your views here.
-from django.shortcuts import get_object_or_404, redirect
-from django.utils import timezone
+import json
+
 #import 404 error page
 from django.contrib.auth.decorators import login_required
-import json
 from django.http import JsonResponse
+# Create your views here.
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+
+from courses.forms import SyncFromCanvasForm
+from universities.models import University
+
+from .models import Course, semesters
+
 
 @login_required
 def course_detail_view(request, pk):

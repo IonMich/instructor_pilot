@@ -1,5 +1,5 @@
+from django.http import HttpResponseNotFound, JsonResponse
 from django.shortcuts import render
-from django.http import JsonResponse, HttpResponseNotFound
 
 # Create your views here.
 

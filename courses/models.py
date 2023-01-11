@@ -1,8 +1,9 @@
-from django.db import models
-from universities.models import University
 from django.contrib.auth.models import User
-from courses.utils import get_canvas_course, get_canvas_object
+from django.db import models
 from django.urls import reverse
+
+from courses.utils import get_canvas_course, get_canvas_object
+from universities.models import University
 
 # Create your models here.
 
@@ -170,6 +171,7 @@ class Course(models.Model):
         image_url = canvas_course.image_download_url
         if image_url not in [None,'']:
             from urllib import request
+
             from django.core.files import File
             result = request.urlretrieve(image_url)
             self.image.save(

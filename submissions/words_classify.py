@@ -1,7 +1,8 @@
 import copy
-import pandas as pd
 import itertools
 import re
+
+import pandas as pd
 
 
 def ragged_csv(filename):

@@ -1,20 +1,17 @@
-from django.shortcuts import render
-from .models import Assignment
-from courses.models import Course
-# Create your views here.
-from django.shortcuts import get_object_or_404, redirect
-from django.utils import timezone
-from submissions.models import PaperSubmission
-from submissions.views import _random1000
-from submissions.forms import (
-    SubmissionSearchForm,
-    SubmissionFilesUploadForm, 
-    StudentClassifyForm, 
-    SyncFromForm,
-    SyncToForm,
-)
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+# Create your views here.
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+
+from courses.models import Course
+from submissions.forms import (StudentClassifyForm, SubmissionFilesUploadForm,
+                               SubmissionSearchForm, SyncFromForm, SyncToForm)
+from submissions.models import PaperSubmission
+from submissions.views import _random1000
+
+from .models import Assignment
+
 # Create your views here.
 
 @login_required

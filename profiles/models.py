@@ -1,7 +1,8 @@
-from django.db import models
 from django.contrib.auth.models import User
-from students.models import Student
+from django.db import models
 from django.urls import reverse
+
+from students.models import Student
 
 # from django.core.validators import MinLengthValidator
 

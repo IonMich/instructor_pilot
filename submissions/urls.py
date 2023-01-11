@@ -1,18 +1,10 @@
 from django.urls import path
-from .views import (
-    home_view,
-    redirect_to_previous,
-    submission_list_view,
-    submission_detail_view,
-    redirect_to_previous,
-    redirect_to_next,
-    upload_files_view,
-    submission_classify_view,
-    submission_delete_view,
-    submission_delete_all_view,
-    submission_comment_delete_view,
-    submission_comment_modify_view,
-    )
+
+from .views import (home_view, redirect_to_next, redirect_to_previous,
+                    submission_classify_view, submission_comment_delete_view,
+                    submission_comment_modify_view, submission_delete_all_view,
+                    submission_delete_view, submission_detail_view,
+                    submission_list_view, upload_files_view)
 
 app_name = 'submissions'
 

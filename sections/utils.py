@@ -1,9 +1,12 @@
-import pandas as pd
-import os
 import glob
+import os
+
+import pandas as pd
+
 from sections.models import Section
 from students.models import Student
 from universities.models import University
+
 
 def import_students_to_sections(csv_fpath):
     """

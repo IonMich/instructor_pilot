@@ -1,5 +1,7 @@
 from django.contrib import admin
-from .models import Section, Meeting
+
+from .models import Meeting, Section
+
 # Register your models here.
 
 admin.site.register(Section)

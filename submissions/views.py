@@ -1,19 +1,23 @@
-from django.shortcuts import render
-# from django.views.generic import ListView, DetailView
-from .models import Submission, PaperSubmission, CanvasQuizSubmission, ScantronSubmission, SubmissionComment
-from .forms import SubmissionSearchForm, GradingForm, SubmissionFilesUploadForm, StudentClassifyForm
+import random
+from itertools import zip_longest
+
+import pandas as pd
+from django.contrib.auth.decorators import login_required
+from django.db.models.query_utils import Q
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.views.generic.edit import DeleteView
+
 from assignments.models import Assignment
 from courses.models import Course
-from django.db.models.query_utils import Q
-import pandas as pd
-from django.shortcuts import get_object_or_404, redirect
-from django.utils import timezone
-from itertools import zip_longest
-import random
-from django.urls import reverse
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.views.generic.edit import DeleteView
+
+from .forms import (GradingForm, StudentClassifyForm,
+                    SubmissionFilesUploadForm, SubmissionSearchForm)
+# from django.views.generic import ListView, DetailView
+from .models import (CanvasQuizSubmission, PaperSubmission, ScantronSubmission,
+                     Submission, SubmissionComment)
 
 
 def _random1000():
@@ -261,6 +265,7 @@ def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
 @login_required
 def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
     from django.shortcuts import redirect
+
     # first find the object corresponding to the pk
     submission = get_object_or_404(PaperSubmission, pk=submission_pk)
     # then find the next object
@@ -319,6 +324,7 @@ def submission_comment_modify_view(request, course_pk, assignment_pk, submission
     comment = get_object_or_404(SubmissionComment, pk=comment_pk)
     if request.method == 'POST':
         import json
+
         # get the data 
         #     "text"
         #     "saved_title"

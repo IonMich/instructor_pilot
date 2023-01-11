@@ -1,5 +1,7 @@
 from django.contrib import admin
-from .models import Course, Announcement
+
+from .models import Announcement, Course
+
 # Register your models here.
 
 

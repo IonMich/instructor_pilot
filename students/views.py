@@ -1,7 +1,8 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
+
 from courses.models import Course
 from sections.models import Section
-from django.shortcuts import get_object_or_404
+
 
 def get_serialized_students(course_pk, section_pk=None):
     if section_pk:
