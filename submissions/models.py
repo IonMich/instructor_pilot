@@ -514,6 +514,11 @@ class SubmissionComment(models.Model):
         null=True,
         blank=True)
 
+    comment_file = models.FileField(
+        upload_to="submissions/comments/", 
+        null=True, 
+        blank=True)
+
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -524,6 +529,7 @@ class SubmissionComment(models.Model):
 
     created_at = models.DateTimeField(
         auto_now_add=True)
+
     updated_at = models.DateTimeField(
         auto_now=True)
 
@@ -547,8 +553,27 @@ class SubmissionComment(models.Model):
         blank=True,
         )
 
+    canvas_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True)
+
     def get_assignment(self):
         return self.paper_submission.assignment
+
+    def get_filename(self):
+        return os.path.basename(self.comment_file.name)
+
+    def get_filesize(self):
+        size = os.path.getsize(self.comment_file.path)
+        if size < 1024:
+            return f"{size} B"
+        elif size < 1024**2:
+            return f"{size/1024:.1f} KB"
+        elif size < 1024**3:
+            return f"{size/1024**2:.1f} MB"
+        else:
+            return f"{size/1024**3:.1f} GB"
 
     def __str__(self):
         return f"Submission Comment {self.pk}"
@@ -562,3 +587,78 @@ class SubmissionComment(models.Model):
             
     class Meta:
         verbose_name_plural = "Submission Comments"
+
+    @classmethod
+    def add_commentfiles_to_db(cls,
+        submission_target,
+        uploaded_files,
+        author,
+        ):
+        """
+        This method adds paper submissions to the database.
+        It also saves the pdfs and images to the media directory
+        by splitting the original pdf(s) into individual submissions.
+        """
+        print("submission is:", submission_target)
+        new_comment_file_dir_in_media = os.path.join(
+            "submissions", 
+            f"course_{submission_target.assignment.course.pk}", 
+            f"assignment_{submission_target.assignment.pk}",
+            "comment")
+        new_comment_file_dir = os.path.join(
+            settings.MEDIA_ROOT, 
+            new_comment_file_dir_in_media)
+
+        if not os.path.exists(new_comment_file_dir):
+            os.makedirs(new_comment_file_dir)
+
+        created_comment_pks = []
+        for file_idx, uploaded_file in enumerate(uploaded_files):
+            print(uploaded_file.__dict__)
+            try:
+                file_path = uploaded_file.temporary_file_path()
+            except AttributeError as e:
+                # print("Error:", e)
+                # print("Reading from bytes")
+                # this actually not a pdf path but a File bytes object
+                file_path = uploaded_file.file
+            
+        
+            # copy file to new location, while keeping the original name
+            new_file_path_in_media = os.path.join(
+                new_comment_file_dir_in_media,
+                uploaded_file.name,
+            )
+            new_file_path = os.path.join(
+                new_comment_file_dir,
+                uploaded_file.name,
+            )
+
+            # copy file to new location
+            import shutil
+            try:
+                shutil.copyfile(file_path, new_file_path)
+            except Exception as e:
+                # we need to handle the case where the
+                # file_path is a bytes object
+                print("Error:", e)
+                print("Reading from bytes")
+                # this actually not a pdf path but a File bytes object
+                with open(new_file_path, "wb") as f:
+                    f.write(file_path.read())
+
+            
+           
+            print(f"New: {file_path}\n")
+            
+            new_comment_file = SubmissionComment.objects.create(
+                paper_submission=submission_target,
+                comment_file=new_file_path_in_media,
+                author=author,
+            )
+            new_comment_file.save()
+            
+            created_comment_pks.append(new_comment_file.pk)
+            
+
+        return created_comment_pks

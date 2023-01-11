@@ -150,11 +150,12 @@ class GradingForm(forms.ModelForm):
     
     class Meta:
         model = PaperSubmission
-        fields = ['student', 'question_grades', 'comment_files']        
+        fields = ['student', 'question_grades']        
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.new_comment = forms.Textarea()
+        self.comment_file = forms.FileField()
 
 class SubmissionFilesUploadForm(forms.Form):
     def __init__(self,*args,**kwargs):
@@ -268,6 +269,8 @@ class SyncToForm(forms.Form):
     def __init__(self,*args,**kwargs):
         from django.forms.widgets import HiddenInput
         no_assignment = kwargs.pop('no_assignment', None)
+        # also get the request user
+        self.request_user = kwargs.pop('request_user', None)
         super().__init__(*args,**kwargs)
         if no_assignment:
             self.fields['assignment'].widget = HiddenInput()
@@ -325,6 +328,7 @@ class SyncToForm(forms.Form):
         assignment.upload_graded_submissions_to_canvas(
             submission_sync_option=submission_sync_option,
             comment_sync_option=comment_sync_option,
+            request_user=self.request_user,
             specific_submissions=specific_submissions,
         )
             

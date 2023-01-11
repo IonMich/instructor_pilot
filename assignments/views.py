@@ -110,7 +110,10 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
 
         elif "submit-sync-to" in request.POST:
             print("request was POST:sync-to")
-            sync_to_form = SyncToForm(no_assignment=False, data=request.POST)
+            sync_to_form = SyncToForm(
+                no_assignment=False,
+                request_user=request.user, 
+                data=request.POST)
             if sync_to_form.is_valid():
                 print("form is valid")
                 sync_to_form.save()

@@ -72,15 +72,21 @@ def course_create_view(request):
         # split the term into semester type and year. Year is an integer
         # e.g. "Summer C 2020" -> "Summer C" and 2020
         # e.g. "Fall 2021" -> "Fall" and 2021
-        term_splitted = course.term.split(" ")
-        for item in semesters:
-            print(item, " ".join(term_splitted[:-1]))
-            if item[1] == " ".join(term_splitted[:-1]):
-                course.semester_type = item[0]
-                course.year = term_splitted[-1]
-                break
+        
+        if course.term == "Development Term":
+            course.semester_type = "D"
+            import datetime
+            course.year = datetime.datetime.now().year
         else:
-            raise Exception(f"Term {course.term} is not valid.")
+            term_splitted = course.term.split(" ")
+            for item in semesters:
+                print(item, " ".join(term_splitted[:-1]))
+                if item[1] == " ".join(term_splitted[:-1]):
+                    course.semester_type = item[0]
+                    course.year = term_splitted[-1]
+                    break
+            else:
+                raise Exception(f"Term {course.term} is not valid.")
         sync_with_canvas = data.get('sync_with_canvas')
 
         if sync_with_canvas:
