@@ -5,7 +5,6 @@ import os
 import pandas as pd
 
 UFID_LENGTH = 8
-PAGES_PER_SUBMISSION = 2
 
 def perform_ops_to_imgs(quizzes_img_list, operator, **kwargs):
     new_list = []
@@ -27,7 +26,15 @@ def crop_to_name_region(quizzes_img_list, box=(10, 20, 785, 140)):
         box=box)
     return quizzes_img_list
 
-def remove_lines_img(img, mode, rect_kernel_size=30, rect_kernel_width=1, restruct_kernel_size=1, do_reconstruct=False):
+def remove_lines_img(
+    img, 
+    mode, 
+    rect_kernel_size=30, 
+    rect_kernel_width=1, 
+    restruct_kernel_size=1, 
+    do_reconstruct=False,
+    dpi=150):
+    # import matplotlib.pyplot as plt
     if mode == "vertical":
         rect_kernel = (rect_kernel_width,rect_kernel_size)
         restruct_kernel = (restruct_kernel_size,rect_kernel_width)
@@ -37,23 +44,71 @@ def remove_lines_img(img, mode, rect_kernel_size=30, rect_kernel_width=1, restru
     else:
         raise ValueError("mode must be either 'vertical' or 'horizontal'")
     # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    thresh = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-
+    removed = img.copy()
+    
+    # thresholding essentially inverts the image
+    thresh = cv2.threshold(removed, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    # if mode == "vertical":
+    #     plt.imshow(removed, cmap="gray")
+    #     plt.show()
+    #     plt.imshow(thresh, cmap="gray")
+    #     plt.show()
     # Remove vertical
     vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, rect_kernel)
-    detected_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, vertical_kernel, iterations=2)
-    cnts = cv2.findContours(detected_lines, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    detected_lines = cv2.morphologyEx(
+        thresh, 
+        cv2.MORPH_OPEN, 
+        vertical_kernel, 
+        iterations=1)
+    cnts = cv2.findContours(
+        detected_lines, 
+        cv2.RETR_EXTERNAL, 
+        cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-    for c in cnts:
-        cv2.drawContours(img, [c], -1, (255,255,255), 2)
+    # print(len(cnts))
 
+    if cnts:
+        if mode == "vertical":
+            x_left = min(c.mean(axis=0)[0,0] for c in cnts)
+            x_right = max(c.mean(axis=0)[0,0] for c in cnts)
+            avg_x_distance = (x_right - x_left) / UFID_LENGTH
+            low, high = x_left, x_right
+        elif mode == "horizontal":
+            x_top = min(c.mean(axis=0)[0,1] for c in cnts)
+            x_bottom = max(c.mean(axis=0)[0,1] for c in cnts)
+            low, high = x_top, x_bottom
+    else:
+        return img, (None, None)
+
+    count_lines = 0
+    for c in cnts:
+        if mode=="vertical":
+            x_loc = c.mean(axis=0)[0,0]
+            # if x_loc is approximately multiple of avg_x_distance, then it's a valid line
+            if (abs((x_loc - x_left) % avg_x_distance)>2*(dpi//150)
+            and abs((x_loc - x_left) % avg_x_distance - avg_x_distance)>2*(dpi//150)
+            ):
+                print("Found vertical line, but won't remove because it's not a multiple of avg_x_distance away from x_left")
+                continue
+        count_lines += 1
+        cv2.drawContours(removed, [c], -1, (255,255,255), 2*dpi//150)
+    
+    # plt.imshow(removed, cmap="gray")
+    # plt.show()
     # Repair image
     if do_reconstruct:
-        # in our case the lines are on the edges, so probably don't need to do this
-        repair_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, restruct_kernel)
-        img = 255 - cv2.morphologyEx(255 - img, cv2.MORPH_CLOSE, repair_kernel, iterations=1)
+        repair_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
+        removed = 255 - removed
+        dilate = cv2.dilate(removed, repair_kernel, iterations=3)
+        pre_result = cv2.bitwise_and(dilate, thresh)
 
-    return img
+        result = cv2.morphologyEx(pre_result, cv2.MORPH_CLOSE, repair_kernel, iterations=3)
+        final = cv2.bitwise_and(result, thresh)
+        invert_final = 255 - final
+    else:
+        invert_final = removed
+
+    return invert_final , (low, high)
 
 def import_students_from_db(course):
     student_info = []
@@ -72,71 +127,133 @@ def import_tf_model(model_path):
     model = tf.keras.models.load_model(model_path)
     return model
 
-def extract_digit_boxes_from_img(
+def apply_scale_rotate(img, scale, angle):
+    """Apply scale and rotation to image"""
+    width = int(img.shape[1] * scale)
+    height = int(img.shape[0] * scale)
+    dim = (width, height)
+    scaled_img = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+    M = cv2.getRotationMatrix2D((width/2, height/2), angle, 1)
+    rotated_img = cv2.warpAffine(scaled_img, M, (width, height))
+    return rotated_img
+
+
+def get_possible_boundaries(img_rgb, padding_px):
+    sub_boundaries = []
+    # convert the image to grayscale
+    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+    # apply a threshold to the image
+    ret, thresh = cv2.threshold(img_gray, 180, 255, 0)
+    # find the contours in the image
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # sort the contours by area
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)
+    idx_max = min(100, len(contours))
+    count = 0
+    for i in range(idx_max):
+        if cv2.contourArea(contours[i]) < 10000:
+            break
+        if cv2.contourArea(contours[i]) < 100000:
+            count += 1
+            # approximate the contour with a rectangle
+            rect = cv2.minAreaRect(contours[i])
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
+            # or more concisely
+            min_x, min_y = np.min(box, axis=0)
+            max_x, max_y = np.max(box, axis=0)
+            # pad 
+            sub_boundaries.append((
+                max(0, min_x-padding_px),
+                max(0, min_y-padding_px),
+                min(img_rgb.shape[1], max_x+padding_px),
+                min(img_rgb.shape[0], max_y+padding_px)
+            ))
+        
+    return sub_boundaries
+
+def extract_digit_boxes_from_img_new(
     img_rgb, 
-    template_rgb, 
-    mask, 
-    match_method=None):
-    ht, wt = template_rgb.shape[:2]
-    if not match_method:
-        match_method = cv2.TM_SQDIFF_NORMED
-    match_method = cv2.TM_SQDIFF_NORMED
-    image_to_match = cv2.erode(img_rgb, None, iterations=1)
-    template_rgb = cv2.erode(template_rgb, None, iterations=1)
-    result = cv2.matchTemplate(image_to_match, template_rgb, match_method, None, mask)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-    if match_method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
-        top_left = min_loc
-    else:
-        top_left = max_loc
-
-    x1, x2 = top_left[0], top_left[0] + wt
-    y1, y2 = top_left[1], top_left[1] + ht
+    dpi=300,
+):
+    padding_px = round(3 * dpi / 150)
+    sub_boundaries = get_possible_boundaries(
+        img_rgb, 
+        padding_px
+    )
+    if len(sub_boundaries) == 0:
+        print("No sub_boundaries found with the area specifications")
+        return None
+    # now we have the boundaries so we can crop the image
+    # without the need of the template!
     img = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
-    _, img =  cv2.threshold(img, 200, 255, cv2.THRESH_BINARY)
+    # try each possible boundary
+    for boundary in sub_boundaries:
+        try:
+            img_ = img[boundary[1]:boundary[3], boundary[0]:boundary[2]]
 
-    # cv2.rectangle(img, (x1, y1), (x2, y2), (100,100,255), 2)
-    # plt.imshow(img)
-    # plt.show()
+            img_no_v, (x_left, x_right) = remove_lines_img(
+                img_, 
+                mode="vertical", 
+                rect_kernel_size=37*dpi//150, 
+                rect_kernel_width=1, 
+                do_reconstruct=True,
+                dpi=dpi
+                )
 
-    img = remove_lines_img(
-        img, 
-        mode="horizontal", 
-        rect_kernel_size=70, 
-        rect_kernel_width=1, 
-        do_reconstruct=False
-        )
+            img_no_h, (y_top, y_bottom) = remove_lines_img(
+                img_, 
+                mode="horizontal", 
+                rect_kernel_size=70*dpi//150, 
+                rect_kernel_width=1, 
+                do_reconstruct=True,
+                dpi=dpi
+                )
+            img_nolines = cv2.bitwise_or(img_no_v, img_no_h)
+            break
+        except Exception as e:
+            print("Handling:", e)
+            continue
+    else:
+        print("No contours found with the appropriate number of horizontal and vertical lines")
+        return None
 
-    image_boundary_pixels_x = 5
-    image_boundary_pixels_y = 5
-    len_x = x2 - x1 - 2 * image_boundary_pixels_x
-    separation = len_x // UFID_LENGTH
-    start_left = x1 + image_boundary_pixels_x
+    if x_right is not None and x_left is not None:
+        image_boundary_pixels_x_left = x_left 
+        len_x = x_right - x_left
+        separation = len_x // UFID_LENGTH
+        start_left = image_boundary_pixels_x_left
+    else:
+        return None
     
     digits = []
     for i_box in range(UFID_LENGTH):
         boundary_x_left = start_left + i_box * separation
         boundary_x_right = start_left + (i_box+1) * separation
 
-        image_i = img[
-            y1+image_boundary_pixels_y: y2-image_boundary_pixels_y, 
-            boundary_x_left:boundary_x_right]
+        image_i = img_nolines[
+            int(y_top): int(y_bottom), 
+            int(boundary_x_left):int(boundary_x_right)]
         digits.append(image_i)
 
     assert image_i.dtype==np.uint8
     return digits
 
-
-def get_all_digits(quizzes_img_list, template, match_method=None):
-    template_rgb, template_luminance = template[:,:,:3], template[:,:,3]
+def get_all_digits_new(
+    quizzes_img_list,
+    dpi,
+    pages_to_skip=[0,1,3],
+    ):
     digits = {}
     for idx_submission, submission in enumerate(quizzes_img_list):
         for idx_page, page in enumerate(submission):
-            digits[idx_submission, idx_page] = extract_digit_boxes_from_img(
+            if idx_page in pages_to_skip:
+                continue
+            digits_extracted = extract_digit_boxes_from_img_new(
                 np.array(page), 
-                template_rgb, 
-                mask=template_luminance, 
-                match_method=match_method)
+                dpi=dpi)
+
+            digits[idx_submission, idx_page] = digits_extracted
     return digits
 
 def resize_keep_aspect(img, size):
@@ -212,7 +329,10 @@ def preprocess_digit_box(
     
     ret, thresh = cv2.threshold(digit_box_inv, threshold_uint8, 255, 0)
 
-    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    contours, hierarchy = cv2.findContours(
+        thresh, 
+        cv2.RETR_TREE, 
+        cv2.CHAIN_APPROX_NONE)
     
     # for each contour, find the center of mass
     # and check if it is not too close to the edges
@@ -313,56 +433,62 @@ def get_all_ufids(digit_imgs, df_ids, model, len_subs):
     # TODO: add morphological elements to preprocess_digits
     morph_elements = []
     detection_cutoff = 1E3 * 0.1**UFID_LENGTH
-    for submission_idx in range(len_subs): 
-        for page_idx in range(2):
-            digits_img_list = digit_imgs[(submission_idx, page_idx)]
-            # if not(submission_idx == 3 and page_idx == 1):
-            #     continue
-            # print(submission_idx, page_idx, end="\r")
+    # import matplotlib.pyplot as plt
+    # import matplotlib
+    # matplotlib.use('TKAgg')
+    for submission_idx, page_idx in digit_imgs.keys():
+        digits_img_list = digit_imgs[(submission_idx, page_idx)]
+        
+        max_probability = 0
+        for morph in morph_list:
+            if digits_img_list is None:
+                break
             
-            max_probability = 0
-            for morph in morph_list:
-                
-                digits_processed = preprocess_digits(digits_img_list, morph=morph)
-                
-                if digits_processed is None:
-                    continue
-                predictions = model.predict(
-                    np.stack(digits_processed)
-                    )
-                predicted_ufid, predicted_student, max_probability = get_predicted_labels(predictions, df_ids, found_digits)
-                # print(f"{submission_idx},{page_idx}\t Got {predicted_ufid}: {max_probability} {predicted_student}", end="\r")
-                if max_probability >= detection_cutoff:
-                    if submission_idx in docs_classified.keys():
-                        assert docs_classified[submission_idx] == (predicted_ufid, predicted_student)
-                    else:
-                        docs_classified[submission_idx] = (predicted_ufid, predicted_student)
-                    break
-                # elif morph is None:
-                #     plt.imshow(quizzes_img_list[submission_idx][page_idx])
-                #     plt.show()
-                #     for digit_idx in range(len(digits_processed)):
-                #         pass
-                #         # print()
-                #         print(predictions[digit_idx])
-                #         plt.imshow(digits_processed[digit_idx])
-                #         plt.show()
-            if max_probability == 0:
-                # plt.imshow(quizzes_img_list[submission_idx][page_idx])
-                # plt.show()
-                found_digits.append(
-                            [submission_idx,
-                            page_idx,
-                            0,
-                            -1,
-                            ""])
-            else:
-                found_digits.append(
-                            [submission_idx,
-                            page_idx,
-                            max_probability,
-                            predicted_ufid,
-                            predicted_student])
+            digits_processed = preprocess_digits(digits_img_list, morph=morph)
+            
+            if digits_processed is None:
+                continue
+            predictions = model.predict(
+                np.stack(digits_processed)
+                )
+            
+            # for digit_idx in range(len(digits_processed)):
+            #     print(predictions[digit_idx])
+            #     plt.imshow(digits_processed[digit_idx])
+            #     plt.show()
+            predicted_ufid, predicted_student, max_probability = get_predicted_labels(predictions, df_ids, found_digits)
+            # print(f"{submission_idx},{page_idx}\t Got {predicted_ufid}: {max_probability} {predicted_student}", end="\r")
+            if max_probability >= detection_cutoff:
+                if submission_idx in docs_classified.keys():
+                    assert docs_classified[submission_idx] == (predicted_ufid, predicted_student)
+                else:
+                    docs_classified[submission_idx] = (predicted_ufid, predicted_student)
+                break
+            # elif morph is None:
+            #     plt.imshow(quizzes_img_list[submission_idx][page_idx])
+            #     plt.show()
+            #     for digit_idx in range(len(digits_processed)):
+            #         pass
+            #         # print()
+            #         print(predictions[digit_idx])
+            #         plt.imshow(digits_processed[digit_idx])
+            #         plt.show()
+        if max_probability == 0:
+            # plt.imshow(quizzes_img_list[submission_idx][page_idx])
+            # plt.show()
+            found_digits.append(
+                        [submission_idx,
+                        page_idx,
+                        0,
+                        -1,
+                        ""])
+        else:
+            found_digits.append(
+                        [submission_idx,
+                        page_idx,
+                        max_probability,
+                        predicted_ufid,
+                        predicted_student])
     df_digits = pd.DataFrame(
         found_digits, 
         columns=[
@@ -381,20 +507,19 @@ def get_all_ufids(digit_imgs, df_ids, model, len_subs):
 
 
 def classify(
-    model, 
-    df_ids, 
-    img_list,
-    template_path,
-    crop_box=(10, 20, 785, 260),
-    ):
-    img_list_ = crop_to_name_region(
+        model, 
+        df_ids, 
         img_list,
-        box=crop_box)
-    img_list = copy.deepcopy(img_list_)
-    
-    template = cv2.imread(template_path, cv2.IMREAD_UNCHANGED)
+        dpi=300,
+        pages_to_skip=[0,1,3],
+        ):
 
-    digit_imgs = get_all_digits(img_list, template, match_method=None)
+    print("Cropping to the digit list")
+    digit_imgs = get_all_digits_new(
+        img_list, 
+        dpi=dpi,
+        pages_to_skip=pages_to_skip)
+    print("Classifying the digits")
     df_digits = get_all_ufids(
         digit_imgs, 
         df_ids, 

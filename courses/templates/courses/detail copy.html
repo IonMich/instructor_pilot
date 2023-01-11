@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags%}
+
+{% comment %} add stylesheet {% endcomment %}
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'courses/style.css' %}">
+{% endblock %}
+
+{% block title %}
+
+| {{ course.course_code }}
+
+{% endblock title %}
+
+{% block content %}
+<nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/">Home</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{course.course_code}}</li>
+    </ol>
+</nav>
+
+<h1> {{course.name}} </h1>
+
+<p> {{course.description}} </p>
+
+<form method="post">
+    {% csrf_token %}
+    <button class="btn btn-primary" name="sync_from_canvas" value="sync" type="submit">
+    {% if course.university.name == "University of Florida" %}
+    Sync from Canvas and UF
+    {% else %}
+    Sync from Canvas
+    {% endif %}
+    </button>
+</form>
+
+{% comment %} Create 2x2 CSS div grid for sections, assignments, announcements, messages {% endcomment %}
+
+<div class="wrapper mt-5">
+    <div class="sections">
+        {% if course.sections.all %}
+            <div class="pt-3 ps-3 pb-1">
+                <h3>Sections</h3>
+            </div>
+            <div style="overflow-y:auto; margin-bottom: 1em">
+                <ul class="list-group">
+                {% for section in course.sections.all %}
+                    <a  href="sections/{{section.pk}}/students/" class="list-group-item list-group-item-action">
+                        <div class="li-header">
+                            <h5 class="mb-1">{{section.name}}</h5>
+                            <span class="badge bg-primary rounded-pill">
+                                <i class="bi bi-person-fill"></i>
+                                {{section.students.count}}
+                            </span>
+                        </div>
+                        <div class="li-body">
+                            {% for meeting in section.meetings.all %}
+                                <p class="mb-1">{{meeting}}</p>
+                            {% endfor %}
+                        </div>
+                    </a>
+                {% endfor %}
+                </ul>
+            </div>
+        {% else %}
+            <p class="text-muted fs-1 fst-italic d-flex m-auto">No Sections</p>
+        {% endif %}
+
+    </div>
+    <div class="assignments">
+        {% if course.assignments.all %}
+            <div class="pt-3 ps-3 pb-1 assignments-header">
+                <h3>Assignments</h3>
+                {% comment %} create one tab for each assignment group {% endcomment %}
+                <div>
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        {% for group in course.get_all_assignment_groups %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link {% if forloop.first %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#assignment_group_{{forloop.counter}}" type="button" role="tab">{{group}}</button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    {% comment %} 
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                            Sort
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                            <li><a class="dropdown-item" href="#">Due Date</a></li>
+                            <li><a class="dropdown-item" href="#">Name</a></li>
+                        </ul>
+                    </div> 
+                    {% endcomment %}
+                </div>
+                
+            </div>
+            
+            <div class="tab-content" id="myTabContent" style="overflow-y:auto; margin-bottom: 1em">
+                {% for group in course.get_all_assignment_groups %}
+                    <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" role="tabpanel" id="assignment_group_{{forloop.counter}}">
+                        <ul class="list-group">
+                            {% for assignment in course.assignments.all %}
+                                {% if assignment.assignment_group == group %}
+                                    <a href="assignments/{{assignment.pk}}/" class="list-group-item list-group-item-action">
+                                        <div class="li-header">
+                                            <h5 class="mb-1">{{assignment.name}}
+                                                
+                                            </h5>
+                                            <span class="badge bg-primary rounded-pill">
+                                                <i class="bi bi-file-earmark-text-fill"></i>
+                                                {{assignment.submissions_papersubmission_related.count}}
+                                            </span>
+                                        </div>
+                                        {% comment %} for each tab create a div with the assignments in that group {% endcomment %}
+                                        <div class="li-body">
+                                            <span class="badge bg-light text-dark">
+                                                Graded {{assignment.get_grading_progress}}%
+                                            </span>
+                                            <span class="badge bg-light text-dark">
+                                                Average
+                                                {% if assignment.get_grading_progress != 0 %}
+                                                    {{assignment.get_average_grade}} 
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                                 / {{assignment.max_score}}
+                                            </span>
+                                        </div>
+                                    </a>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endfor %}
+            </div>
+
+                    
+        {% else %}
+        <p class="text-muted fs-1 fst-italic d-flex m-auto">No Assignments</p>
+        {% endif %}
+    </div>
+    <div class="announcements">
+        {% if course.announcements.all %}
+            <div class="pt-3 ps-3 pb-1">
+                <h3>Announcements</h3>
+            </div>
+            <ul class="list-group overflow-auto d-flex" style="margin-bottom:1em">
+            {% for announcement in course.announcements.all %}
+                <a href=
+                {% if course.university.name == "University of Florida" %}
+                    "https://ufl.instructure.com/courses/{{course.canvas_id}}/discussion_topics/{{announcement.canvas_id}}"
+                {% else %}
+                    {{announcement.get_canvas_url}}
+                {% endif %}                
+                
+                class="list-group-item list-group-item-action">
+                    <div class="li-header">
+                        <h5 class="mb-1">{{announcement.title}}</h5>
+                        <p class="mb-1">{{announcement.author}}</p>
+                    </div>
+                    <div class="li-body">
+                        <span class="badge bg-light text-dark">
+                            {{announcement.date}}
+                        </span>
+                    </div>
+                </a>
+            {% endfor %}
+            </ul>
+        {% else %}
+        <p class="text-muted fs-1 fst-italic d-flex m-auto">No Announcements</p>
+        {% endif %}
+    </div>
+    <div class="messages">
+        {% if course.messages.all %}
+            <div class="pt-3 ps-3 pb-1">
+                <h3>Messages</h3>
+            </div>
+            <ul class="list-group flex-column-reverse overflow-auto" style="margin-bottom:1em">
+            {% for message in course.messages.all %}
+                <a href="messages/{{message.pk}}/" class="list-group-item list-group-item-action">
+                    <div class="li-header">
+                        <h5 class="mb-1">{{message.title}}</h5>
+                        <p class="mb-1">{{message.author}}</p>
+
+                    </div>
+                    <div class="li-body">
+                        <p class="mb-1">{{message.message |safe}}</p>
+                        </div>
+                </a>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted fs-1 fst-italic d-flex m-auto">No messages</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock content %}
+

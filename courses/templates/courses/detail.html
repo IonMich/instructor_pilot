@@ -22,37 +22,49 @@
 <form method="post">
     {% csrf_token %}
     <button class="btn btn-primary" name="sync_from_canvas" value="sync" type="submit">
+    {% if course.university.name == "University of Florida" %}
+    Sync from Canvas and UF
+    {% else %}
     Sync from Canvas
+    {% endif %}
     </button>
 </form>
 
 {% comment %} Create 2x2 bootstrap divs for sections, assignments, grades, messages {% endcomment %}
 
-<div class="row mt-5">
-    <div class="col-md-6">
+<div class="row mt-4 row-cols-md-1 row-cols-lg-2">
+    <div class="col mt-3">
         <h2> Sections </h2>
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th> Section </th>
                     <th> Name </th>
-                    <th> Description </th>
+                    {% for meeting in course.sections.first.meetings.all %}
+                        {% if meeting.meeting_type %}
+                            <th> {{meeting.get_meeting_type_display}} </th>
+                        {% else %}
+                            <th> Meeting {{forloop.counter}}</th>
+                        {% endif %}
+                    {% endfor %}
+                    <th># Students</th>
                 </tr>
             </thead>
             <tbody>
                 {% for section in course.sections.all %}
                 <tr>
-                    <td> {{section.section_id}} </td>
-                    <td> {{section.name}} </td>
-                    <td> {{section.description}} </td>
+                    <td> <a href="sections/{{section.pk}}/students/"> {{section.name}} </a></td>
+                    {% for meeting in section.meetings.all %}
+                        <td> {{meeting.day}} {{meeting.start_time}}<br> <span style="white-space:nowrap">({{meeting.location}})</span> </td>
+                    {% endfor %}
+                    <td> {{section.students.count}} </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    <div class="col-md-6">
+    <div class="col mt-3">
         <h2> Assignments </h2>
-        <div class="col-md-12" style="max-height: 300px;overflow-y: auto;">
+        <div class="col" style="max-height: 300px;overflow-y: auto;">
             <table class="table table-striped">
                 <thead>
                     <tr>
@@ -79,11 +91,7 @@
             </table>
         </div>
     </div>
-</div>
-
-
-<div class="row">
-    <div class="col-md-6">
+    <div class="col mt-3">
         <h2> Announcements </h2>
         <table class="table table-striped">
             <thead>
@@ -94,7 +102,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for announcement in course.announcements.all %}
+                {% for announcement in course.announcements.all|slice:":5" %}
                 <tr>
                     <td> {{announcement.date}} </td>
                     <td> {{announcement.title}} </td>
@@ -103,7 +111,7 @@
                 {% endfor %}
         </table>
     </div>
-    <div class="col-md-6">
+    <div class="col mt-3">
         <h2> Messages </h2>
         <table class="table table-striped">
             <thead>
@@ -122,6 +130,7 @@
             </tbody>
         </table>
     </div>
+</div>
 
 {% endblock content %}
 

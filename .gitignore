@@ -1,4 +1,9 @@
 db.sqlite3
 *.pyc
 .env
-.vscode/launch.json
+media/*
+!media/classify/
+**/migrations
+.vscode/
+*.pdf
+*.csv

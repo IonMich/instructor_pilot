@@ -1,0 +1,9 @@
+.carousel-inner, .thumbnail {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.carousel {
+    margin-bottom: 0;
+}

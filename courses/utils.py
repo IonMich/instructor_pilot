@@ -10,6 +10,11 @@ from canvasapi import Canvas
 API_URL = "https://ufl.instructure.com/"
 CANVAS_API_KEY = get_API_key()
 
+def get_canvas_object():
+    """
+    Return a Canvas object.
+    """
+    return Canvas(API_URL, CANVAS_API_KEY)
 
 def get_canvas_course(course_code=None, term_name=None, canvas_id=None):
     """
@@ -26,8 +31,7 @@ def get_canvas_course(course_code=None, term_name=None, canvas_id=None):
             int(canvas_id), 
             use_sis_id=False,
             include=list_to_include)
-    canvas_courses = canvas.get_courses(
-        enrollment_state="active", 
+    canvas_courses = canvas.get_courses( 
         include=list_to_include)
 
     # TODO: much more info is available in the Canvas API

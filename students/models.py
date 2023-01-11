@@ -47,17 +47,30 @@ class Student(models.Model):
         for canvas_student in canvas_students:
             first_name = canvas_student.sortable_name.split(",")[1]
             last_name = canvas_student.sortable_name.split(",")[0]
-            
-            student = cls.objects.filter(
-                Q(uni_id=canvas_student.sis_user_id)
-                | Q(canvas_id=canvas_student.id)
-                ).first()
+            try:
+                university_identifying_id = canvas_student.sis_user_id
+            except Exception as e:
+                print(e)
+                try:
+                    university_identifying_id = "email."+canvas_student.email[:20]
+                except Exception as e:
+                    print(e)
+                    university_identifying_id = "uuid." + canvas_student.uuid[:20]
+
+            try:
+                student = cls.objects.filter(
+                    Q(uni_id=university_identifying_id)
+                    | Q(canvas_id=canvas_student.id)
+                    ).first()
+            except Exception as e:
+                print(e)
+                student = None
             
             if student:
                 print(f"Found student {canvas_student.name}. Updating ...")
                 student.first_name = first_name
                 student.last_name = last_name
-                student.uni_id = canvas_student.sis_user_id
+                student.uni_id = university_identifying_id
                 student.canvas_id = canvas_student.id
                 student.sections.remove(*course.sections.all())
                 
@@ -67,20 +80,20 @@ class Student(models.Model):
                 student = cls.objects.create(
                     first_name=first_name,
                     last_name=last_name,
-                    uni_id=canvas_student.sis_user_id,
+                    uni_id=university_identifying_id,
                     university=course.university,
                     canvas_id=canvas_student.id)
 
             for canvas_enrollment in canvas_student.enrollments:
-                    if canvas_enrollment["type"]=='StudentEnrollment':
-                        section = course.sections.filter(
-                            Q(canvas_id=canvas_enrollment["course_section_id"])
-                        ).first()
-                        if section:
-                            print(f"Found section {section}. Adding to student sections")
-                            student.sections.add(section)
-                        else:
-                            print("Section not found")
+                if canvas_enrollment["type"]=='StudentEnrollment':
+                    section = course.sections.filter(
+                        Q(canvas_id=canvas_enrollment["course_section_id"])
+                    ).first()
+                    if section:
+                        print(f"Found section {section}. Adding to the list of sections for student {student} ...")
+                        student.sections.add(section)
+                    else:
+                        print("Section not found")
             
             student.save()
             profile = student.profile

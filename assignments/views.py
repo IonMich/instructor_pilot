@@ -13,8 +13,11 @@ from submissions.forms import (
     SyncFromForm,
     SyncToForm,
 )
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 # Create your views here.
 
+@login_required
 def assignment_detail_view(request,  course_pk, assignment_pk):
     # course = get_object_or_404(Course, pk=course_pk)
     assignment = get_object_or_404(Assignment, pk=assignment_pk)
@@ -24,6 +27,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
     search_form = SubmissionSearchForm(assignment=assignment)
     upload_form = SubmissionFilesUploadForm(no_assignment=True)
     classify_form = StudentClassifyForm(no_assignment=True)
+    sync_to_form = SyncToForm(no_assignment=True)
     message = ''
     message_type = 'info'
     if request.method == 'POST':
@@ -57,7 +61,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
             upload_form = SubmissionFilesUploadForm(no_assignment=False, data=request.POST, files=request.FILES)
             if upload_form.is_valid():
                 print("form is valid")
-                uploaded_submission_pks = upload_form.save()
+                uploaded_submission_pks = upload_form.save(request)
                 qs = PaperSubmission.objects.filter(pk__in=uploaded_submission_pks)
                 print(len(qs))
                 
@@ -81,21 +85,42 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 else:
                     message_type = 'success'
         elif "submit-sync-from" in request.POST:
-            print("request was POST:sync-from")
-            sync_from_form = SyncFromForm(no_assignment=False, data=request.POST)
-            if sync_from_form.is_valid():
-                print("form is valid")
-                sync_from_form.save()
-                message = 'Sync from canvas successful'
-                message_type = 'success'
+            # Handle ajax request and return json response with the submissions that were synced
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                print("ajax request")
+                sync_from_form = SyncFromForm(no_assignment=False, data=request.POST)
+                if sync_from_form.is_valid():
+                    print("form is valid")
+                    sync_from_form.save()
+                    message = 'Sync from canvas successful'
+                    message_type = 'success'
+                    # return submissions that were synced as json
+                    submissions = PaperSubmission.objects.filter(assignment=assignment)
+                    submissions = submissions.order_by('created')
+                    submissions = submissions.values('pk', 'canvas_id', 'canvas_url')
+                    submissions = list(submissions)
+                    
+                    return JsonResponse({'submissions': submissions})
+                else:
+                    print(sync_from_form.errors)
+                    return JsonResponse({'error': 'form is not valid'})
+            else:
+                print("not ajax request")
+                return JsonResponse({'error': 'not ajax request'})
+
         elif "submit-sync-to" in request.POST:
             print("request was POST:sync-to")
-            sync_to_form = SyncToForm(no_assignment=False, data=request.POST)
+            sync_to_form = SyncToForm(
+                no_assignment=False,
+                request_user=request.user, 
+                data=request.POST)
             if sync_to_form.is_valid():
                 print("form is valid")
                 sync_to_form.save()
                 message = 'Sync to canvas successful'
                 message_type = 'success'
+            else:
+                print(sync_to_form.errors)
     return render(
         request,
         'assignments/detail.html',
@@ -104,6 +129,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
         "search_form": search_form,
         'classify_form': classify_form,
         'upload_form': upload_form,
+        'sync_to_form': sync_to_form,
         "random_num": _random1000,
         'message': message,
         'message_type': message_type,

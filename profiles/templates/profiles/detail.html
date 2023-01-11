@@ -1,0 +1,9 @@
+{% extends "base.html" %} 
+{% block title %}{{ title }}{% endblock %} 
+{% block content %} 
+    <h1>Profile - {{request.user.username}}</h1> 
+    <div class="d-flex align-items-center">
+        <img src="{{request.user.profile.avatar.url}}" class="rounded-circle">
+        <span></span>
+    </div>
+{% endblock %}

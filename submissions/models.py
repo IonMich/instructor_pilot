@@ -9,11 +9,13 @@ import uuid
 from django.core.exceptions import ValidationError
 from submissions.utils import (
     CommaSeparatedFloatField, 
-    get_quiz_pdf_path, 
-    convert_pdfs_to_img_list,
-    split_pdfs)
+    get_quiz_pdf_path,
+    convert_pdf_to_images,
+)
 import os
 from PIL import Image
+import random
+import string
 
 from submissions.digits_classify import (
     import_tf_model,
@@ -150,7 +152,7 @@ class Submission(models.Model):
 
     class Meta:
         abstract = True
-        ordering = ["-created"]
+        ordering = ["created"]
 
     def __str__(self):
         if self.assignment is None:
@@ -161,6 +163,10 @@ class Submission(models.Model):
             else:
                 return f"Submission {self.id} for {self.assignment.name} by {self.student.first_name} {self.student.last_name}"
     
+    def short_name(self):
+        short_id = str(self.id).split("-")[0]
+        return f"Submission {short_id}"
+        
     def save(self, *args, **kwargs):
         s_grades = self.get_question_grades()
         if not all(g is None for g in s_grades):
@@ -205,92 +211,163 @@ class PaperSubmission(Submission):
                 "assignment_pk": self.assignment.pk})
 
     class Meta:
-        verbose_name_plural = "Paper Submissions"  
+        verbose_name_plural = "Paper Submissions" 
+        ordering = ["created"] 
 
     def upload_to_canvas(self):
         # get the canvas course id
         pass
 
     @classmethod
+    def get_images_for_classify(cls, assignment, dpi, top_percent=0.25, left_percent=0.5, crop_box=None, skip_pages=(0,1,3)):
+        # for each PaperSubmission in assignment, use the pdf and the function
+        # convert_pdf_to_images to get the images of interest
+        # return a list of images with the following format:
+        # [ [image1, image2, ...], [image1, image2, ...], ... ]
+        # and a list of the submission pk's
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        images = []
+        image_sub_pks = []
+        for submission in submissions:
+            images.append(convert_pdf_to_images(submission.pdf, dpi, top_percent, left_percent, crop_box, skip_pages))
+            image_sub_pks.append([submission.pk for i in range(len(images[-1]))])
+        return images, image_sub_pks
+
+    @classmethod
     def add_papersubmissions_to_db(cls,
         assignment_target,
+        num_pages_per_submission=2,
+        dpi=150,
+        student=None,
         quiz_number=None,
         quiz_dir_path=None,
-        uploaded_file=None):
+        uploaded_files=None):
         """
-        Add submission images and pdfs to the database.
+        This method adds paper submissions to the database.
+        It also saves the pdfs and images to the media directory
+        by splitting the original pdf(s) into individual submissions.
         """
-        num_pages_per_submission = 2
         print("assignment is:", assignment_target)
-        new_pdf_dir = os.path.join(settings.MEDIA_ROOT, "submissions", f"{assignment_target.course}/{assignment_target}/pdf/")
-        img_rel_dir = os.path.join("submissions", f"{assignment_target.course}/{assignment_target}/img/")
-        img_dir = os.path.join(settings.MEDIA_ROOT, img_rel_dir)
-        
+        new_pdf_dir = os.path.join(
+            settings.MEDIA_ROOT, 
+            "submissions", 
+            f"course_{assignment_target.course.pk}", 
+            f"assignment_{assignment_target.pk}",
+            "pdf")
+        img_rel_dir = os.path.join(
+            "submissions", 
+            f"course_{assignment_target.course.pk}", 
+            f"assignment_{assignment_target.pk}",
+            "img")
+        img_dir = os.path.join(
+            settings.MEDIA_ROOT, 
+            img_rel_dir)
+
         if not os.path.exists(new_pdf_dir):
             os.makedirs(new_pdf_dir)
         if not os.path.exists(img_dir):
             os.makedirs(img_dir)
+        # if student is provided, make sure that there is only one uploaded file
+        if student and len(uploaded_files) > 1:
+            raise ValueError("Can only upload one file per student.")
 
-        if uploaded_file:
-            try:
-                pdf_path = uploaded_file.temporary_file_path()
-            except AttributeError as e:
-                print("Error:", e)
-                print("Using tempfile module")
-                import tempfile
-                fp = tempfile.NamedTemporaryFile()
-                fp.write(uploaded_file.read())
-                fp.seek(0)
-                pdf_path = fp.name
-        else:
-            pdf_path = get_quiz_pdf_path(quiz_number, quiz_dir_path)
-        split_pdfs(pdf_fpath=pdf_path, n_pages=num_pages_per_submission)
-        quizzes_img_list = convert_pdfs_to_img_list(pdf_path, num_pages_per_submission=num_pages_per_submission, dpi=150)
-        m = len(quizzes_img_list[0])
+        import fitz
         created_submission_pks = []
-        for i, img_list in enumerate(quizzes_img_list):
-            start_page = i * m
-            end_page = (i + 1) * m -1
-            pdf_filename = f'submission_{start_page}-{end_page}.pdf'
-            old_pdf_fpath = os.path.join(settings.BASE_DIR, "tmp", pdf_filename)
-            new_pdf_fpath = os.path.join(new_pdf_dir, pdf_filename)
-            print(old_pdf_fpath)
-            print(new_pdf_fpath)
-            os.rename(old_pdf_fpath, new_pdf_fpath)
-            paper_submission = PaperSubmission.objects.create(
-                assignment=assignment_target,
-                pdf=new_pdf_fpath,
-                grader_comments="")
-            created_submission_pks.append(paper_submission.pk)
+        for file_idx, uploaded_file in enumerate(uploaded_files):
+            if uploaded_file:
+                try:
+                    pdf_path = uploaded_file.temporary_file_path()
+                    doc = fitz.open(pdf_path)
+                except AttributeError as e:
+                    # print("Error:", e)
+                    # print("Reading from bytes")
+                    # this actually not a pdf path but a File bytes object
+                    pdf_path = uploaded_file.file
+                    doc = fitz.open("pdf", pdf_path)
+            else:
+                pdf_path = get_quiz_pdf_path(quiz_number, quiz_dir_path)
+                doc = fitz.open(pdf_path)
             
-            for j, img in enumerate(img_list):
-                img_full_path = os.path.join(img_dir, f'submission-{i}-page-{j+1}.png')
-                img_rel_path = os.path.join(img_rel_dir, f'submission-{i}-page-{j+1}.png')
-                img.save(img_full_path, "PNG")
-                # raise NotImplementedError("Implement this")
-                PaperSubmissionImage.objects.create(
-                    submission=paper_submission,
-                    image=img_rel_path,
-                    page=j+1)
-        
+            n_pages = doc.page_count
+            if student and n_pages != num_pages_per_submission:
+                raise ValueError(
+                    f"The number of pages in the pdf ({n_pages}) is "
+                    f"not equal to num_pages_per_submission ({num_pages_per_submission}).")
+            if n_pages % num_pages_per_submission != 0:
+                raise ValueError("The number of pages in the pdf is not a multiple of num_pages_per_submission.")
+            
+            n_submissions = n_pages // num_pages_per_submission
+            print(f"New: {pdf_path}\n")
+            for i in range(n_submissions):
+                # print on the same line the progress of the loop
+                print(f"Submission {i+1}/{n_submissions}", end="\r")
+                start_page = i * num_pages_per_submission
+                end_page = (i + 1) * num_pages_per_submission - 1
+                # we want to avoid name collisions, so we generate a random string
+                # to append to the filename
+                random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+                pdf_filename = f'submission_batch_{file_idx}_{start_page}-{end_page}_{random_string}.pdf'
+                new_pdf_fpath = os.path.join(new_pdf_dir, pdf_filename)
+                doc_new = fitz.open()
+                doc_new.insert_pdf(doc, from_page=start_page, to_page=end_page)
+                doc_new.save(new_pdf_fpath)
+
+                paper_submission = PaperSubmission.objects.create(
+                    assignment=assignment_target,
+                    pdf=new_pdf_fpath,
+                    grader_comments="")
+                # if student is provided, we want to associate the submission
+                # with the student
+                if student:
+                    paper_submission.student = student
+                    paper_submission.save()
+                created_submission_pks.append(paper_submission.pk)
+                for j in range(num_pages_per_submission):
+                    page = doc.load_page(start_page + j)
+                    img_filename = f'submission-{i}-batch-{file_idx}-page-{j+1}-{random_string}.png'
+                    img_full_path = os.path.join(img_dir, img_filename)
+                    img_rel_path = os.path.join(img_rel_dir, img_filename)
+                    pix = page.get_pixmap(dpi=dpi)
+                    pix.save(img_full_path)
+                    PaperSubmissionImage.objects.create(
+                        submission=paper_submission,
+                        image=img_rel_path,
+                        page=j+1)
+
         return created_submission_pks
-    
+
     @classmethod
-    def classify(cls, assignment):
+    def classify(
+        cls, 
+        assignment,
+        dpi=300,
+        top_percent=0.25,
+        left_percent=0.5,
+        crop_box=None,
+        skip_pages=(0, 1, 3,)):
         """ 
         use a deep learning model to classify the paper submissions
         """
         DETECTION_PROB_D = 1E-5
-        model_path = os.path.join(settings.MEDIA_ROOT, "digits_HTR.model")
-        all_imgs, all_img_pks = PaperSubmissionImage.get_all_assignment_imgs(assignment)
+        model_path_h5 = os.path.join(settings.MEDIA_ROOT, "classify/digits_model.h5")
+        all_imgs, all_sub_pks = PaperSubmission.get_images_for_classify(
+            assignment,
+            dpi=dpi,
+            top_percent=top_percent,
+            left_percent=left_percent,
+            crop_box=crop_box,
+            skip_pages=skip_pages)
         df_ids = import_students_from_db(assignment.course)
         # get the model
-        model = import_tf_model(model_path)
+        model =  import_tf_model(model_path_h5)
+
+        print("dpi is:", dpi)
+
         df_digits = classify(
             model, 
             df_ids, 
             all_imgs,
-            template_path=os.path.join(settings.MEDIA_ROOT, "template.png")
+            dpi=dpi,
             )
 
         df_digits_detections = (
@@ -299,12 +376,16 @@ class PaperSubmission(Submission):
                 .drop_duplicates(['doc_idx',])
                 .astype({'ufid': str})
                 .sort_values('doc_idx'))
+
         
-        df_digits_detections["sub_img"] = df_digits_detections.apply(
-            lambda row: PaperSubmissionImage.objects.get(id=all_img_pks[row.doc_idx][row.page_idx]), 
+        if len(df_digits_detections) == 0:
+            print("No detections above threshold.")
+            classified_submission_pks = []
+            not_classified_submission_pks = [pk_list[0] for pk_list in all_sub_pks]
+            return classified_submission_pks, not_classified_submission_pks
+        df_digits_detections["submission_pk"] = df_digits_detections.apply(
+            lambda row: PaperSubmission.objects.get(pk=all_sub_pks[row.doc_idx][row.page_idx]).pk, 
             axis=1)
-        df_digits_detections["submission_pk"] = df_digits_detections["sub_img"].apply(
-            lambda x: x.submission.pk)
         df_digits_detections["student"] = df_digits_detections.apply(
             lambda row: Student.objects.get(uni_id=row.ufid), 
             axis=1)
@@ -381,6 +462,9 @@ class PaperSubmissionImage(models.Model):
 
     class Meta:
         verbose_name_plural = "Paper Submission Images"
+
+    def get_assignment(self):
+        return self.submission.assignment
     
     @classmethod
     def get_all_assignment_imgs(cls, assignment):
@@ -399,8 +483,10 @@ class PaperSubmissionImage(models.Model):
         # in the ipynb these were ppm images, 
         # so I might need to convert them to ppm
         for sub_image in sub_Images:
-            all_imgs.append(Image.open(sub_image.image))
+            img = Image.open(sub_image.image)
+            all_imgs.append(img)
             all_img_pks.append(sub_image.pk)
+        print("dpi", img.info["dpi"][0])
 
         # convert imgs to nested list every `num_pages_per_quiz`
         # for example, if num_pages_per_quiz=2, then:
@@ -428,6 +514,11 @@ class SubmissionComment(models.Model):
         null=True,
         blank=True)
 
+    comment_file = models.FileField(
+        upload_to="submissions/comments/", 
+        null=True, 
+        blank=True)
+
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -438,12 +529,136 @@ class SubmissionComment(models.Model):
 
     created_at = models.DateTimeField(
         auto_now_add=True)
+
     updated_at = models.DateTimeField(
         auto_now=True)
 
+    is_grade_summary = models.BooleanField(
+        default=False,
+        )
+
+    is_saved = models.BooleanField(
+        default=False,
+        )
+
+    saved_title = models.CharField(
+        max_length=30,
+        null=True,
+        blank=True,
+        )
+
+    saved_token = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        )
+
+    canvas_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True)
+
+    def get_assignment(self):
+        return self.paper_submission.assignment
+
+    def get_filename(self):
+        return os.path.basename(self.comment_file.name)
+
+    def get_filesize(self):
+        size = os.path.getsize(self.comment_file.path)
+        if size < 1024:
+            return f"{size} B"
+        elif size < 1024**2:
+            return f"{size/1024:.1f} KB"
+        elif size < 1024**3:
+            return f"{size/1024**2:.1f} MB"
+        else:
+            return f"{size/1024**3:.1f} GB"
 
     def __str__(self):
         return f"Submission Comment {self.pk}"
 
+    # if self.is_saved then title is required
+    def clean(self):
+        if self.is_saved and not self.saved_title:
+            raise ValidationError(
+                "Saved title is required if is_saved is True"
+            )
+            
     class Meta:
         verbose_name_plural = "Submission Comments"
+
+    @classmethod
+    def add_commentfiles_to_db(cls,
+        submission_target,
+        uploaded_files,
+        author,
+        ):
+        """
+        This method adds paper submissions to the database.
+        It also saves the pdfs and images to the media directory
+        by splitting the original pdf(s) into individual submissions.
+        """
+        print("submission is:", submission_target)
+        new_comment_file_dir_in_media = os.path.join(
+            "submissions", 
+            f"course_{submission_target.assignment.course.pk}", 
+            f"assignment_{submission_target.assignment.pk}",
+            "comment")
+        new_comment_file_dir = os.path.join(
+            settings.MEDIA_ROOT, 
+            new_comment_file_dir_in_media)
+
+        if not os.path.exists(new_comment_file_dir):
+            os.makedirs(new_comment_file_dir)
+
+        created_comment_pks = []
+        for file_idx, uploaded_file in enumerate(uploaded_files):
+            print(uploaded_file.__dict__)
+            try:
+                file_path = uploaded_file.temporary_file_path()
+            except AttributeError as e:
+                # print("Error:", e)
+                # print("Reading from bytes")
+                # this actually not a pdf path but a File bytes object
+                file_path = uploaded_file.file
+            
+        
+            # copy file to new location, while keeping the original name
+            new_file_path_in_media = os.path.join(
+                new_comment_file_dir_in_media,
+                uploaded_file.name,
+            )
+            new_file_path = os.path.join(
+                new_comment_file_dir,
+                uploaded_file.name,
+            )
+
+            # copy file to new location
+            import shutil
+            try:
+                shutil.copyfile(file_path, new_file_path)
+            except Exception as e:
+                # we need to handle the case where the
+                # file_path is a bytes object
+                print("Error:", e)
+                print("Reading from bytes")
+                # this actually not a pdf path but a File bytes object
+                with open(new_file_path, "wb") as f:
+                    f.write(file_path.read())
+
+            
+           
+            print(f"New: {file_path}\n")
+            
+            new_comment_file = SubmissionComment.objects.create(
+                paper_submission=submission_target,
+                comment_file=new_file_path_in_media,
+                author=author,
+            )
+            new_comment_file.save()
+            
+            created_comment_pks.append(new_comment_file.pk)
+            
+
+        return created_comment_pks

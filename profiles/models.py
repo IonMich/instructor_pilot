@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from students.models import Student
+from django.urls import reverse
+
 # from django.core.validators import MinLengthValidator
 
 # Create your models here.
@@ -31,7 +33,13 @@ class UserProfile(BaseProfile):
     user = models.OneToOneField(
         User, 
         on_delete=models.CASCADE, 
+        related_name='profile'
         )
+    
+    preferences = models.JSONField(
+        default=dict,
+        blank=True
+    )
     
 
     def __str__(self):
@@ -39,6 +47,10 @@ class UserProfile(BaseProfile):
             return f"Profile of User {self.user.username} ({self.user.first_name} {self.user.last_name})"
         else:
             return f"Profile of User {self.user.username}"
+
+    def get_absolute_url(self):
+        return reverse('profiles:detail', kwargs={'pk': self.pk})
+
     @classmethod
     def create_from_canvas_user(cls, canvas_user_id):
         raise NotImplementedError

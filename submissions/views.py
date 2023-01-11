@@ -11,12 +11,15 @@ from django.utils import timezone
 from itertools import zip_longest
 import random
 from django.urls import reverse
-
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.generic.edit import DeleteView
 
 
 def _random1000():
     yield random.randint(0, 100)
 
+@login_required
 def home_view(request, course_pk, assignment_pk=None):
     """
     Home page for the submissions app
@@ -71,6 +74,7 @@ def home_view(request, course_pk, assignment_pk=None):
     return render(request, "submissions/home.html", context)
 
 
+@login_required
 def upload_files_view(request, assignment_pk=None):
     """
     Upload files to the server
@@ -83,7 +87,7 @@ def upload_files_view(request, assignment_pk=None):
         print("request.FILES: ", request.FILES)
         if form.is_valid():
             print("form is valid")
-            uploaded_submission_pks = form.save()
+            uploaded_submission_pks = form.save(request)
             qs = PaperSubmission.objects.filter(pk__in=uploaded_submission_pks)
             return render(
                 request, 
@@ -102,8 +106,9 @@ def upload_files_view(request, assignment_pk=None):
         {'form': form, 
         'message': message})
 
+@login_required
 def submission_classify_view(request):
-    message = "Use this form to to classify submission by student name and university ID using Deep Learning methods"
+    message = "Use this form to to classify submission by student name and university ID using ML"
     form = StudentClassifyForm()
     if request.method == 'POST':
         form = StudentClassifyForm(request.POST)
@@ -132,6 +137,7 @@ def submission_classify_view(request):
         'message': message})
 
 
+@login_required
 def submission_list_view(request):
     
     # qs stands for queryset
@@ -143,12 +149,14 @@ def submission_list_view(request):
     return render(request, 'submissions/main.html', context)
 
 
+@login_required
 def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
     submission = get_object_or_404(PaperSubmission, pk=submission_pk)
     n_q = submission.assignment.number_of_questions
-    grades_zipped = zip_longest(
+    grades_zipped = list(zip_longest(
         submission.get_question_grades(), 
         submission.assignment.get_max_question_scores())
+    )
     print(submission.assignment)
     print("request.user: ", request.user)
     if request.method == 'POST':
@@ -167,6 +175,7 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
             request.POST._mutable = _mutable
 
         print(f"text: {request.POST.get('new_comment')}")
+        print(f"file: {request.FILES.get('comment_files')}")
 
         grading_form = GradingForm(
             request.POST,
@@ -177,11 +186,10 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         if grading_form.is_valid():
             print("form is valid")
             print(grading_form.cleaned_data)
-            # submission.grader_comments = grading_form.cleaned_data.get('grader_comments')
-            # add new comment from cleaned data to a new SubmissionComment instance
+            
+            # add new comment from request.POST to a new SubmissionComment instance
             # assigned to the submission and authored by the request.user
             
-            submission.comment_files = grading_form.cleaned_data.get('comment_files')
             submission.save()
 
             if request.POST.get('new_comment').strip():
@@ -190,10 +198,23 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
                     author=request.user,
                     text=request.POST.get('new_comment'))
                 comment.save()
+            print("comment saved")
+            # add new file from request.FILES to a new SubmissionFile instance
+            # assigned to the submission and authored by the request.user
+            if request.FILES.get('comment_files'):
+                # use the class method add_commentfile_to_db of SubmissionComment
+                # to add the file to the database
+                print("adding file(s)")
+                SubmissionComment.add_commentfiles_to_db(
+                    submission_target=submission,
+                    uploaded_files=request.FILES.getlist('comment_files'),
+                    author=request.user)
+
             print("question grades", submission.question_grades)
-            grades_zipped = zip_longest(
+            grades_zipped = list(zip_longest(
                 submission.get_question_grades(), 
                 submission.assignment.get_max_question_scores())
+            )
             return render(
                 request, 
                 'submissions/detail.html', 
@@ -204,14 +225,16 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
             print("form is not valid")
     else:
         grading_form = GradingForm(None)
+    print(submission.assignment.get_all_saved_comments(requester=request.user))
     return render(
         request, 
         'submissions/detail.html', 
         {'submission': submission, 
+        'saved_comments': submission.assignment.get_all_saved_comments(requester=request.user),
         'grading_form': grading_form, 
         'grades_zipped': grades_zipped})
 
-
+@login_required
 def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
     
     # first find the object corresponding to the pk
@@ -235,6 +258,7 @@ def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
         'submission_pk': submission_pk}))
 
 
+@login_required
 def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
     from django.shortcuts import redirect
     # first find the object corresponding to the pk
@@ -258,5 +282,67 @@ def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
         'assignment_pk': submission.assignment.pk,
         'submission_pk': submission.pk}))
     
+# The delete view deletes the submission and returns a JsonResponse
+# with a message (success or failure)
+@login_required
+def submission_delete_view(request, course_pk, assignment_pk, submission_pk):
+    submission = get_object_or_404(PaperSubmission, pk=submission_pk)
+    if request.method == 'POST':
+        submission.delete()
+        return JsonResponse({'message': 'success'})
+    else:
+        return JsonResponse({'message': 'failure'})
+
+@login_required
+def submission_delete_all_view(request, course_pk, assignment_pk):
+    # get all submissions for the assignment
+    assignment = get_object_or_404(
+        Assignment, pk=assignment_pk)
+    if request.method == 'POST':
+        print("deleting all submissions")
+        PaperSubmission.objects.filter(assignment=assignment).delete()
+        return JsonResponse({'message': 'success'})
+    else:
+        return JsonResponse({'message': 'failure'})
+    
+@login_required
+def submission_comment_delete_view(request, course_pk, assignment_pk, submission_pk, comment_pk):
+    comment = get_object_or_404(SubmissionComment, pk=comment_pk)
+    if request.method == 'POST':
+        comment.delete()
+        return JsonResponse({'message': 'success'})
+    else:
+        return JsonResponse({'message': 'failure'})
+
+@login_required
+def submission_comment_modify_view(request, course_pk, assignment_pk, submission_pk, comment_pk):
+    comment = get_object_or_404(SubmissionComment, pk=comment_pk)
+    if request.method == 'POST':
+        import json
+        # get the data 
+        #     "text"
+        #     "saved_title"
+        #     "saved_token"
+        #     "is_saved"
+        # from the body of the request
+        data = json.loads(request.body)
+        print(data)
+        
+        if data.get('comment_action') == "star_comment":
+            comment.saved_title = data.get('saved_title')
+            comment.saved_token = data.get('saved_token')
+            comment.is_saved = data.get('is_saved')
+            comment.text = data.get('text')
+            comment.save()
+        # if modified-text is in the request data, then the user is trying to modify the text comment
+        elif data.get('comment_action') == "edit_comment":
+            comment.text = data.get('text')
+            comment.save()
+        return JsonResponse({'message': 'success'})
+    else:
+        return JsonResponse({'message': 'failure'})
+
+
+
 
 

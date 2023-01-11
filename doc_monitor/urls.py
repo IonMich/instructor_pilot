@@ -20,7 +20,9 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('playground/', include('playground.urls')),
+    path('accounts/', include('django.contrib.auth.urls')),
+    path('', include('students.urls', namespace='students')),
+    path('', include('profiles.urls', namespace='profiles')),
     path('', include('submissions.urls', namespace='submissions')),
     path('', include('courses.urls', namespace='courses')),
     path('', include('assignments.urls', namespace='assignments')),

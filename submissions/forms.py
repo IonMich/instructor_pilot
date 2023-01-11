@@ -1,7 +1,7 @@
 from django import forms
 from assignments.models import Assignment
 from students.models import Student
-from submissions.models import PaperSubmission, CanvasQuizSubmission, ScantronSubmission
+from submissions.models import PaperSubmission, CanvasQuizSubmission, ScantronSubmission, PaperSubmissionImage
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column
 
@@ -150,11 +150,12 @@ class GradingForm(forms.ModelForm):
     
     class Meta:
         model = PaperSubmission
-        fields = ['student', 'question_grades', 'comment_files']        
+        fields = ['student', 'question_grades']        
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.new_comment = forms.Textarea()
+        self.comment_file = forms.FileField()
 
 class SubmissionFilesUploadForm(forms.Form):
     def __init__(self,*args,**kwargs):
@@ -164,7 +165,9 @@ class SubmissionFilesUploadForm(forms.Form):
         if no_assignment:
             self.fields['assignment'].widget = HiddenInput()
 
-    file = forms.FileField()
+    file_field = forms.FileField(
+        widget=forms.ClearableFileInput(attrs={'multiple': True})
+        )
     assignment = forms.ModelChoiceField(
         queryset=Assignment.objects.all(),
         )
@@ -173,27 +176,44 @@ class SubmissionFilesUploadForm(forms.Form):
         empty_label="Multiple students",
         required=False,)
 
+    pages_per_submission = forms.IntegerField(
+        required=True,
+        initial=2,
+        )
+    image_dpi = forms.IntegerField(
+        required=True,
+        initial=150,
+        )
     def clean(self):
         cleaned_data = super().clean()
         return cleaned_data
 
-    def save(self):
+    def save(self, request):
         assignment = self.cleaned_data['assignment']
         student = self.cleaned_data['student']
-        file = self.cleaned_data['file']
-        if student:
-            raise NotImplementedError("specific student upload is not implemented yet")
-            submission = PaperSubmission.objects.create(
-                assignment=assignment,
-                student=student,
-                file=file,
-                attempt=1,
+        files = request.FILES.getlist('file_field')
+        num_pages_per_submission = self.cleaned_data['pages_per_submission']
+        image_dpi = self.cleaned_data['image_dpi']
+
+        print(len(files))
+        print(type(files[0]))
+        if not student:
+            uploaded_submission_pks = PaperSubmission.add_papersubmissions_to_db(
+                assignment_target=assignment,
+                uploaded_files=files,
+                num_pages_per_submission=num_pages_per_submission,
+                dpi=image_dpi,
+                student=None,
                 )
         else:
             uploaded_submission_pks = PaperSubmission.add_papersubmissions_to_db(
                 assignment_target=assignment,
-                uploaded_file=file,
+                uploaded_files=files,
+                num_pages_per_submission=num_pages_per_submission,
+                dpi=image_dpi,
+                student=student,
                 )
+            
         return uploaded_submission_pks
 
 class StudentClassifyForm(forms.Form):
@@ -249,6 +269,8 @@ class SyncToForm(forms.Form):
     def __init__(self,*args,**kwargs):
         from django.forms.widgets import HiddenInput
         no_assignment = kwargs.pop('no_assignment', None)
+        # also get the request user
+        self.request_user = kwargs.pop('request_user', None)
         super().__init__(*args,**kwargs)
         if no_assignment:
             self.fields['assignment'].widget = HiddenInput()
@@ -257,13 +279,56 @@ class SyncToForm(forms.Form):
         queryset=Assignment.objects.all(),
         )
 
+    submission_sync_option = forms.ChoiceField(
+        choices=(
+            ('all', 'Upload all locally graded submissions'),
+            ('grade_not_on_canvas', 'Upload only locally graded submissions that are not graded on canvas'),
+            ('specific', 'Upload a specific selection of submissions'),
+            ),
+        )
+    # Now fot the submissions determined by submission_sync_option,
+    # we also specify the comment_sync_option: 
+    comment_sync_option = forms.ChoiceField(
+        choices=(
+            ('all', 'Upload all locally saved comments as new comments on canvas'),
+            ('delete_previous', 'Upload all locally saved comments as new comments on canvas, but delete all previously uploaded comments on the canvas submission posted by the current user'),
+            ('comment_not_on_canvas', 'Upload only comments that are not on canvas'),
+            ),
+        )
+
+    # If submission_sync_option is 'specific', we need a multiple select
+    # form field to select the specific paper submissions of the assignment
+    specific_submissions = forms.ModelMultipleChoiceField(
+        queryset=PaperSubmission.objects.all(),
+        required=False,
+        )
+    
     def clean(self):
         cleaned_data = super().clean()
         return cleaned_data
 
     def save(self):
-    
+        
         assignment = self.cleaned_data['assignment']
+        # get the submission_sync_option and comment_sync_option
+        # from the cleaned_data
+        submission_sync_option = self.cleaned_data['submission_sync_option']
+        comment_sync_option = self.cleaned_data['comment_sync_option']
+        # if submission_sync_option is 'specific', get the specific
+        # paper submissions from the cleaned_data
+        if submission_sync_option == 'specific':
+            specific_submissions = self.cleaned_data['specific_submissions']
+        else:
+            specific_submissions = None
         print("assignment: ", assignment)
+        print("submission_sync_option: ", submission_sync_option)
+        print("comment_sync_option: ", comment_sync_option)
+        print("specific_submissions: ", specific_submissions)
 
-        assignment.upload_graded_submissions_to_canvas()
+        assignment.upload_graded_submissions_to_canvas(
+            submission_sync_option=submission_sync_option,
+            comment_sync_option=comment_sync_option,
+            request_user=self.request_user,
+            specific_submissions=specific_submissions,
+        )
+            

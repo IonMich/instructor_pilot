@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% comment %} {% extends "base.html" %} {% endcomment %}
 {% load crispy_forms_tags%}
 
 {% block content %}
@@ -21,7 +21,7 @@ This is a message: {{ message }}
         <div class="alert alert-success">
             {{ message }}
         </div>
-        {% include "main.html" with object_list=qs title="Uploaded" %}
+        {% include "submissions/main.html" with object_list=qs title="Uploaded" %}
     {% else %}
         <div class="alert alert-danger">
             {{ message }}

@@ -1,26 +1,66 @@
 {% load submission_extras %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'submissions/style.css' %}">
 
-
+{% load crispy_forms_tags%}
 
   {% block content %}
-  {% comment %} <div class="gradient-pattern"> {% endcomment %}
+<div class="submissions-header">
+    <h3>{{title}}</h3>
+    {% comment %} button to search, add, remove {% endcomment %}
+    <div class="submissions-header__tools">
+      
+      <div class="search-bar">
+          <input type="text" class="search-bar__input" placeholder="Student Name" aria-label="search student name input" tabindex="-1"/>
+          <button class="btn btn-outline-success search-bar__button" aria-label="submit search">
+            <i class="bi bi-search search-bar__button--search"></i>
+            <i class="bi bi-x-lg search-bar__button--clear"></i>
+          </button>
+      </div>
+      <button type="button m-2" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#add-sub-modal" title="Add new submissions">
+        <i class="bi-file-earmark-plus-fill"></i>
+      </button>
+      <button type="button m-2" class="btn btn-outline-danger" id="btn-delete-all" title="Delete all submissions">
+        <i class="bi-trash-fill"></i>
+      </button>
+    </div>
+</div>
 
-  <h3 class='mt-4'> {{ title }}</h3>
-  <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4  g-2 mt-5 ">
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 row-cols-xxl-5 g-2 mt-3" id="submissions-row">
       {% for obj in object_list %}
       <div class="col">
-        <div class="card h-100" style="min-width:10rem">
-            {% if not obj.files.name %}
-              <div style="background: linear-gradient({{random_num|dj_iter}}deg, #8e2de2, #4a00e0); min-height:20vh; background-size: cover; background-position: center; background-repeat: no-repeat;"</div>
-                {% if obj.grade %}
+        <div class="card h-100" data-pk="{{ obj.pk }}">
+            {% comment %} add bootstrap carousel with all images (obj.submissions_papersubmissionimage_related.all){% endcomment %}
+            <div 
+            class="carousel slide"
+            data-bs-ride="false"
+            data-bs-pause="false"
+            wrap="true"
+            id="carousel-{{ forloop.counter }}">
+              <div class="carousel-inner thumbnail">
+                {% comment %} {% if obj.grade %}
                   <span class="position-relative top-100 start-50 translate-middle badge text-dark bg-warning">
                     {{obj.grade}}/{{obj.assignment.max_score}}
                   <span class="visually-hidden">Grade</span>
-                {% endif %}
+                {% endif %}   {% endcomment %}
+                {% for img in obj.submissions_papersubmissionimage_related.all%}
+                <div 
+                  class="carousel-item{% if forloop.first %} active{% endif %}">
+                      <img src="{{img.image.url}}" class="card-img-top sub-img" alt="{{img.name}}">
+                </div>
+                {% endfor %}
               </div>
-            {% else %}
-              <img src="{{MEDIA_URL}}{{obj.files.url}}" class="card-img-top"  alt="Image at {{obj.files.name}}" style="min-height:20vh;">
-            {% endif %}
+              <button class="carousel-control-prev div-card-tools d-none" type="button" data-bs-target="#carousel-{{ forloop.counter }}" data-bs-slide="prev" style="z-index: 10;">
+                <span class="carousel-control-prev-icon bg-dark" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+              </button>
+              <button class="carousel-control-next div-card-tools d-none" type="button" data-bs-target="#carousel-{{ forloop.counter }}" data-bs-slide="next" style="z-index: 10;">
+                <span class="carousel-control-next-icon bg-dark" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+              </button>
+
+            </div>
+            
               <div class="card-body">
                 <h5 class="card-title">
                   {% if obj.student %}
@@ -58,19 +98,112 @@
                   
                   
                   <a href="{{obj.get_absolute_url}}" class="stretched-link"></a>
+
+                  <div class="position-absolute top-0 end-0 div-card-tools d-none" style="z-index: 20;">
+                    {% if obj.canvas_id %}
+                      <a href="{{obj.canvas_url}}" class="btn btn-sm btn-outline-primary btn-canvas" style="z-index: 1;">
+                        <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" style="width: 16px; height: 16px">
+                      </a>
+                    {% endif %}
+                    <button class="btn btn-sm btn-outline-danger btn-delete-sub" data-pk="{{ obj.pk }}" style="z-index: 20;">
+                      <i class="bi bi-trash-fill"></i>
+                    </button>
+                  </div>
                   
               </div>
               <div class="card-footer" style="background: linear-gradient({{random_num|dj_iter}}deg, #e3dfd1, #d4cced);">
                 <small>Last updated at {{obj.updated}}</small>
-                {% if obj.canvas_id %}
-                  <a href="{{obj.canvas_url}}" class="btn btn-sm btn-outline-primary" style="z-index: 2;position: relative;">
-                    <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" style="width: 16px; height: 16px">
-                  </a>
-                {% endif %}
               </div>
+              
+
         </div>
       </div>
       {% endfor %}
   </div>
+
+  {% comment %} add modal for card deletion 
+  the modal should contain a form with a hidden input for the pk of the submission
+  and a div with class carousel-container to display the images of the submission
+  the modal should be triggered by the button with class btn-delete-sub. 
+  The modal should be initially hidden and should be shown when the button is clicked
+  {% endcomment %}
+
+  <div class="modal fade" id="modal-delete-sub" tabindex="-1" aria-labelledby="modal-delete-sub-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-delete-sub-label">Delete Submission</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete this submission?</p>
+          <form method="POST" id="delete-sub-form">
+            {% csrf_token %}
+            <input type="hidden" name="pk" id="input-pk">
+            <div class="carousel-container">
+              <div class="carousel slide" data-bs-ride="carousel" data-bs-pause="false" wrap="true" id="carousel-delete">
+                <div class="carousel-inner thumbnail">
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carousel-delete" data-bs-slide="prev" style="z-index: 10;">
+                  <span class="carousel-control-prev-icon bg-dark" aria-hidden="true"></span>
+                  <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carousel-delete" data-bs-slide="next" style="z-index: 10;">
+                  <span class="carousel-control-next-icon bg-dark" aria-hidden="true"></span>
+                  <span class="visually-hidden">Next</span>
+                </button>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-danger btn-delete-confirmed">Delete</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modal-delete-all" tabindex="-1" aria-labelledby="modal-delete-all-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-delete-all-label">Delete All Submissions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete <b>all</b> submissions? This action is irreversible.</p>
+          <form method="POST" id="delete-all-form" >
+            {% csrf_token %}
+            <input type="hidden" name="pk" id="input-pk">
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-danger" id="btn-delete-all-confirmed">Delete</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="add-sub-modal" tabindex="-1" aria-labelledby="add-sub-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-upload-new-label">Add New Submissions</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        
+        <div class="modal-body">
+          <form action="" enctype="multipart/form-data" method="POST">
+            {% csrf_token %}
+            {{ upload_form|crispy }}
+            <button type="submit" name="submit-upload" class="btn btn-primary mt-3">Upload</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
 {% endblock content %}

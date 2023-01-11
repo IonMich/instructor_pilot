@@ -2,10 +2,10 @@ from django.db import models
 from django.core.validators import RegexValidator
 from django.utils.translation import gettext as _
 import re
-from pdf2image import convert_from_path
 import os
 import glob
 from PIL import Image
+import fitz
 
 comma_separated_float_list_re = re.compile('^([-+]?\d*\.?\d+[,\s]*)+$')
 validate_comma_separated_float_list = RegexValidator(
@@ -15,17 +15,6 @@ validate_comma_separated_float_list = RegexValidator(
 class CommaSeparatedFloatField(models.CharField):
     default_validators = [validate_comma_separated_float_list]
     description = _("Comma-separated floats")
-
-    # def formfield(self, **kwargs):
-    #     defaults = {
-    #         'error_messages': {
-    #             'invalid': _(u'Enter only floats separated by commas.'),
-    #         }
-    #     }
-    #     defaults.update(kwargs)
-    #     return super(CommaSeparatedFloatField, self).formfield(**defaults)
-
-
 
 
 
@@ -57,36 +46,58 @@ def convert_pdfs_to_img_list(
     filepath, 
     num_pages_per_submission, 
     dpi=150):
-    
-    # import RGB images
-    quiz_imgs = convert_from_path(filepath, dpi)
-    
-    if len(quiz_imgs) % num_pages_per_submission != 0:
-        raise ValueError(
-            f"The number of pages in the pdf is not a multiple of {num_pages_per_submission}")
+    raise NotImplementedError
 
-    # convert imgs to nested list every `num_pages_per_quiz`
-    # for example, if num_pages_per_quiz=2, then:
-    # [ [img1, img2], [img3, img4], ... ]
-    quizzes_img_list = [list(a) for a in zip(*[iter(quiz_imgs)] * num_pages_per_submission)]
-    return quizzes_img_list
 
-def split_pdfs(pdf_fpath=None, n_pages=2):
+def split_pdfs(pdf_fpath=None, file_idx=0, n_pages=2):
     """
     Split a PDF into multiple PDFs each of size n_pages.
     """
-    from PyPDF2 import PdfFileReader, PdfFileWriter
-    if not os.path.exists("tmp"):
-        os.makedirs("tmp")
-    pdf_reader = PdfFileReader(pdf_fpath)
-    if pdf_reader.numPages % n_pages != 0:
-        raise ValueError(
-            f"The number of pages in the pdf is not a multiple of {n_pages}")
-    for i in range(0, pdf_reader.numPages, n_pages):
-        pdf_writer = PdfFileWriter()
-        for j in range(i, i+n_pages):
-            pdf_writer.addPage(pdf_reader.getPage(j))
-        with open(f'tmp/submission_{i}-{i+n_pages-1}.pdf', 'wb') as out:
-            pdf_writer.write(out)
+    raise NotImplementedError
 
+def convert_pdf_to_images(filepath, dpi, top_percent=0.25, left_percent=0.5, crop_box=None, skip_pages=(0,1,3)):
+    """
+    Converts a pdf file to a list of images.
+    If crop_box is not None, then the images are cropped to the specified box.
+    Otherwise, the images are cropped to the top left corner of the page,
+    with the width and height specified by top_percent and left_percent.
+
+    Parameters
+    ----------
+    filepath : str
+        The path to the pdf file.
+    dpi : int
+        The dpi of the images.
+    top_percent : float
+        The percentage of the top of the page to keep.
+    left_percent : float
+        The percentage of the left of the page to crop.
+    crop_box : tuple
+        A tuple of the form (left, top, right, bottom) that specifies the crop box.
+    skip_pages : tuple
+        A tuple of page numbers to skip.
+
+    Returns
+    -------
+    images : list
+        A list of images.
+    """
+    images = []
+    doc = fitz.open(filepath)
+    for page in doc:
+        if page.number % 4 in skip_pages:
+            images.append(None)
+            continue
+        print(page.number, end="\r")
+        rect = page.rect  # the page rectangle
+        rect.y1 = rect.y0 + (rect.y1 - rect.y0) * top_percent
+        rect.x1 = rect.x0 + (rect.x1 - rect.x0) * left_percent
+
+        if crop_box is not None:
+            raise NotImplementedError
+
+        pix = page.get_pixmap(dpi=dpi, clip=rect)
+        images.append(Image.frombytes(mode="RGB", size=[pix.width, pix.height], data=pix.samples))
+    
+    return images
 
