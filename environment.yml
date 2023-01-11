@@ -5,11 +5,8 @@ dependencies:
   - django=4.1
   - matplotlib=3.5.3
   - pandas=1.4.4
-  - pdf2image=1.12.1
   - pillow=9.2.0
   - pip>=22
-  - poppler
-  - pypdf2=2.10.4
   - python=3.10
   - python-dotenv=0.20.0
   - scipy=1.9.1
@@ -23,4 +20,5 @@ dependencies:
     - django-countries==7.3.2
     - django-crispy-forms==1.14.0
     - opencv-python==4.6.0.66
+    - pymupdf==1.20.2
 prefix: /home/ionmich/anaconda3/envs/py-ocr
