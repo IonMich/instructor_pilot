@@ -59,6 +59,9 @@ class Assignment(models.Model):
     def get_graders(self):
         return self.course.instructors.all()
 
+    def has_equal_question_scores(self):
+        return len(set(self.get_max_question_scores())) == 1
+
     def __str__(self):
         return f"{self.name}"
 
@@ -150,7 +153,7 @@ class Assignment(models.Model):
                     if assignment.max_question_scores is None or assignment.max_question_scores == "":
                         assignment.max_question_scores = max_question_scores
                     elif assignment.max_question_scores != max_question_scores:
-                        # The grades per question have changed.
+                        # The max grades per question have been changed manually
                         # In order to avoid losing the grades of the submissions,
                         # check if any submission has been graded. If so, do not update the grades per question.
                         if assignment.get_all_submissions().filter(graded_by__isnull=False).count() == 0:

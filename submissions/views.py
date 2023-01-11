@@ -77,39 +77,6 @@ def home_view(request, course_pk, assignment_pk=None):
     }
     return render(request, "submissions/home.html", context)
 
-
-@login_required
-def upload_files_view(request, assignment_pk=None):
-    """
-    Upload files to the server
-    """
-    message = "Use this form to upload submission files to server"
-    form = SubmissionFilesUploadForm(assignment_pk)
-    if request.method == 'POST':
-        form = SubmissionFilesUploadForm(request.POST, request.FILES)
-        print("request was POST")
-        print("request.FILES: ", request.FILES)
-        if form.is_valid():
-            print("form is valid")
-            uploaded_submission_pks = form.save(request)
-            qs = PaperSubmission.objects.filter(pk__in=uploaded_submission_pks)
-            return render(
-                request, 
-                'submissions/upload_files.html',
-                {'form': form,
-                "random_num": _random1000, 
-                "qs":qs, 
-                'message': 'Files uploaded successfully'})
-        else:
-            message = 'Form is not valid'
-            print("form is not valid")
-        
-    return render(
-        request, 
-        'submissions/upload_files.html', 
-        {'form': form, 
-        'message': message})
-
 @login_required
 def submission_classify_view(request):
     message = "Use this form to to classify submission by student name and university ID using ML"

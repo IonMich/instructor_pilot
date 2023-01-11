@@ -210,8 +210,7 @@
         {% endif %}
         {% include "submissions/main.html" with object_list=qs title="Submissions" %}
     {% else %}
-        <h3>No submissions found</h3>
-        {% include "submissions/upload_files.html" with form=upload_form message="Upload submissions" %}
+        {% include "submissions/upload_files.html" with form=upload_form assignment=assignment %}
     {% endif %}
 </div>
 
