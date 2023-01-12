@@ -44,68 +44,76 @@ def user_list_view(request):
 @login_required
 def course_create_view(request):
     # handle the ajax POST request by creating a new course
-    if request.method == 'POST':
+    if request.method != 'POST':
+        return JsonResponse({'message': 'Only POST requests are allowed.'})
         
-        import json
-        data = json.loads(request.body)
-        print(data)
-
+    import json
+    data = json.loads(request.body)
+    print(data)
+    
+    course_code =  data.get('course_code')
+    course_term = data.get('term')
+    # if the course already exists, return the course
+    try:
+        course = Course.objects.get(
+            course_code=course_code, 
+            term=course_term)
+        print("Course already exists! Stopping here.")
+        # return a json response with an alert message
         
-        course_code =  data.get('course_code')
-        course_term = data.get('term')
-        # if the course already exists, return the course
-        try:
-            course = Course.objects.get(
-                course_code=course_code, 
-                term=course_term)
-            print("Course already exists! Stopping here.")
-            # return a json response with an alert message
-            
-            response = {
-                'message': 'Course already exists!',
-                'course_id': course.pk,
-                'status': 'already-exists'
-            }
-            return JsonResponse(response)
-        except Course.DoesNotExist:
-            course = Course(
-                course_code=course_code,
-                term=course_term,
-            )
-        # split the term into semester type and year. Year is an integer
-        # e.g. "Summer C 2020" -> "Summer C" and 2020
-        # e.g. "Fall 2021" -> "Fall" and 2021
-        
-        if course.term == "Development Term":
-            course.semester_type = "D"
-            import datetime
-            course.year = datetime.datetime.now().year
+        response = {
+            'message': 'Course already exists!',
+            'course_id': course.pk,
+            'status': 'already-exists'
+        }
+        return JsonResponse(response)
+    except Course.DoesNotExist:
+        course = Course(
+            course_code=course_code,
+            term=course_term,
+        )
+    # split the term into semester type and year. Year is an integer
+    # e.g. "Summer C 2020" -> "Summer C" and 2020
+    # e.g. "Fall 2021" -> "Fall" and 2021
+    
+    if course.term == "Development Term":
+        course.semester_type = "D"
+        import datetime
+        course.year = datetime.datetime.now().year
+    else:
+        term_splitted = course.term.split(" ")
+        for item in semesters:
+            print(item, " ".join(term_splitted[:-1]))
+            if item[1] == " ".join(term_splitted[:-1]):
+                course.semester_type = item[0]
+                course.year = term_splitted[-1]
+                break
         else:
-            term_splitted = course.term.split(" ")
-            for item in semesters:
-                print(item, " ".join(term_splitted[:-1]))
-                if item[1] == " ".join(term_splitted[:-1]):
-                    course.semester_type = item[0]
-                    course.year = term_splitted[-1]
-                    break
-            else:
-                raise Exception(f"Term {course.term} is not valid.")
-        sync_with_canvas = data.get('sync_with_canvas')
+            raise Exception(f"Term {course.term} is not valid.")
+    sync_with_canvas = data.get('sync_with_canvas')
 
-        if sync_with_canvas:
-            # check if the course exists in Canvas
-            # if it does, sync with Canvas
-            # if it doesn't raise a warning to the request.user
-            # but still create the course in the database
-            course.start_date = timezone.now()
-            course.university = University.objects.first()
-            course.save()
-            course.update_from_canvas(request.user)
-        else:
-            course.description = data.get('description')
-            course.image = data.get('image')
-
+    if sync_with_canvas:
+        # check if the course exists in Canvas
+        # if it does, sync with Canvas
+        # if it doesn't raise a warning to the request.user
+        # but still create the course in the database
+        course.start_date = timezone.now()
+        course.university = University.objects.first()
         course.save()
+        course.update_from_canvas(request.user)
+    else:
+        course.description = data.get('description')
+        course.image = data.get('image')
+
+    course.save()
+
+    response = {
+        'message': 'Course created successfully!',
+        'course_id': course.pk,
+        'status': 'success'
+    }
+
+    return JsonResponse(response)
 
 @login_required
 def grading_scheme_update_view(request, course_pk):

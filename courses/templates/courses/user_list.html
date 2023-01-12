@@ -2,7 +2,10 @@
 {% load static %}
 {% comment %} display cards for all courses of user {% endcomment %}
 
+
 {% block styles %}
+
+<link rel="stylesheet" href="{% static 'courses/style.css' %}">
 
 <style>
     {% comment %} html {
@@ -117,21 +120,24 @@
                         <div class="invalid-feedback" id="course_code_feedback">
                         </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="mb-4">
-                        <label for="image" class="form-label">Image</label>
-                        <input type="file" class="form-control" id="image" name="image">
+                    <div class="expander">
+                        <div class="expander-content">
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label for="image" class="form-label">Image</label>
+                                <input type="file" class="form-control" id="image" name="image">
+                            </div>
+                        </div>
                     </div>
                     {% comment %} add a checkmark input to try to sync with canvas {% endcomment %}
                     <div class="mb-4 form-check form-switch">
-                        <input type="checkbox" class="form-check-input" id="sync" name="sync_with_canvas">
+                        <input type="checkbox" class="form-check-input" id="sync" name="sync_with_canvas" checked>
                         <label for="sync" class="form-check-label">Sync from Canvas</label>
                     </div>
-                    <button type="submit" class="btn btn-primary">Next</button>
+                    <button type="submit" class="btn btn-primary">Add Course</button>
                 </form>
             </div>
         </div>

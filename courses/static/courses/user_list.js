@@ -30,6 +30,10 @@ addCourseForm.addEventListener("submit", (event) => {
     console.log("prevent default");
     event.preventDefault();
 
+    // disable the add course button
+    addCourseButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+    addCourseButton.disabled = true;
+
     // if was-validated os in the class list of the form, it means that the form is valid
     // and we can send the fetch request
 
@@ -78,6 +82,8 @@ addCourseForm.addEventListener("submit", (event) => {
 
                 // close the modal
                 $('#addCourseModal').modal('hide');
+                // redirect to the course detail page
+                window.location.href = `/courses/${data.course_id}/`;
             } else if (data.status === 'already-exists') {
                 // if this combination of course code and term already exists, show an error message
                 const courseCodeInput = addCourseForm.querySelector('input[name="course_code"]');
@@ -89,14 +95,25 @@ addCourseForm.addEventListener("submit", (event) => {
                 termInput.classList.add('is-invalid');
                 // remove was-validated class from the form
                 addCourseForm.classList.remove('was-validated');
-
-
-
-
+                // change the button text back to Add Course
+                addCourseButton.innerHTML = 'Add Course';
+                addCourseButton.disabled = false;
             }
-
         })
         .catch((error) => {
+            // if there was an error, show an error message
+            const courseCodeInput = addCourseForm.querySelector('input[name="course_code"]');
+            const termInput = addCourseForm.querySelector('input[name="term"]');
+            const errorDiv = addCourseForm.querySelector('.invalid-feedback');
+
+            errorDiv.innerHTML = 'There was an error adding this course to the database';
+            courseCodeInput.classList.add('is-invalid');
+            termInput.classList.add('is-invalid');
+            // remove was-validated class from the form
+            addCourseForm.classList.remove('was-validated')
+            // change the button text back to Add Course
+            addCourseButton.innerHTML = 'Add Course';
+            addCourseButton.disabled = false;
             console.log(error);
         });
 });
@@ -175,7 +192,19 @@ courseCards.forEach( (courseCard) => {
 });
 
 
+const syncSwitch = document.querySelector('#sync');
 
+if (syncSwitch) {
+    const expander = document.querySelector('.expander:has(.expander-content)');
+    syncSwitch.addEventListener('change', function(event) {
+        console.log('checkbox changed');
+        if (syncSwitch.checked) {
+            expander.classList.remove('expanded');
+        } else {
+            expander.classList.add('expanded');
+        }
+    });
+}
 
     
 

@@ -253,14 +253,14 @@ class Course(models.Model):
             course=self, canvas_students=canvas_students)
         return students
         
-    def get_all_submission_student_comments(self, assignment_group_name,):
+    def get_all_submission_student_comments(self, assignment_group_name=None,):
         """
         Return all submission comments in a course for a given assignment group.
         Keep only the comments that were written by someone other than the current user.
         """
         # get the corresponding canvas course
         try:
-            canvas_course = get_canvas_course(self.canvas_id)
+            canvas_course = get_canvas_course(canvas_id=self.canvas_id)
         except Exception as e:
             print(e)
             print("Canvas Id for this course is not valid.")
@@ -269,19 +269,21 @@ class Course(models.Model):
         # find the canvas id of the assignment group with the given name
         assignment_groups = canvas_course.get_assignment_groups(
             include=["assignments"])
-        for assignment_group in assignment_groups:
-            if assignment_group.name == assignment_group_name:
-                assignment_group_id = assignment_group.id
-                break
-        else:
-            print("Assignment group not found")
-            raise ValueError("Assignment group not found")
-            # return None
+        if assignment_groups is None:
+            raise ValueError("No assignment groups found")
+        elif assignment_group_name is not None:
+            for assignment_group in assignment_groups:
+                if assignment_group.name == assignment_group_name:
+                    assignment_groups = [assignment_group]
+                    break
+            else:
+                raise ValueError("Assignment group not found")
 
         # get list of canvas assignment ids in the assignment group with id assignment_group_id
         assignment_ids = []
-        for assignment in assignment_group.assignments:
-            assignment_ids.append(assignment["id"])
+        for assignment_group in assignment_groups:
+            for assignment in assignment_group.assignments:
+                assignment_ids.append(assignment["id"])
 
         submissions = canvas_course.get_multiple_submissions(
             student_ids="all",
@@ -319,7 +321,7 @@ class Course(models.Model):
 
     def update_submission_comments_from_canvas(self):
         try:
-            canvas_submission_comments = self.get_all_submission_student_comments("Quizzes")
+            canvas_submission_comments = self.get_all_submission_student_comments()
             print(canvas_submission_comments)
         except Exception as e:
             print(e)
