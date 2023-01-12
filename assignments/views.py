@@ -22,7 +22,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
         assignment=assignment,
         ).order_by('created')
     search_form = SubmissionSearchForm(assignment=assignment)
-    upload_form = SubmissionFilesUploadForm(no_assignment=True)
+    upload_form = SubmissionFilesUploadForm(assignment=assignment)
     classify_form = StudentClassifyForm(no_assignment=True)
     sync_to_form = SyncToForm(no_assignment=True)
     message = ''
@@ -55,7 +55,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 message_type = 'info'
 
         if 'submit-upload' in request.POST:            
-            upload_form = SubmissionFilesUploadForm(no_assignment=False, data=request.POST, files=request.FILES)
+            upload_form = SubmissionFilesUploadForm(data=request.POST, files=request.FILES)
             if upload_form.is_valid():
                 print("form is valid")
                 uploaded_submission_pks = upload_form.save(request)

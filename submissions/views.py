@@ -13,8 +13,7 @@ from django.views.generic.edit import DeleteView
 from assignments.models import Assignment
 from courses.models import Course
 
-from .forms import (GradingForm, StudentClassifyForm,
-                    SubmissionFilesUploadForm, SubmissionSearchForm)
+from .forms import GradingForm, StudentClassifyForm, SubmissionSearchForm
 # from django.views.generic import ListView, DetailView
 from .models import (CanvasQuizSubmission, PaperSubmission, ScantronSubmission,
                      Submission, SubmissionComment)

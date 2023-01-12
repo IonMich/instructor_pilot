@@ -162,17 +162,23 @@ class GradingForm(forms.ModelForm):
 class SubmissionFilesUploadForm(forms.Form):
     def __init__(self,*args,**kwargs):
         from django.forms.widgets import HiddenInput
-        no_assignment = kwargs.pop('no_assignment', None)
+        assignment_targeted = kwargs.pop('assignment', None)
         super().__init__(*args,**kwargs)
-        if no_assignment:
+        if assignment_targeted is not None:
             self.fields['assignment'].widget = HiddenInput()
+            self.fields['assignment'].initial = assignment_targeted
+            self.fields['student'].queryset = Student.objects.filter(
+                sections__in=assignment_targeted.course.sections.all()
+            )
 
     file_field = forms.FileField(
         widget=forms.ClearableFileInput(attrs={'multiple': True})
         )
+
     assignment = forms.ModelChoiceField(
         queryset=Assignment.objects.all(),
-        )
+    )
+
     student = forms.ModelChoiceField(
         queryset=Student.objects.all(),
         empty_label="Multiple students",
@@ -186,6 +192,7 @@ class SubmissionFilesUploadForm(forms.Form):
         required=True,
         initial=150,
         )
+
     def clean(self):
         cleaned_data = super().clean()
         return cleaned_data
