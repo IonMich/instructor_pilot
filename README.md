@@ -1,3 +1,5 @@
+[![conda](https://github.com/IonMich/instructor_pilot/actions/workflows/python-package-conda.yml/badge.svg)](https://github.com/IonMich/instructor_pilot/actions/workflows/python-package-conda.yml)
+
 # Instructor Pilot
 
 ## Description
