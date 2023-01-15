@@ -192,13 +192,19 @@ def extract_digit_boxes_from_img_new(
     for boundary in sub_boundaries:
         try:
             img_ = img[boundary[1]:boundary[3], boundary[0]:boundary[2]]
-
+            # NOTE: do_reconstruct is set to False because it's not working well
+            # it appears that reconstructing the image was causing the digits to 
+            # disappear when the borders of the surrounding box were much darker
+            # than the digits themselves in a white background (or maybe the digits
+            # were too thin?). 
+            # TODO: Best way to fix probably is by taking this into 
+            # account during training of the classifier. 
             img_no_v, (x_left, x_right) = remove_lines_img(
                 img_, 
                 mode="vertical", 
                 rect_kernel_size=37*dpi//150, 
                 rect_kernel_width=1, 
-                do_reconstruct=True,
+                do_reconstruct=False,
                 dpi=dpi
                 )
 
@@ -207,7 +213,7 @@ def extract_digit_boxes_from_img_new(
                 mode="horizontal", 
                 rect_kernel_size=70*dpi//150, 
                 rect_kernel_width=1, 
-                do_reconstruct=True,
+                do_reconstruct=False,
                 dpi=dpi
                 )
             img_nolines = cv2.bitwise_or(img_no_v, img_no_h)

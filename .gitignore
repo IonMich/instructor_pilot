@@ -7,3 +7,5 @@ media/*
 .vscode/
 *.pdf
 *.csv
+logs/*
+tmp/*
