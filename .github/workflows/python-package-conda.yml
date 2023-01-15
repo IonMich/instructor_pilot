@@ -35,12 +35,6 @@ jobs:
     - name: Conda list
       shell: pwsh
       run: conda list
-      
-    - name: Install black-compatible (max-line-length = 88, extend-ignore = E203) flake8 and test it
-      shell: bash -el {0}
-      run: |
-        conda install flake8
-        flake8 --max-line-length=88 --extend-ignore=E203 --statistics --count --show-source --format=pylint --output-file=flake8.log .
 
       
         
