@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% load crispy_forms_tags%}
+
+{% block styles %}
+    <link rel="stylesheet" href="{% static 'assignments/style.css' %}">
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://d3js.org/d3.v7.min.js" defer></script>
+    {{ assignment.get_all_grades|json_script:"all_grades"}}
+    
+    <script src="{% static 'assignments/detail.js' %}" defer></script>
+{% endblock scripts %}
+
+{% block title %}
+
+| {{ assignment.name }}
+
+{% endblock title %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{assignment.course.get_absolute_url}}">{{assignment.course.course_code}}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{assignment.name}} 
+        <span class="badge bg-dark" title="Average Grade">
+            {% if assignment.get_grading_progress != 0 %}
+            {{assignment.get_average_grade}} 
+        {% else %}
+            -
+        {% endif %}/ {{ assignment.max_score }}
+        </span>
+    </li>
+    </ol>
+</nav>
+
+
+{% comment %} show the assignment grading progress and the average grade {% endcomment %}
+<h1>
+    {{ assignment.name }}
+    <span class="badge bg-light text-dark" title="Percentage Graded">
+        {{ assignment.get_grading_progress }} %
+    </span>
+</h1>
+
+{% if assignment.description %}
+{% comment %} show description if it exists in italics {% endcomment %}
+<div class="alert alert-info" role="alert" style="max-height: 200px; overflow-y: scroll; max-width: 500px;">
+    <i class="text-muted">
+    {{assignment.description | safe}}
+    </i>
+</div>
+{% endif %}
+
+
+<h1> Test page for clustering </h1>
+{% for image in submissions_image %}
+<a name="submission_image_p3_{{forloop.counter}}" class="images" id="{{ image.id }}-image" href="{{image.image.url}}" target="_blank">
+     <p>{{forloop.counter}} {{ image.submission.student }} belongs to cluster {{image.cluster}}</p>
+</a>
+{% endfor %}
+{% endblock content %}
