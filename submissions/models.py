@@ -453,6 +453,11 @@ class PaperSubmissionImage(models.Model):
         null=True,
         blank=True)
 
+    
+    # add a field for clustering
+    cluster = models.IntegerField(null=True, blank=True)
+    # finished changes here
+
     def __str__(self):
         return f"Paper Submission Image {self.pk}"
 

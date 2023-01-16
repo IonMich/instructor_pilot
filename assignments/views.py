@@ -7,10 +7,12 @@ from django.utils import timezone
 from courses.models import Course
 from submissions.forms import (StudentClassifyForm, SubmissionFilesUploadForm,
                                SubmissionSearchForm, SyncFromForm, SyncToForm)
-from submissions.models import PaperSubmission
+from submissions.models import PaperSubmission, PaperSubmissionImage
 from submissions.views import _random1000
 
 from .models import Assignment
+
+from submissions.cluster import (crop_and_ocr, crop_images_to_text, vectorize_texts, perform_dbscan_clustering, plot_clusters_dbscan)
 
 # Create your views here.
 
@@ -130,4 +132,50 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
         "random_num": _random1000,
         'message': message,
         'message_type': message_type,
+        'course_pk': course_pk,
+        'assignment_pk': assignment_pk,
         })
+
+@login_required
+def cluster_view(request, course_pk, assignment_pk):
+    assignment = get_object_or_404(Assignment, pk=assignment_pk)
+    context = {'assignment': assignment}
+    if request.method == 'POST':
+        print("request.POST")
+        # select submissions to cluster from model submissions.PaperSubmission
+        # get the submissions from the database
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
+        # get the items in the field
+        col_names = [field.name for field in submissions_image.model._meta.get_fields()]
+        print(col_names)
+        images_detail = dict()
+        images = []
+        for image in submissions_image:
+            images_detail[image.id] = [image.submission.student, image.image.url]
+            images.append(image.image.url)
+
+        # use the crop_images_to_text function to get the text from the images
+        texts, counts = crop_images_to_text(images)
+
+        # vectorize the text
+        print("vectorizing text")
+        X = vectorize_texts(texts)
+        print("vectorization done")
+        # cluster the text
+        print("clustering text")
+        dbscan, cluster_labels = perform_dbscan_clustering(X)
+        print("clustering done")
+        # add the cluster labels to the database
+        for i, image in enumerate(submissions_image):
+            image.cluster = cluster_labels[i]
+            image.save()
+
+        
+        submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
+        # context
+        context = {'assignment': assignment, 'submissions': submissions, 
+        'submissions_image': submissions_image, 'cluster_labels': cluster_labels, 
+        'images_detail': images_detail}
+        
+    return render(request, 'assignments/cluster.html', context)
