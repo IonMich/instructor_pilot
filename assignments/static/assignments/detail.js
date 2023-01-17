@@ -410,7 +410,7 @@ function deleteAllSubs(event) {
     .then(response => response.json())
     .then(data => {
         console.log(data);
-        // if the submission was deleted successfully, reload the page
+        // if the submission was deleted successfully, reload the page without resubmitting the form
         if (data.message === "success") {
             window.location.reload();
         }

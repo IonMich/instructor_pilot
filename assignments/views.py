@@ -65,6 +65,13 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 if len(qs) > 0:
                     message = f"{len(qs)} files uploaded!"
                     message_type = 'success'
+                    # now use PRG pattern to avoid resubmission of form
+                    # this uses HTTP 302/303 redirect
+                    return redirect(
+                        'assignments:detail', 
+                        course_pk=course_pk, 
+                        assignment_pk=assignment_pk
+                        )
                 else:
                     message = "No files uploaded."
                     message_type = 'danger'
