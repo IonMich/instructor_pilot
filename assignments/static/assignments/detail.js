@@ -518,7 +518,14 @@ if (searchBar) {
 // when the checkbox is checked, remove the .expanded class from the .expander container
 const equalGradesCheckbox = document.getElementById('equal_grades');
 if (equalGradesCheckbox) {
-    const expander = document.querySelector('.expander:has(#grades_input_group)');
+    const expanders = document.querySelectorAll('.expander');
+    // get the one with child #grades_input_group
+    for (var i = 0; i < expanders.length; i++) {
+        if (expanders[i].querySelector('#grades_input_group')) {
+            var expander = expanders[i];
+            break;
+        }
+    }
     equalGradesCheckbox.addEventListener('change', function(event) {
         console.log('checkbox changed');
         if (equalGradesCheckbox.checked) {
