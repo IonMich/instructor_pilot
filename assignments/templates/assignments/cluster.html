@@ -58,7 +58,7 @@
 {% endif %}
 
 
-<h1 style="padding-top: 30px"> Common Comment Submission form for Clusters </h1>
+<h1 style="padding-top: 30px"> Common Comment Submission form for Versions </h1>
 
 <div style="padding-top: 50px" id="cluster">
     <form action="">
@@ -67,10 +67,10 @@
     <form action="{% url 'assignments:cluster_submission' course_pk assignment_pk %}" method="POST" id="cluster-submission-from-form">
     {% csrf_token %}
     {% for item in cluster_images %}
-    <h3 style="padding-top: 30px">Sample Submission for Cluster {{forloop.counter0}}</h3>
+    <h3 style="padding-top: 30px">Sample Submission for Version {{forloop.counter0}}</h3>
     <img style="border: 1px solid blue;" src="{{item}}" alt="cluster-{{forloop.counter0}}" width="600" height="500">
     <div class="mb-3">
-        <label for="clusterText1-{{forloop.counter0}}" class="form-label">Solution for Cluster {{forloop.counter0}}</label>
+        <label for="clusterText1-{{forloop.counter0}}" class="form-label">Solution for Version {{forloop.counter0}}</label>
         <textarea class="form-control" id="clusterText1-{{forloop.counter0}}" name="clusterText1-{{forloop.counter0}}" rows="3"></textarea>
     </div>
     {% endfor %}

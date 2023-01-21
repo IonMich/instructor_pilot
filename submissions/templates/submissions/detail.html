@@ -139,18 +139,34 @@
                             </select>
                             {% if submission.student is not None %}
                                 {% if submission.classification_type == "D"%}
-                                <span class="badge bg-primary">{{submission.classification_type}}</span> 
+                                <span class="badge bg-primary" title="Classified using University ID">{{submission.classification_type}}</span> 
                                 
                                 {% elif submission.classification_type == "M"%}
-                                <span class="badge bg-warning">{{submission.classification_type}}</span> 
+                                <span class="badge bg-warning" title="Classified manually">{{submission.classification_type}}</span> 
             
                                 {% elif submission.classification_type == "W"%}
-                                <span class="badge bg-info text-dark">{{submission.classification_type}}</span> 
+                                <span class="badge bg-info text-dark" title="Classified using Name">{{submission.classification_type}}</span> 
                                 
                                 {% else %}
                                 <span class="badge bg-danger">?</span> 
                                 {% endif %}
                             {% endif %}
+
+
+                            <!-- label showing the clustering status -->
+
+                            {% for item in submission.submissions_papersubmissionimage_related.all %}
+                            {% if item.page == 3 and item.cluster is not None %}
+                            {% if item.cluster == -1 %}
+                                <span class="badge rounded-pill bg-danger" title="Outlier">Outlier</span> 
+                            {% else %}
+                                <span class="badge rounded-pill bg-success" title="Version {{item.cluster}}">V{{item.cluster}}</span> 
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+
+                            <!-- End of changes made-->
+
                         </div>
                         <div class="form-outline">
                             {% for q_grade, q_max_grade in grades_zipped %} 
