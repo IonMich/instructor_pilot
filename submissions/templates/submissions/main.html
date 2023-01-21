@@ -95,6 +95,22 @@
                       <i>No Grade</i>
                     </p>
                   {% endif %}
+
+                  <!-- Makes changes here to show clustering-->
+
+                  <p class="card-text">
+                    <small class="text-muted">
+                      {% for img in obj.submissions_papersubmissionimage_related.all%}
+                      {% if forloop.counter == 3 %}
+                      {% if img.cluster != None %}
+                        Cluster: <i>{{img.cluster}}</i>
+                      {% endif %}
+                        {% endif %}
+                      {% endfor %}
+                      </small>
+                    </p>
+
+                  <!-- Changes end here-->
                   
                   
                   <a href="{{obj.get_absolute_url}}" class="stretched-link"></a>

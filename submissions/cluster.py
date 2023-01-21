@@ -65,8 +65,7 @@ def crop_images_to_text(image_list):
     # run over all the images in the folder
     images = []
     texts = []
-    counts = []
-    count = 0
+    print(f"Loading images...")
     for path in image_list:
         # if path is a string like '/media/submissions/course_1/assignment_2/img/submission-22-batch-1-page-3-195AFJGL.png'
         # read the image from the path
@@ -75,9 +74,6 @@ def crop_images_to_text(image_list):
         image = cv2.imread(image_url)
         # append the image to the list
         images.append(image)
-        count += 1
-        print(f"Loading image: {count}/ {len(image_list)}")
-        counts.append(count)
     # for image in images:
     #     text = crop_and_ocr(image)
     #     texts.append(text)
@@ -87,7 +83,7 @@ def crop_images_to_text(image_list):
     texts = pool.map(crop_and_ocr, images)
     pool.close()
     pool.join()
-    return texts, counts
+    return texts
 
 
 def vectorize_texts(texts):
@@ -100,7 +96,7 @@ def vectorize_texts(texts):
     """
     # vectorize the text
     vectorizer = TfidfVectorizer(
-        max_df=0.8,
+        max_df=1.0,
         min_df=0.1,
         stop_words="english",
     )

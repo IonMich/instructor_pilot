@@ -58,10 +58,24 @@
 {% endif %}
 
 
-<h1> Test page for clustering </h1>
-{% for image in submissions_image %}
-<a name="submission_image_p3_{{forloop.counter}}" class="images" id="{{ image.id }}-image" href="{{image.image.url}}" target="_blank">
-     <p>{{forloop.counter}} {{ image.submission.student }} belongs to cluster {{image.cluster}}</p>
-</a>
-{% endfor %}
+<h1 style="padding-top: 30px"> Common Comment Submission form for Clusters </h1>
+
+<div style="padding-top: 50px" id="cluster">
+    <form action="">
+        <button type="submit" class="btn btn-primary" id="cluster-skip">Skip</button>
+    </form>
+    <form action="{% url 'assignments:cluster_submission' course_pk assignment_pk %}" method="POST" id="cluster-submission-from-form">
+    {% csrf_token %}
+    {% for item in cluster_images %}
+    <h3 style="padding-top: 30px">Sample Submission for Cluster {{forloop.counter0}}</h3>
+    <img style="border: 1px solid blue;" src="{{item}}" alt="cluster-{{forloop.counter0}}" width="600" height="500">
+    <div class="mb-3">
+        <label for="clusterText1-{{forloop.counter0}}" class="form-label">Solution for Cluster {{forloop.counter0}}</label>
+        <textarea class="form-control" id="clusterText1-{{forloop.counter0}}" name="clusterText1-{{forloop.counter0}}" rows="3"></textarea>
+    </div>
+    {% endfor %}
+<!-- A submit button-->
+    <button type="submit" class="btn btn-primary" id="cluster-submit">Submit Solutions</button>
+    </form>
+</div>
 {% endblock content %}
