@@ -195,6 +195,10 @@ class PaperSubmission(Submission):
         choices=CLASSIFICATION_TYPES,
         default="M")
 
+    # add a field for clustering with charfield
+    version = models.CharField(max_length=100, null=True, blank=True)
+    # finished changes here
+
     def __str__(self):
         return f"Paper "+ super().__str__()
 
@@ -454,10 +458,6 @@ class PaperSubmissionImage(models.Model):
         blank=True)
 
     
-    # add a field for clustering
-    cluster = models.IntegerField(null=True, blank=True)
-    # finished changes here
-
     def __str__(self):
         return f"Paper Submission Image {self.pk}"
 

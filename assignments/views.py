@@ -151,12 +151,12 @@ def cluster_view(request, course_pk, assignment_pk):
         # select submissions to cluster from model submissions.PaperSubmission
         # get the submissions from the database
         submissions = PaperSubmission.objects.filter(assignment=assignment)
-        submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
+        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
         # get the items in the field
-        col_names = [field.name for field in submissions_image.model._meta.get_fields()]
         images = []
-        for image in submissions_image:
-            images.append(image.image.url)
+        for submission in submissions:
+            submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=3)
+            images.append(submission_image[0].image.url)
 
         # use the crop_images_to_text function to get the text from the images
         texts = crop_images_to_text(images)
@@ -168,28 +168,31 @@ def cluster_view(request, course_pk, assignment_pk):
         print("clustering images")
         dbscan, cluster_labels = perform_dbscan_clustering(X)
         # add the cluster labels to the database
-        for i, image in enumerate(submissions_image):
-            image.cluster = cluster_labels[i]
-            image.save()
+        for i, submission in enumerate(submissions):
+            cluster_labels[i] += 1
+            submission.version = cluster_labels[i]
+            submission.save()
 
         # renew the submissions_image queryset after the above changes
-        submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
 
         # get the images for each cluster
         cluster_types = len(set(cluster_labels))
         # separate out the outliers
-        if -1 in cluster_labels:
+        if 0 in cluster_labels:
             cluster_types -= 1
         cluster_images = [0]*cluster_types
-        for image in submissions_image:
+        for submission in submissions:
             for i in range(cluster_types):
-                if image.cluster == i and cluster_images[i] == 0:
-                    # get the image url
-                    cluster_images[i] = image.image.url
+                if int(submission.version) == (i+1) and cluster_images[i] == 0:
+                    # get the image url from the submission's associated PaperSubmissionImage with page=3
+                    paperSubmission = PaperSubmissionImage.objects.filter(submission=submission, page=3)
+                    cluster_images[i] = paperSubmission[0].image.url
                     break
         # context
         context = {'assignment': assignment, 'submissions': submissions, 
-        'submissions_image': submissions_image, 'cluster_labels': cluster_labels, 
+        'cluster_labels': cluster_labels, 
         'cluster_images': cluster_images, 'course_pk': course_pk, 'assignment_pk': assignment_pk}
         
         return render(request, 'assignments/cluster.html', context)
@@ -209,23 +212,22 @@ def cluster_submission(request, course_pk, assignment_pk):
         data = request.POST
         # convert this queryDict data to a dictionary
         data = data.dict()
-        for i in range(len(data)-1):
+        for i in range(1, len(data)):
             print(data['clusterText1-'+str(i)])
         
         # get the submissions from the database
         submissions = PaperSubmission.objects.filter(assignment=assignment)
-        submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
+        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
         # get the each of the submissions
         for submission in submissions:
             # get the cluster label for this submission
-            cluster_label = submissions_image.filter(submission=submission)[0].cluster
-            if cluster_label != -1:
+            version = submission.version
+            if int(version) != 0:
                 # get the text for this cluster
-                text = data['clusterText1-'+str(cluster_label)]
+                text = data['clusterText1-'+str(version)]
                 # create a new submission comment
                 submission_comment = SubmissionComment(paper_submission=submission, text=text)
                 submission_comment.save()
         
     return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
-
 

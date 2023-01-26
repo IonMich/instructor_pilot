@@ -153,19 +153,19 @@
                             {% endif %}
 
 
-                            <!-- label showing the clustering status -->
+                             <!-- label showing the clustering status -->
 
-                            {% for item in submission.submissions_papersubmissionimage_related.all %}
-                            {% if item.page == 3 and item.cluster is not None %}
-                            {% if item.cluster == -1 %}
-                                <span class="badge rounded-pill bg-danger" title="Outlier">Outlier</span> 
-                            {% else %}
-                                <span class="badge rounded-pill bg-success" title="Version {{item.cluster}}">V{{item.cluster}}</span> 
-                            {% endif %}
-                            {% endif %}
-                            {% endfor %}
-
-                            <!-- End of changes made-->
+                            
+                             {% if submission.version is not None %}
+                             {% if item.cluster == 0 %}
+                                 <span class="badge rounded-pill bg-danger" title="Outlier">V{{submission.version}}</span> 
+                             {% else %}
+                                 <span class="badge rounded-pill bg-success" title="Version {{submission.version}}">V{{submission.version}}</span> 
+                             {% endif %}
+                             {% endif %}
+                             
+ 
+                             <!-- End of changes made-->
 
                         </div>
                         <div class="form-outline">

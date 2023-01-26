@@ -100,13 +100,10 @@
 
                   <p class="card-text">
                     <small class="text-muted">
-                      {% for img in obj.submissions_papersubmissionimage_related.all%}
-                      {% if forloop.counter == 3 %}
-                      {% if img.cluster != None %}
-                        Version: <i>{{img.cluster}}</i>
+                      
+                      {% if obj.version != None %}
+                        Version: <i>{{obj.version}}</i>
                       {% endif %}
-                        {% endif %}
-                      {% endfor %}
                       </small>
                     </p>
 
