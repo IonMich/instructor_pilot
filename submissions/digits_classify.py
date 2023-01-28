@@ -202,7 +202,7 @@ def extract_digit_boxes_from_img_new(
             img_no_v, (x_left, x_right) = remove_lines_img(
                 img_, 
                 mode="vertical", 
-                rect_kernel_size=37*dpi//150, 
+                rect_kernel_size=30*dpi//150, 
                 rect_kernel_width=1, 
                 do_reconstruct=False,
                 dpi=dpi

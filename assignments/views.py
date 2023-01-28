@@ -14,6 +14,9 @@ from .models import Assignment
 
 from submissions.cluster import (crop_and_ocr, crop_images_to_text, vectorize_texts, perform_dbscan_clustering, plot_clusters_dbscan)
 
+from django.core.files.storage import FileSystemStorage
+import os
+from django.conf import settings
 # Create your views here.
 
 @login_required
@@ -67,13 +70,6 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 if len(qs) > 0:
                     message = f"{len(qs)} files uploaded!"
                     message_type = 'success'
-                    # now use PRG pattern to avoid resubmission of form
-                    # this uses HTTP 302/303 redirect
-                    return redirect(
-                        'assignments:detail', 
-                        course_pk=course_pk, 
-                        assignment_pk=assignment_pk
-                        )
                 else:
                     message = "No files uploaded."
                     message_type = 'danger'
@@ -142,6 +138,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
         'course_pk': course_pk,
         'assignment_pk': assignment_pk,
         })
+
 
 @login_required
 def cluster_view(request, course_pk, assignment_pk):
@@ -212,8 +209,8 @@ def cluster_submission(request, course_pk, assignment_pk):
         data = request.POST
         # convert this queryDict data to a dictionary
         data = data.dict()
-        for i in range(1, len(data)):
-            print(data['clusterText1-'+str(i)])
+        # keep track of uploaded comment files
+        loaded_files = []
         
         # get the submissions from the database
         submissions = PaperSubmission.objects.filter(assignment=assignment)
@@ -224,10 +221,51 @@ def cluster_submission(request, course_pk, assignment_pk):
             version = submission.version
             if int(version) != 0:
                 # get the text for this cluster
-                text = data['clusterText1-'+str(version)]
-                # create a new submission comment
-                submission_comment = SubmissionComment(paper_submission=submission, text=text)
-                submission_comment.save()
+                text = data['clusterText1-'+str(version)].strip()
+                if text != "":
+                    # create a new submission comment
+                    submission_comment = SubmissionComment(paper_submission=submission, text=text, author=request.user)
+                    submission_comment.save()
+                
+                # get files for this version
+                if request.FILES.get('clusterFile-'+str(version)):
+                    # set up the file system storage
+                    new_comment_file_dir_in_media = os.path.join("submissions", 
+                    f"course_{submission.assignment.course.pk}", 
+                    f"assignment_{submission.assignment.pk}",
+                    "comment")
+                    new_comment_file_dir = os.path.join(
+                        settings.MEDIA_ROOT, 
+                        new_comment_file_dir_in_media)
+
+                    if not os.path.exists(new_comment_file_dir):
+                        os.makedirs(new_comment_file_dir)
+                    # add this as comment file for this submission
+                    files = request.FILES.getlist('clusterFile-'+str(version))
+                    for file in files:
+                        if file.name not in loaded_files:
+                            loaded_files.append(file.name)
+                            FileSystemStorage(location=new_comment_file_dir).save(file.name, file)
+                            # copy file to new location, while keeping the original name
+                        new_file_path_in_media = os.path.join(
+                            new_comment_file_dir_in_media,
+                            file.name,
+                        )
+                            
+                        # add this to the database
+                        new_comment_file = SubmissionComment.objects.create(
+                            paper_submission=submission,
+                            comment_file=new_file_path_in_media,
+                            author=request.user,
+                            )
+                        new_comment_file.save()
+                        
+                    # SubmissionComment.add_commentfiles_to_db(
+                    # submission_target=submission,
+                    # uploaded_files=files,
+                    # author=request.user)
+
         
     return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
+
 

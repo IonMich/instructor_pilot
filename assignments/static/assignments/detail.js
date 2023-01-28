@@ -424,8 +424,13 @@ if (chart) {
     var ctx = chart.getContext('2d');
 
     const all_grades = JSON.parse(document.getElementById('all_grades').textContent);
+    // find the min and max of the grades from all_grades
+    const values = Object.values(all_grades);
+    // get the min and max of the grades
+    const minm = Math.min(...values);
+    const maxm = Math.max(...values);
     var histGenerator = d3.bin()
-    .domain([0,4])    // TODO: get the min and max of the grades
+    .domain([minm,maxm])    // TODO: get the min and max of the grades
     .thresholds(39);  // number of thresholds; this will create 19+1 bins
 
     var bins = histGenerator(all_grades);

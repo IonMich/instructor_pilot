@@ -64,7 +64,7 @@
     <form action="">
         <button type="submit" class="btn btn-primary" id="cluster-skip">Skip</button>
     </form>
-    <form action="{% url 'assignments:cluster_submission' course_pk assignment_pk %}" method="POST" id="cluster-submission-from-form">
+    <form action="{% url 'assignments:cluster_submission' course_pk assignment_pk %}" method="POST" id="cluster-submission-from-form" enctype="multipart/form-data">
     {% csrf_token %}
     {% for item in cluster_images %}
     <h3 style="padding-top: 30px">Sample Submission for Version {{forloop.counter}}</h3>
@@ -72,6 +72,8 @@
     <div class="mb-3">
         <label for="clusterText1-{{forloop.counter}}" class="form-label">Solution for Version {{forloop.counter}}</label>
         <textarea class="form-control" id="clusterText1-{{forloop.counter}}" name="clusterText1-{{forloop.counter}}" rows="3"></textarea>
+        <label for="clusterFile-{{forloop.counter}}" class="form-label">Solution file for Version {{forloop.counter}}</label>
+        <input type="file" name="clusterFile-{{forloop.counter}}" class="form-control" id="clusterFile-{{forloop.counter}}" multiple>
     </div>
     {% endfor %}
 <!-- A submit button-->
