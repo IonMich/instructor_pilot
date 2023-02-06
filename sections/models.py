@@ -136,7 +136,7 @@ class Section(models.Model):
     @classmethod
     def update_from_canvas(cls, requester, course, canvas_sections, only_enrolled_sections=True):
         user = User.objects.get(username=requester)
-        Section.update_from_ufsoc(requester, course)
+        cls.update_from_ufsoc(requester, course)
         for canvas_section in canvas_sections:
             try:
                 canvas_section_id = canvas_section['id']
@@ -144,6 +144,11 @@ class Section(models.Model):
             except:
                 canvas_section_id = canvas_section.id
                 canvas_section_name = canvas_section.name
+                
+            if canvas_section_name == course.name:
+                # Skip the default course section
+                print(f"Skipping default course section {canvas_section_name}")
+                continue
             section = cls.objects.filter(
                 Q(canvas_id=canvas_section_id)
                 | Q(name=canvas_section_name)
@@ -151,7 +156,7 @@ class Section(models.Model):
                 ).first()
 
             if section:
-                print(f"Found section {canvas_section_name}. Updating ...")
+                print(f"Found db section {section.name} with canvas_id: {section.canvas_id} on Canvas. Updating from Canvas")
                 section.name = canvas_section_name
                 section.course = course
                 section.canvas_id = canvas_section_id
