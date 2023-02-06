@@ -9,3 +9,4 @@ media/*
 *.csv
 logs/*
 tmp/*
+**/.DS_Store
