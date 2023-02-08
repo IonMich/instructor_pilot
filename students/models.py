@@ -45,7 +45,7 @@ class Student(models.Model):
         cls, 
         course, 
         canvas_students,):
-
+        profiles = []
         for canvas_student in canvas_students:
             first_name = canvas_student.sortable_name.split(",")[1]
             last_name = canvas_student.sortable_name.split(",")[0]
@@ -89,6 +89,8 @@ class Student(models.Model):
                     university=course.university,
                     canvas_id=canvas_student.id)
 
+                student_sections_in_course = []
+
             course_sections_in_enrollments = []
             for canvas_enrollment in canvas_student.enrollments:
                 if not canvas_enrollment["type"]=='StudentEnrollment':
@@ -113,28 +115,81 @@ class Student(models.Model):
                 print(f"No changes in course sections for student {student} ...")
             
             student.save()
-            profile = student.profile
-            profile.bio = canvas_student.bio if canvas_student.bio else ""
+            profile_bio = canvas_student.bio if canvas_student.bio else ""
             avatar_url = canvas_student.avatar_url
-            import os
-            from urllib import request
 
-            from django.core.files import File
-            result = request.urlretrieve(avatar_url)
+            profiles.append({
+                "profile": student.profile,
+                "bio": profile_bio,
+                "new_avatar_url": avatar_url
+            })
+        print("Updating avatars from canvas ...")
+        cls.update_profiles_from_canvas(profiles)
+
+
+    @classmethod
+    def update_profiles_from_canvas(
+        cls,
+        profiles):
+
+        # retrieve asynchrounously the avatars from canvas
+        # and update the profile objects
+        # max 30 concurrent requests
+        import asyncio
+        import os
+        import aiohttp
+
+        MAX_WORKERS = 30
+
+        semaphore = asyncio.Semaphore(MAX_WORKERS)
+        async def download_avatar(session, profile):
+            url = profile["new_avatar_url"]
+            basename = os.path.basename(url)
+            async with semaphore, session.get(url) as response:
+                filecontent = await response.read()
+                return profile, basename, filecontent
+
+        async def main(profiles):
+            async with aiohttp.ClientSession() as session:
+                tasks = [ download_avatar(session, profile) for profile in profiles ]
+                finished = 0
+                print(f"Downloading avatars...")
+                results = []
+                for task in asyncio.as_completed(tasks):
+                    result = await task
+                    finished += 1
+                    print(f"Finished {finished} of {len(profiles)} ...", end="\r")
+                    results.append(result)
+                print("\n")
+                return results
+                    
+        results = asyncio.run(main(profiles))
+        
+        # update the profile objects
+        for result in results:
+            profile, basename, filecontent = result
+            if not result:
+                continue
+
+            from django.core.files.base import ContentFile
             # check if the new avatar is different from the old one
             # by comparing the md5 hashes of the two files
             from hashlib import md5
-            new_avatar_md5 = md5(open(result[0], 'rb').read()).hexdigest()
+            new_avatar_md5 = md5(filecontent).hexdigest()
+            student_profile = profile["profile"]
+            new_bio = profile["bio"]
             try:
-                old_avatar_md5 = md5(open(profile.avatar.path, 'rb').read()).hexdigest()
+                old_avatar_filecontent = student_profile.avatar.file.read()
+                old_avatar_md5 = md5(old_avatar_filecontent).hexdigest()
                 if new_avatar_md5 == old_avatar_md5:
                     print("Avatar is the same. Not updating.")
                     continue
             except Exception as e:
                 pass
-            print("Avatar is different. Updating ...")
-            profile.avatar.save(
-                os.path.basename(avatar_url),
-                File(open(result[0], 'rb'))
+            print("New avatar. Updating ...")
+            student_profile.avatar.save(
+                basename, 
+                ContentFile(filecontent)
                 )
-            profile.save()
+            student_profile.bio = new_bio
+            student_profile.save()
