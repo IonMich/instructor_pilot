@@ -232,7 +232,7 @@ def extract_digit_boxes_from_img_new(
         print("No contours found with the appropriate number of horizontal and vertical lines")
         return None
 
-    if x_right is not None and x_left is not None:
+    if all([x is not None for x in [x_left, x_right, y_top, y_bottom]]):
         image_boundary_pixels_x_left = x_left 
         len_x = x_right - x_left
         separation = len_x // UFID_LENGTH
