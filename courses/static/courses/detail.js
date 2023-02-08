@@ -10,34 +10,37 @@
         .forEach(function (form) {
             form.addEventListener('submit', function (event) {
                 if (!form.checkValidity()) {
+                    console.log("form is not valid");
                     event.preventDefault()
                     event.stopPropagation()
+                    event.stopImmediatePropagation()
                 }
                 form.classList.add('was-validated');
             }, false)
         })
 })()
 
-const syncCourseButton = document.querySelector("button[name='sync_from_canvas']");
+const syncCourseForm = document.getElementById('syncCourseForm');
 
-syncCourseButton.addEventListener("click", (event) => {
+syncCourseForm.addEventListener("submit", (event) => {
     console.log("prevent default");
     event.preventDefault();
+    event.stopPropagation();
 
+    const syncCourseButton = document.querySelector('button[name="sync_from_canvas"]');
     const buttonText = syncCourseButton.innerHTML;
-    const form = syncCourseButton.closest("form");
-    const courseId = form.querySelector('input[name="course_id"]').value;
-    const csrfToken = form.querySelector('input[name=csrfmiddlewaretoken]').value;
+    const courseId = syncCourseForm.querySelector('input[name="course_id"]').value;
+    const csrfToken = syncCourseForm.querySelector('input[name=csrfmiddlewaretoken]').value;
 
     // disable the add course button
     syncCourseButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Syncing...';
     syncCourseButton.disabled = true;
 
-    // if was-validated os in the class list of the form, it means that the form is valid
-    // and we can send the fetch request
-
-    console.log(syncCourseButton)
-    if (!syncCourseButton.checkValidity()) {
+    if (!syncCourseForm.checkValidity()) {
+        console.log("form is not valid");
+        // enable the add course button
+        syncCourseButton.innerHTML = buttonText;
+        syncCourseButton.disabled = false;
         return;
     }
     

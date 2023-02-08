@@ -195,7 +195,7 @@
         </div>
         
         <div class="modal-body">
-          <form action="" enctype="multipart/form-data" method="POST">
+          <form class="needs-validation" action="" enctype="multipart/form-data" method="POST" id="uploadMorePDFsForm" novalidate>
             {% csrf_token %}
             {{ upload_form|crispy }}
             <button type="submit" name="submit-upload" class="btn btn-primary mt-3">Upload</button>

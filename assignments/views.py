@@ -65,16 +65,13 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 if len(qs) > 0:
                     message = f"{len(qs)} files uploaded!"
                     message_type = 'success'
-                    # now use PRG pattern to avoid resubmission of form
-                    # this uses HTTP 302/303 redirect
-                    return redirect(
-                        'assignments:detail', 
-                        course_pk=course_pk, 
-                        assignment_pk=assignment_pk
-                        )
                 else:
                     message = "No files uploaded."
                     message_type = 'danger'
+                return JsonResponse({
+                    "message": message,
+                    "message_type": message_type,
+                })
         elif 'submit-classify' in request.POST:
             print("request was POST:classify")
             classify_form = StudentClassifyForm(no_assignment=False, data=request.POST)
@@ -125,6 +122,10 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 message_type = 'success'
             else:
                 print(sync_to_form.errors)
+        else:
+            print("request was POST but not any of the above")
+            print(request.POST)
+            return JsonResponse({'error': 'request was POST but not any recognized action'})
     return render(
         request,
         'assignments/detail.html',

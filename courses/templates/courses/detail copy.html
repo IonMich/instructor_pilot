@@ -30,7 +30,7 @@
 
 <p> {{course.description}} </p>
 
-<form method="post">
+<form method="post" id="syncCourseForm">
     <input type="hidden" name="course_id" value="{{course.pk}}">
     {% csrf_token %}
     <button class="btn btn-primary" name="sync_from_canvas" value="sync" type="submit">

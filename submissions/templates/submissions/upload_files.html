@@ -12,7 +12,7 @@
     <div class="upload-form" style= "justify-self: center;">
         <h3>Upload new submissions</h3>
         <hr>
-        <form action="" enctype="multipart/form-data" method="POST">
+        <form class="needs-validation" action="" enctype="multipart/form-data" method="POST" id="uploadPDFsForm" novalidate>
             {% csrf_token %}
             {{ form|crispy }}
             <button type="submit" name="submit-upload" class="btn btn-primary mt-3" style="display:block; margin:0 auto;">Upload</button>

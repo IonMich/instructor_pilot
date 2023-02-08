@@ -1,3 +1,98 @@
+(function () {
+    'use strict'
+  
+    // apply custom Bootstrap validation styles to forms with the .needs-validation class
+    // Fetch all the forms we want to apply custom Bootstrap validation styles to
+    var forms = document.querySelectorAll('.needs-validation')
+
+    // Loop over them and prevent submission
+    Array.prototype.slice.call(forms)
+        .forEach(function (form) {
+            console.log("form", form);
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+					console.log("form is not valid");
+					// prevent the default POST request that a submitted form sends to the server
+                    event.preventDefault()
+                    // prevent the event from triggering actions in parent elements
+                    event.stopPropagation()
+                    // do not trigger other event handlers that listen on this event
+                    event.stopImmediatePropagation()
+                } else {
+                    console.log("form is client-side valid");
+                }
+                // `was-validated` does not mean that the form is valid. 
+                // It just means that JS has checked whether it is valid or not.
+                // This allows Bootstrap green/red validity indicators to be displayed on inputs
+                form.classList.add('was-validated')
+            }, false)
+        })
+})();
+
+const uploadPDFsForm = document.getElementById('uploadPDFsForm');
+
+if (uploadPDFsForm) {
+    uploadPDFsForm.addEventListener("submit", (event) =>
+    uploadPDFs(event, uploadPDFsForm));
+};
+
+const uploadMorePDFsForm = document.getElementById('uploadMorePDFsForm');
+
+if (uploadMorePDFsForm) {
+    uploadMorePDFsForm.addEventListener("submit", (event) => 
+    uploadPDFs(event, uploadMorePDFsForm));
+};
+
+function uploadPDFs (event, form) {
+    console.log("prevent default");
+    event.preventDefault();
+    
+    const formData = new FormData(form);
+
+    const uploadPDFsButton = form.querySelector('button[name="submit-upload"]');
+    const buttonText = uploadPDFsButton.innerHTML;
+    // Disable the upload PDFs button
+    uploadPDFsButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
+    uploadPDFsButton.disabled = true;
+    
+    formData.forEach((value, key) => {
+        console.log(key, value);
+    });
+
+    // append the button name to the form data
+    formData.append('submit-upload', 'Upload');
+    // Fetch request to upload PDFs
+    fetch(window.location.href, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": formData.get('csrfmiddlewaretoken'),
+        },
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("data", data);
+        if (data.message_type === "success") {
+            if ( window.history.replaceState ) {
+                window.history.replaceState( null, null, window.location.href );
+            }
+            window.location = window.location.href;
+        } else {
+            // Enable the upload PDFs button
+            uploadPDFsButton.innerHTML = buttonText;
+            uploadPDFsButton.disabled = false;
+            // Display error message as an alert
+        }})
+    .catch(error => {
+        console.log("error", error);
+        // Enable the upload PDFs button
+        uploadPDFsButton.innerHTML = buttonText;
+        uploadPDFsButton.disabled = false;
+    });
+
+}
+
+
 function syncSubsFromCanvas(event) {
     event.preventDefault();
     // get parent form
