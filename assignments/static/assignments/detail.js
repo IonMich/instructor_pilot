@@ -92,6 +92,99 @@ function uploadPDFs (event, form) {
 
 }
 
+const identifyStudentsForm = document.getElementById('identifyStudentsForm');
+
+if (identifyStudentsForm) {
+    identifyStudentsForm.addEventListener("submit", (event) => 
+    identifyStudents(event, identifyStudentsForm));
+};
+
+function identifyStudents (event, form) {
+    console.log("prevent default");
+    event.preventDefault();
+    const buttonName = "submit-classify"
+	const buttonQuery = `button[name="${buttonName}"]`
+	const submitButton = form.querySelector(buttonQuery);
+    const buttonText = submitButton.innerHTML;
+    const spinnerSpan = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+    submitButton.innerHTML = `${spinnerSpan} Identifying...`;
+    submitButton.disabled = true;
+	
+	const formData = new FormData(form);
+	// append the button name to the form data
+    formData.append(buttonName, 'Classify');
+	// ADAPT url if the fetch request is submitted at a different url than the current page.
+	const url = window.location.href
+	fetch(url, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": formData.get('csrfmiddlewaretoken'),
+        },
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("data", data);
+                // ADAPT if the server JSON response does not contain a status key
+        if (data.message_type !== "danger") {
+            // design that makes sure that form will not be resubmitted
+            // even after page reload, or back button is pressed
+            if ( window.history.replaceState ) {
+                window.history.replaceState( null, null, window.location.href );
+            }
+            window.location = window.location.href;
+        } else {
+            // Enable the upload PDFs button
+            console.log("handled server error", data.message);
+            submitButton.innerHTML = buttonText;
+            submitButton.disabled = false;
+            // Display error message as a Toast
+            const toast = createToastElement(data.message, data.message_type);
+            // append the toast to the toast-container
+            const toastContainer = document.querySelector('#toast-container');
+            toastContainer.appendChild(toast);
+            console.log("toast", toast);
+            var toastElement = new bootstrap.Toast(toast,
+                {delay: 10000, autohide: false});
+            toastElement.show();
+        }})
+    .catch(error => {
+        console.log("caught JS error", error);
+        // Enable the upload PDFs button
+        submitButton.innerHTML = buttonText;
+        submitButton.disabled = false;
+        // Display error message as an alert
+                
+    });
+};
+
+function createToastElement (message, message_type) {
+    const toast = document.createElement('div');
+    toast.classList.add('toast', 'fade', 'border-0');
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('data-bs-autohide', 'false');
+    if (message_type === "success") {
+        toast.classList.add('bg-success', 'text-white');
+    } else if (message_type === "warning") {
+        toast.classList.add('bg-warning', 'text-dark');
+    } else if (message_type === "danger") {
+        toast.classList.add('bg-danger', 'text-white');
+    }
+    toast.innerHTML = `
+    <div class="d-flex">
+        <div class="toast-body">
+            ${message}
+        </div>
+        <button 
+            type="button" class="btn-close btn-close-white me-2 m-auto" 
+            data-bs-dismiss="toast" aria-label="Close">
+        </button>
+    </div>`;
+    return toast;
+}
+
+
 
 function syncSubsFromCanvas(event) {
     event.preventDefault();

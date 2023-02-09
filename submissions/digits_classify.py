@@ -127,6 +127,13 @@ def import_students_from_db(course):
             })
 
     df_ids = pd.DataFrame(student_info, columns=["Student", "SIS User ID"])
+    # skip rows where SIS User ID is not an integer of length UFID_LENGTH
+    # first keep the rows where SIS User ID is an integer
+    df_ids = df_ids[df_ids["SIS User ID"].apply(lambda x: str(x).isnumeric())]
+    
+    # then keep the rows where SIS User ID is of length UFID_LENGTH
+    df_ids = df_ids[df_ids["SIS User ID"].apply(lambda x: len(str(x)) == UFID_LENGTH)]
+    print(f"Found {len(df_ids)} students with valid University IDs.")
         
     return df_ids
 

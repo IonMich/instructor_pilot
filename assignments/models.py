@@ -81,6 +81,12 @@ class Assignment(models.Model):
     def get_all_submissions(self):
         return self.submissions_papersubmission_related.all()
 
+    def count_submissions_no_students(self):
+        return self.get_all_submissions().filter(student__isnull=True).count()
+
+    def count_submissions_no_sync(self):
+        return self.get_all_submissions().filter(canvas_id__isnull=True).count()
+
     def get_all_saved_comments(self, requester):
         from submissions.models import SubmissionComment
         return SubmissionComment.objects.filter(

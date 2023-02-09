@@ -354,6 +354,8 @@ class PaperSubmission(Submission):
             crop_box=crop_box,
             skip_pages=skip_pages)
         df_ids = import_students_from_db(assignment.course)
+        if len(df_ids) == 0:
+            raise ValueError("No students found in the database.")
         # get the model
         model =  import_tf_model(model_path_h5)
 
