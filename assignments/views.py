@@ -133,11 +133,26 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 data=request.POST)
             if sync_to_form.is_valid():
                 print("form is valid")
-                sync_to_form.save()
-                message = 'Sync to canvas successful'
-                message_type = 'success'
+                try:
+                    sync_to_form.save()
+                    message = 'Upload to canvas completed gracefully. Details in the terminal.'
+                    message_type = 'info'
+                except Exception as e:
+                    print("An error occured while syncing submissions to canvas")
+                    import traceback
+                    print(traceback.format_exc())
+                    message = "An error occured while syncing submissions to canvas"
+                    message_type = 'danger'
+
+                
             else:
                 print(sync_to_form.errors)
+                message = 'Sync to canvas failed'
+                message_type = 'danger'
+            return JsonResponse({
+                "message": message,
+                "message_type": message_type,
+            })
         else:
             print("request was POST but not any of the above")
             print(request.POST)

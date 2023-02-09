@@ -159,6 +159,77 @@ function identifyStudents (event, form) {
     });
 };
 
+const uploadToCanvasModalForm = document.getElementById('syncToCanvasForm');
+
+if (uploadToCanvasModalForm) {
+    uploadToCanvasModalForm.addEventListener("submit", (event) => 
+    uploadToCanvas(event, uploadToCanvasModalForm));
+};
+
+function uploadToCanvas (event, form) {
+    console.log("prevent default");
+    console.log("form", form);
+    event.preventDefault();
+    const buttonName = "submit-sync-to";
+    const buttonQuery = `button[name="${buttonName}"]`;
+    console.log("buttonQuery", buttonQuery);
+    const submitButton = form.querySelector(buttonQuery);
+    console.log("submitButton", submitButton);
+    const buttonText = submitButton.innerHTML;
+    const spinnerSpan = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+    submitButton.innerHTML = `${spinnerSpan} Posting...`;
+    submitButton.disabled = true;
+
+    const formData = new FormData(form);
+    // append the button name to the form data
+    formData.append(buttonName, 'Upload to Canvas');
+    
+    const url = window.location.href
+    fetch(url, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": formData.get('csrfmiddlewaretoken'),
+        },
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("data", data);
+        if (data.message_type !== "danger") {
+            if ( window.history.replaceState ) {
+                window.history.replaceState( null, null, window.location.href );
+            }
+        } else {
+            console.log("handled server error", data.message);   
+        }
+        // close the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('syncToModal'));
+        modal.hide();
+        submitButton.innerHTML = buttonText;
+        submitButton.disabled = false;
+        // Display error message as a Toast
+        const toast = createToastElement(data.message, data.message_type);
+        // append the toast to the toast-container
+        const toastContainer = document.querySelector('#toast-container');
+        toastContainer.appendChild(toast);
+        console.log("toast", toast);
+        var toastElement = new bootstrap.Toast(toast,
+            {delay: 10000, autohide: false});
+        toastElement.show();
+        
+    })
+    .catch(error => {
+        console.log("caught JS error", error);
+        // Enable the upload PDFs button
+        submitButton.innerHTML = buttonText;
+        submitButton.disabled = false;
+    });
+};
+            
+            
+
+
 function createToastElement (message, message_type) {
     const toast = document.createElement('div');
     toast.classList.add('toast', 'fade', 'border-0');
@@ -170,6 +241,8 @@ function createToastElement (message, message_type) {
         toast.classList.add('bg-warning', 'text-dark');
     } else if (message_type === "danger") {
         toast.classList.add('bg-danger', 'text-white');
+    } else if (message_type === "info") {
+        toast.classList.add('bg-primary', 'text-white');
     }
     toast.innerHTML = `
     <div class="d-flex">
@@ -248,7 +321,14 @@ function syncSubsFromCanvas(event) {
         btnFetch.disabled = false;
         // append success message in form
         appendSuccessMsg(form, syncedCount, notSyncedCount);
-    });
+    })
+    .catch(error => {
+        console.log("caught JS error", error);
+        // remove spinner and enable button
+        btnFetch.textContent = `Sync`;
+        btnFetch.disabled = false;
+    }
+    );
 };
 
 function appendSuccessMsg(form, syncedCount, notSyncedCount) {

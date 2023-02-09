@@ -252,7 +252,7 @@ class Assignment(models.Model):
                 ),
             )
         """
-        raise ValueError("This error is raised as a final safety measure to prevent accidental uploads of grades to canvas. Comment out this line from assignments.models.upload_graded_submissions_to_canvas to enable the upload.")
+        # raise ValueError("This error is raised as a final safety measure to prevent accidental uploads of grades to canvas. Comment out this line from assignments.models.upload_graded_submissions_to_canvas to enable the upload.")
         canvas_course = get_canvas_course(canvas_id=self.course.canvas_id)
         canvas_assignment = canvas_course.get_assignment(
             self.canvas_id)
