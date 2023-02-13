@@ -132,6 +132,12 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
     if request.method == 'POST':
         submission.graded_at = timezone.now()
         submission.graded_by = request.user
+        # if the submission student is not the same as the request.POST['student'],
+        # then the student was changed manually at this stage,
+        # so we need to update the classification type to 'M' for manual
+        if submission.student != request.POST['student']:
+            submission.classification_type = 'M'
+            
         q_grades = [ str(request.POST.get(f"grade_{i+1}")) 
             for i in range(n_q)]
         print(q_grades)
