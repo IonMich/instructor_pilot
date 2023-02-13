@@ -1,11 +1,14 @@
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseNotFound, JsonResponse
 from django.shortcuts import render
 
 # Create your views here.
 
+@login_required
 def profiles_list_view(request):
     return render(request, "profiles/list.html", {})
 
+@login_required
 def profiles_detail_view(request, pk=None):
     return render(
         request, 
@@ -60,4 +63,52 @@ def profile_preferences_edit_view(request):
         profile.save()
     return JsonResponse({"success": True})
 
+@login_required
+def profile_avatar_upload_view(request):
+    # just change the avatar of the user
+    if not request.method == "POST":
+        return HttpResponseNotFound()
+    # get the user
+    user = request.user
+    # get the user profile
+    profile = user.profile
+    # get the avatar
+    avatar = request.FILES.get("avatar-upload", None)
+    if not avatar:
+        return JsonResponse({"error": "No avatar submitted"}, status=400)
+    # set the avatar
+    profile.avatar = avatar
+    profile.save()
+    return JsonResponse(
+        {
+            "success": True,
+            "avatar_url": profile.avatar.url
+        })
 
+@login_required
+def profile_update_view(request):
+    # update the user profile
+    if not request.method == "POST":
+        return HttpResponseNotFound()
+    # get the user
+    user = request.user
+    # get the user profile
+    profile = user.profile
+    # the data we get from the form contains the following fields:
+    # first_name, last_name, email
+    # we get the data from the request
+    data = request.POST
+    first_name = data.get("firstName", None)
+    last_name = data.get("lastName", None)
+    email = data.get("email", None)
+
+    # we update the user
+    user.first_name = first_name
+    user.last_name = last_name
+    user.email = email
+    user.save()
+
+    return JsonResponse({
+        "message": "Profile updated successfully",
+        "message_type": "success"
+        })

@@ -1,9 +1,113 @@
 {% extends "base.html" %} 
+{% comment %} styles {% endcomment %}
+{% load static %} 
+{% block styles %} 
+    <link rel="stylesheet" href="{% static 'profiles/detail.css' %}">
+{% endblock %} 
+{% comment %} scripts {% endcomment %}
+{% block scripts %} 
+    <script src="{% static 'profiles/detail.js' %}" defer></script>
+{% endblock %}
+{% comment %} title {% endcomment %}
 {% block title %}{{ title }}{% endblock %} 
 {% block content %} 
-    <h1>Profile - {{request.user.username}}</h1> 
-    <div class="d-flex align-items-center">
-        <img src="{{request.user.profile.avatar.url}}" class="rounded-circle">
-        <span></span>
+
+<nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Profile</li>
+    </ol>
+</nav>
+
+<h1 class="mb-4">My Profile</h1> 
+{% comment %} Editable list of user's information {% endcomment %}
+<div class="information-grid">
+    <div class="avatar">
+        <img src="{{request.user.profile.avatar.url}}" class="rounded-circle" alt="Profile Picture" width="200" height="200">
     </div>
+    <div class="current-info">
+        <ul class="list-group">
+            <li draggable="true" class="list-group-item">
+                <span style="font-size: 1.5em;">
+                    {{request.user.username}}</span>
+                {% if request.user.email %}
+                    <span> ({{request.user.email}})</span>
+                {% endif %}
+            </li>
+            {% if request.user.last_name %}
+                <li draggable="true" class="list-group-item">{{request.user.first_name}} {{request.user.last_name}}</li>
+            {% endif %}
+    </div>
+    <form action="" method="POST" enctype="multipart/form-data" id="avatarUploadForm">
+        {% csrf_token %}
+        <div id='image-drop' class="image-drop d-flex justify-content-center align-items-center">
+            <div class="icon">
+                <i class="bi bi-cloud-arrow-up"></i>
+            </div>
+            <header>Drag & Drop to Upload New Avatar</header>
+            <span>OR</span>
+            <button id="avatarUploadBtn" class="btn mb-2" type="button">Browse File</button>
+            {% comment %} <img id="avatarPreview" src="#" alt="Preview" hidden> {% endcomment %}
+            
+            <input type="file" id="image-drop-input" name="avatar-upload" accept="image/*" hidden>
+        </div>
+    </form>
+    <form action="" method="POST" id="profileFieldsForm" enctype="multipart/form-data" style="display: contents;">
+        {% csrf_token %}
+        <div class="item-label mt-5" id="firstNameLabel">
+            <label for="firstName">First Name</label>
+        </div>
+        <div class="item-inpu mt-5" id="firstNameInput">
+            <input type="text" name="firstName" id="firstName" value="{{request.user.first_name}}" class="form-control">
+        </div>
+        <div class="item-label" id="lastNameLabel">
+            <label for="lastName">Last Name</label>
+        </div>
+        <div class="item-input" id="lastNameInput">
+            <input type="text" name="lastName" id="lastName" value="{{request.user.last_name}}" class="form-control" required>
+        </div>
+        <div class="item-label" id="emailLabel">
+            <label for="email">Email</label>
+        </div>
+        <div class="item-input" id="emailInput">
+            <input type="text" name="email" id="email" value="{{request.user.email}}" class="form-control" required>
+            <div class="invalid-feedback">
+                Please enter a valid email address.
+            </div>
+        </div>
+        {% comment %} <div class="item-label" id="universityLabel">
+            <label for="university">University</label>
+        </div>
+        <div class="item-input input-group" id="universityInput">
+            <select name="university" id="university" class="form-select input-group-text">
+                {% for university in request.user.profile.get_universities %}
+                    <option value="{{university.id}}">{{university.name}}</option>
+                {% endfor %}
+            </select>
+            <div class="input-group-text">
+                or
+            </div>
+            <div class="input-group-append">
+                <button type="button" class="btn btn-primary" id="addUniversityBtn">Add New University</button>
+            </div>
+            <div class="invalid-feedback">
+                Please select a university.
+            </div> 
+        </div> {% endcomment %}
+
+        <button 
+        type="submit" 
+        class="btn btn-primary"
+        id="saveBtn">
+            Save
+        </button>
+    </form>
+
+    
+</div>
+
+{% comment %} add a Bootstrap toast container {% endcomment %}
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container" style="z-index: 11">
+
+</div>
 {% endblock %}
