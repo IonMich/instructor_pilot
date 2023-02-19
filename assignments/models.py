@@ -138,14 +138,7 @@ class Assignment(models.Model):
                 print(canvas_assignment["name"])
                 print(canvas_assignment["points_possible"], type(canvas_assignment["points_possible"]))
                 if canvas_assignment["points_possible"] in [None, "", 0]:
-                    max_question_scores = "0"                    
-                elif isinstance(canvas_assignment["points_possible"], float):
-                    # if it is close to a positive integer, then break it into N questions with scores of 1
-                    if abs(canvas_assignment["points_possible"] - round(canvas_assignment["points_possible"])) < 0.001:
-                        max_question_scores = ["1" for i in range(int(canvas_assignment["points_possible"]))]
-                        max_question_scores = ",".join(max_question_scores)
-                    else:
-                        max_question_scores = str(canvas_assignment["points_possible"])
+                    max_question_scores = "0"
                 else:
                     max_question_scores = str(canvas_assignment["points_possible"])
                     
