@@ -117,6 +117,12 @@ function handleScroll () {
             input.addEventListener("focus", () => {
                 console.log("focus");
                 input.select();
+                console.log(scrollFactors);
+                // if the scroll height factor is not empty, scroll to the corresponding scroll height factor
+                if (scrollFactors[i] === "") {
+                    console.log("empty");
+                    return;
+                }
                 imgdiv.scrollTo({
                     top:(page_height+margin)*scrollFactors[i], 
                     left:0, 
