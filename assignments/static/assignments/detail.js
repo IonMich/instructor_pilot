@@ -641,3 +641,50 @@ if (updateGradingSchemeButton) {
         );
     });
 }
+
+// Clustering/versioning changes made here
+const versionButton = document.getElementById('btnCluster');
+if(versionButton) {
+    versionButton.addEventListener('click', function(event) {
+        // change the button text to a spinner
+        versionButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Versioning...';
+        // disable the button
+        versionButton.disabled = true;
+        
+        // get the assignment id
+        const assignmentId = document.getElementById('id_assignment').value;
+        // courseId = JSON.parse(document.getElementById('course_id').textContent);
+        courseId = 1;
+
+        const url = '/courses/' + courseId + '/assignments/' + assignmentId + '/version/';
+        const data = {
+            assignment_id: assignmentId
+        };
+
+        const versionForm = document.getElementById('versionForm');
+        const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
+
+        options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                
+            },
+            body: JSON.stringify(data)
+        };
+
+        fetch(url, options)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            // change the button text back to "Cluster"
+            versionButton.innerHTML = 'Update Versions';
+            // enable the button
+            versionButton.disabled = false;
+            // open the modal
+            $('#clusterModal').modal('show');
+        }
+        );
+    });
+}

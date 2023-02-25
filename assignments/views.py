@@ -268,4 +268,59 @@ def cluster_submission(request, course_pk, assignment_pk):
         
     return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
 
+@login_required
+def version_view(request, course_pk, assignment_pk):
+    # if the request is POST, then cluster the submissions
+    if request.method == 'POST':
+        assignment = get_object_or_404(Assignment, pk=assignment_pk)
+        # select submissions to cluster from model submissions.PaperSubmission
+        # get the submissions from the database
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
+        # get the items in the field
+        images = []
+        for submission in submissions:
+            submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=3)
+            images.append(submission_image[0].image.url)
 
+        # use the crop_images_to_text function to get the text from the images
+        texts = crop_images_to_text(images)
+
+        # vectorize the text
+        print("vectorizing texts")
+        X = vectorize_texts(texts)
+        # cluster the text
+        print("clustering images")
+        dbscan, cluster_labels = perform_dbscan_clustering(X)
+        # add the cluster labels to the database
+        for i, submission in enumerate(submissions):
+            cluster_labels[i] += 1
+            submission.version = cluster_labels[i]
+            submission.save()
+
+        # renew the submissions_image queryset after the above changes
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
+
+        # get the images for each cluster
+        cluster_types = len(set(cluster_labels))
+        # separate out the outliers
+        if 0 in cluster_labels:
+            cluster_types -= 1
+        cluster_images = [0]*cluster_types
+        for submission in submissions:
+            for i in range(cluster_types):
+                if int(submission.version) == (i+1) and cluster_images[i] == 0:
+                    # get the image url from the submission's associated PaperSubmissionImage with page=3
+                    paperSubmission = PaperSubmissionImage.objects.filter(submission=submission, page=3)
+                    cluster_images[i] = paperSubmission[0].image.url
+                    break
+        # context
+        context = {'assignment': assignment, 'submissions': submissions, 
+        'cluster_labels': cluster_labels, 
+        'cluster_images': cluster_images, 'course_pk': course_pk, 'assignment_pk': assignment_pk}
+        
+        return JsonResponse({'message': 'success'})
+    
+    # send the user to the assignment detail page
+    return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
