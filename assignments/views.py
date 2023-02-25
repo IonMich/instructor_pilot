@@ -17,6 +17,9 @@ from submissions.cluster import (crop_and_ocr, crop_images_to_text, vectorize_te
 from django.core.files.storage import FileSystemStorage
 import os
 from django.conf import settings
+from django.forms.models import model_to_dict
+from django.core import serializers
+import numpy as np
 # Create your views here.
 
 @login_required
@@ -315,12 +318,24 @@ def version_view(request, course_pk, assignment_pk):
                     paperSubmission = PaperSubmissionImage.objects.filter(submission=submission, page=3)
                     cluster_images[i] = paperSubmission[0].image.url
                     break
+        # count number of 0 in cluster_labels
+        outliers = np.count_nonzero(cluster_labels == 0)
+        assignment = model_to_dict(assignment)
+
+        submissions = serializers.serialize('json', submissions)
         # context
-        context = {'assignment': assignment, 'submissions': submissions, 
-        'cluster_labels': cluster_labels, 
-        'cluster_images': cluster_images, 'course_pk': course_pk, 'assignment_pk': assignment_pk}
-        
-        return JsonResponse({'message': 'success'})
+        context = {'assignment': assignment,
+        'cluster_types' : cluster_types,
+        'outliers': outliers,
+        'submissions': submissions, 
+        # 'cluster_labels': cluster_labels, 
+        'cluster_images': list(cluster_images), 
+        # 'course_pk': course_pk, 'assignment_pk': assignment_pk
+        'message': 'success'
+        }
+
+        # send a JsonResponse to the frontend with the context
+        return JsonResponse(context, safe=False)
     
     # send the user to the assignment detail page
     return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)

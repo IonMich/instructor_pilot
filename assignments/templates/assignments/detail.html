@@ -104,8 +104,33 @@
                                 <h1 class="modal-title fs-5" id="clusterModalLabel">Versioning Settings</h1>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
-                            <div class="modal-body">
-                                Put your modal content here.
+                            <div class="clusterModalBody">
+                                <div id="clusterInfo">
+                                </div>
+                                <div id="versionDetails">
+                                </div>
+
+                                {% comment %} <div style="padding-top: 50px" id="cluster">
+                                    <form action="">
+                                        <button type="submit" class="btn btn-primary" id="cluster-skip">Skip</button>
+                                    </form>
+                                    <form action="{% url 'assignments:cluster_submission' course_pk assignment_pk %}" method="POST" id="cluster-submission-from-form" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    {% for item in cluster_images %}
+                                    <h3 style="padding-top: 30px">Sample Submission for Version {{forloop.counter}}</h3>
+                                    <img style="border: 1px solid blue;" src="{{item}}" alt="cluster-{{forloop.counter}}" width="600" height="500">
+                                    <div class="mb-3">
+                                        <label for="clusterText1-{{forloop.counter}}" class="form-label">Solution for Version {{forloop.counter}}</label>
+                                        <textarea class="form-control" id="clusterText1-{{forloop.counter}}" name="clusterText1-{{forloop.counter}}" rows="3"></textarea>
+                                        <label for="clusterFile-{{forloop.counter}}" class="form-label">Solution file for Version {{forloop.counter}}</label>
+                                        <input type="file" name="clusterFile-{{forloop.counter}}" class="form-control" id="clusterFile-{{forloop.counter}}" multiple>
+                                    </div>
+                                    {% endfor %}
+                                <!-- A submit button-->
+                                    <button type="submit" class="btn btn-primary" id="cluster-submit">Submit Solutions</button>
+                                    </form>
+                                </div> {% endcomment %}
+
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
