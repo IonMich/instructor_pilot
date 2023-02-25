@@ -3,6 +3,7 @@ db.sqlite3
 .env
 media/*
 !media/classify/
+!media/no_avatar.png
 **/migrations
 .vscode/
 *.pdf
