@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import assignment_detail_view, cluster_view, cluster_submission, version_view
+from .views import assignment_detail_view, cluster_view, cluster_submission, version_view, version_submission
 
 app_name = 'assignments'
 
@@ -9,4 +9,6 @@ urlpatterns = [
     path('courses/<course_pk>/assignments/<assignment_pk>/cluster/', cluster_view, name='cluster'),
     path('courses/<course_pk>/assignments/<assignment_pk>/clustersubmission/', cluster_submission, name='cluster_submission'),
     path('courses/<course_pk>/assignments/<assignment_pk>/version/', version_view, name='version'),
+    path('courses/<course_pk>/assignments/<assignment_pk>/versionsubmission/', version_submission, name='version_submision'),
+
 ]

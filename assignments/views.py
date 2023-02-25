@@ -20,6 +20,8 @@ from django.conf import settings
 from django.forms.models import model_to_dict
 from django.core import serializers
 import numpy as np
+import json
+from django.core.files.uploadedfile import InMemoryUploadedFile
 # Create your views here.
 
 @login_required
@@ -339,3 +341,72 @@ def version_view(request, course_pk, assignment_pk):
     
     # send the user to the assignment detail page
     return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
+
+@login_required
+def version_submission(request, course_pk, assignment_pk):
+    print("version_submission called")
+    # if the request is POST
+    if request.method == 'POST':
+        print("request was POST")
+        # get the assignment
+        assignment = get_object_or_404(Assignment, pk=assignment_pk)
+        # get all the data from the POST request
+        # Get the data from the form
+        version_texts = request.POST.getlist('versionTexts')
+        
+        # keep track of uploaded comment files
+        loaded_files = []
+        
+        # get the submissions from the database
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
+        # get the each of the submissions
+        for submission in submissions:
+            # get the cluster label for this submission
+            version = submission.version
+            if int(version) != 0:
+                # get the text for this cluster
+                # text = data['versionText'+str(version)].strip()
+                text = version_texts[int(version) - 1].strip()
+                if text != "":
+                    # create a new submission comment
+                    submission_comment = SubmissionComment(paper_submission=submission, text=text, author=request.user)
+                    submission_comment.save()
+                
+                if request.FILES.get('versionFiles' + str(version)):
+                    # set up the file system storage
+                    new_comment_file_dir_in_media = os.path.join("submissions", 
+                    f"course_{submission.assignment.course.pk}", 
+                    f"assignment_{submission.assignment.pk}",
+                    "comment")
+                    new_comment_file_dir = os.path.join(
+                        settings.MEDIA_ROOT, 
+                        new_comment_file_dir_in_media)
+
+                    if not os.path.exists(new_comment_file_dir):
+                        os.makedirs(new_comment_file_dir)
+                    # add this as comment file for this submission
+                    files = request.FILES.getlist('versionFiles' + str(version))
+                    for file in files:
+                        if isinstance(file, InMemoryUploadedFile):
+                            if file.name not in loaded_files: 
+                                loaded_files.append(file.name)
+                                FileSystemStorage(location=new_comment_file_dir).save(file.name, file)
+                                # copy file to new location, while keeping the original name
+                            new_file_path_in_media = os.path.join(
+                                new_comment_file_dir_in_media,
+                                file.name,
+                            )
+                                
+                            # add this to the database
+                            new_comment_file = SubmissionComment.objects.create(
+                                paper_submission=submission,
+                                comment_file=new_file_path_in_media,
+                                author=request.user,
+                                )
+                            new_comment_file.save()
+                        else:
+                            return JsonResponse({'message': 'error'})
+                        
+        
+    return JsonResponse({'message': 'success'})

@@ -642,8 +642,10 @@ if (updateGradingSchemeButton) {
     });
 }
 
+
 // Clustering/versioning changes made here
 const versionButton = document.getElementById('btnCluster');
+let numVersions;
 if(versionButton) {
     versionButton.addEventListener('click', function(event) {
         // change the button text to a spinner
@@ -652,9 +654,11 @@ if(versionButton) {
         versionButton.disabled = true;
         
         // get the assignment id
-        const assignmentId = document.getElementById('id_assignment').value;
+        const assignmentId = document.getElementById('assignment_num').value;
         // courseId = JSON.parse(document.getElementById('course_id').textContent);
-        courseId = 1;
+        // get the course id
+        const courseId = document.getElementById('course_num').value;
+        
 
         const url = '/courses/' + courseId + '/assignments/' + assignmentId + '/version/';
         const data = {
@@ -688,8 +692,9 @@ if(versionButton) {
             let clusterInfo = document.getElementById('clusterInfo');
             // change the modal body to display the data from response
             if (data['message'] == 'success') {
-                // get the number of versions
-                const numVersions = data['cluster_types'];
+                // get the number of versions and make it global
+                numVersions = data['cluster_types'];
+
                 const outliers = data['outliers'];
                 if (outliers == 0) {
                     clusterInfo.className = 'alert alert-success';
@@ -767,12 +772,16 @@ if(versionButton) {
                     newTextInput.className = 'form-control mb-2 mr-sm-2';
                     newTextInput.id = 'versionName' + i;
                     newTextInput.placeholder = 'Version Solution';
+                    newTextInput.name = 'versionText' + i;
                     // add a file input to the form
                     let newFileInput = document.createElement('input');
                     newFileInput.type = 'file';
                     newFileInput.className = 'form-control mb-2 mr-sm-2';
                     newFileInput.id = 'versionFile' + i;
                     newFileInput.placeholder = 'Version File';
+                    newFileInput.name = 'versionFile' + i;
+                    // set multiple attribute to true
+                    newFileInput.multiple = true;
                     // append the text and file inputs to the form
                     newForm.appendChild(newTextInput);
                     newForm.appendChild(newFileInput);
@@ -791,5 +800,70 @@ if(versionButton) {
             }        
         }
         );
+    });
+}
+
+const updateVersion = document.getElementById('updateClusterBtn');
+if(updateVersion) {
+    updateVersion.addEventListener('click', function(event) {
+        // close the modal
+        let modal = document.getElementById('clusterModal');
+        $(modal).modal('hide');
+        console.log('update version button clicked')
+        // get the number of versions
+
+
+        // get the assignment id
+        const assignmentId = document.getElementById('assignment_num').value;
+        // courseId = JSON.parse(document.getElementById('course_id').textContent);
+        // get the course id
+        const courseId = document.getElementById('course_num').value;     
+
+        const url = '/courses/' + courseId + '/assignments/' + assignmentId + '/versionsubmission/';
+
+        const formData = new FormData();
+        formData.append('assignment_id', assignmentId);
+        formData.append('course_id', courseId);
+        for (let i = 0; i < numVersions; i++) {
+            formData.append('versionTexts', document.getElementById('versionName' + (i+1)).value);
+            // add a formdata object to the formdata object with name versionFiles1, versionFiles2, etc.
+            formData.append('versionFiles' + (i+1), document.getElementById('versionFile' + (i+1)).files[0]);
+        }
+
+        const versionForm = document.getElementById('versionForm');
+        const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
+
+        options = {
+            method: 'POST',
+            headers: {
+                // 'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                
+            },
+            // body: JSON.stringify(data)
+            body: formData
+        };
+
+        fetch(url, options)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            // if the message is success
+            if (data['message'] == 'success') {
+                // display the success message in the div with id clusterMessage
+                let clusterMessage = document.getElementById('clusterMessage');
+                clusterMessage.className = 'alert alert-success';
+                clusterMessage.innerHTML = 'Solutions for versions uploaded successfully.';
+
+            }
+            // if the message is failure
+            else {
+                // display the failure message in the div with id clusterMessage
+                let clusterMessage = document.getElementById('clusterMessage');
+                clusterMessage.className = 'alert alert-danger';
+                clusterMessage.innerHTML = 'Solutions for versions uploaded unsuccessfully.';
+            }
+        });
+
     });
 }

@@ -83,10 +83,18 @@
                 <!-- This is where I'm putting the new button.-->
                 <div class="col-md-6">
                     <p class="mt-3"> Cluster Submissions based on what quiz version they belong to. </p>
+                    <div class="form-group d-none">
+                        <input type="hidden" name="assignment" value="{{ assignment.pk }}" id="assignment_num">
+                    </div>
+                    <div class="form-group d-none">
+                        <input type="hidden" name="course" value="{{ course_pk }}" id="course_num">
+                    </div>
                     <form action="" method="POST" id="versionForm">
                         {% csrf_token %}
                         <button type="submit" name="submit-cluster" id="btnCluster" class="btn btn-primary">Version <i class="bi bi-box-arrow-up-right"></i></button>
                     </form>
+                    <div id="clusterMessage">
+                    </div>
                             
                     </div>
     
@@ -110,33 +118,12 @@
                                 <div id="versionDetails">
                                 </div>
 
-                                {% comment %} <div style="padding-top: 50px" id="cluster">
-                                    <form action="">
-                                        <button type="submit" class="btn btn-primary" id="cluster-skip">Skip</button>
-                                    </form>
-                                    <form action="{% url 'assignments:cluster_submission' course_pk assignment_pk %}" method="POST" id="cluster-submission-from-form" enctype="multipart/form-data">
-                                    {% csrf_token %}
-                                    {% for item in cluster_images %}
-                                    <h3 style="padding-top: 30px">Sample Submission for Version {{forloop.counter}}</h3>
-                                    <img style="border: 1px solid blue;" src="{{item}}" alt="cluster-{{forloop.counter}}" width="600" height="500">
-                                    <div class="mb-3">
-                                        <label for="clusterText1-{{forloop.counter}}" class="form-label">Solution for Version {{forloop.counter}}</label>
-                                        <textarea class="form-control" id="clusterText1-{{forloop.counter}}" name="clusterText1-{{forloop.counter}}" rows="3"></textarea>
-                                        <label for="clusterFile-{{forloop.counter}}" class="form-label">Solution file for Version {{forloop.counter}}</label>
-                                        <input type="file" name="clusterFile-{{forloop.counter}}" class="form-control" id="clusterFile-{{forloop.counter}}" multiple>
-                                    </div>
-                                    {% endfor %}
-                                <!-- A submit button-->
-                                    <button type="submit" class="btn btn-primary" id="cluster-submit">Submit Solutions</button>
-                                    </form>
-                                </div> {% endcomment %}
-
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <form action="{% url 'assignments:cluster' course_pk assignment_pk %}" method="POST" id="cluster-from-form">
+                                <form action="" method="POST" id="cluster-from-form">
                                     {% csrf_token %}
-                                    <button type="submit" id="clusterBtn" class="btn btn-primary">Update</button>
+                                    <button type="button" id="updateClusterBtn" class="btn btn-primary">Submit</button>
                                 </form>
                                 
                             </div>
