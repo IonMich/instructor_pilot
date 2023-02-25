@@ -157,7 +157,7 @@
 
                             
                              {% if submission.version is not None %}
-                             {% if item.cluster == 0 %}
+                             {% if submission.version == '0' %}
                                  <span class="badge rounded-pill bg-danger" title="Outlier">V{{submission.version}}</span> 
                              {% else %}
                                  <span class="badge rounded-pill bg-success" title="Version {{submission.version}}">V{{submission.version}}</span> 
