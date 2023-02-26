@@ -431,7 +431,7 @@ def version_submission(request, course_pk, assignment_pk):
             text = version_texts[int(version.name) - 1].strip()
             if text != "":
                 # create a new version comment
-                new_version_text = VersionText(version=version, text=text)
+                new_version_text = VersionText(version=version, text=text, author=request.user)
                 new_version_text.save()
             # get the files for this version
             if request.FILES.get('versionFiles' + str(version.name)):
@@ -464,6 +464,7 @@ def version_submission(request, course_pk, assignment_pk):
                         new_version_file = VersionPdf.objects.create(
                             version=version,
                             pdf=new_file_path_in_media,
+                            author=request.user,
                             )
                         new_version_file.save()
                     else:

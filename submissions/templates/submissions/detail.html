@@ -210,13 +210,35 @@
                                     {% for text in version.versiontext_set.all %}
                                     <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
                                         {{text.text}}
+                                        <div class="d-flex">
+                                            <small class="ms-auto comment-info text-muted">
+                                                {% comment %} add author {% endcomment %}
+                                                <span class="comment-author">{{text.author.first_name}} - </span>
+                                                {% comment %} add date {% endcomment %}
+                                                <span class="comment-date">{{text.created_at}}</span>
+                                                {% comment %} if file, add filesize {% endcomment %}
+                                                {% comment %} {% if comment.comment_file %}
+                                                    <span class="comment-filesize">({{comment.get_filesize}})</span>
+                                                {% endif %} {% endcomment %}
+                                            </small>
+                                        </div>
                                     </div>
                                     {% endfor%}
                                     {% for file in version.versionpdf_set.all %}
                                     <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
                                         <a name="version_comment_{{forloop.counter}}-file" class="comment-file" id="version-{{ forloop.counter }}-file" href="{{file.pdf.url}}" target="_blank">
-                                            Solution
+                                            {{ file.get_filename }}
                                         </a>
+                                        <div class="d-flex">
+                                            <small class="ms-auto comment-info text-muted">
+                                                {% comment %} add author {% endcomment %}
+                                                <span class="comment-author">{{file.author.first_name}} - </span>
+                                                {% comment %} add date {% endcomment %}
+                                                <span class="comment-date">{{file.created_at}}</span>
+                                                {% comment %} if file, add filesize {% endcomment %}
+                                                <span class="comment-filesize">({{file.get_filesize}})</span>
+                                            </small>
+                                        </div>
                                     </div>
                                     {% endfor %}
                                 {% endif %}

@@ -382,10 +382,28 @@ class Version(models.Model):
 class VersionPdf(models.Model):
     pdf = models.FileField(upload_to='assignments/versions/', null=True, blank=True)
     version = models.ForeignKey(Version, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
+    def get_filename(self):
+        return os.path.basename(self.pdf.name)
+    
+    def get_filesize(self):
+        size = os.path.getsize(self.pdf.path)
+        if size < 1024:
+            return f"{size} B"
+        elif size < 1024**2:
+            return f"{size/1024:.1f} KB"
+        elif size < 1024**3:
+            return f"{size/1024**2:.1f} MB"
+        else:
+            return f"{size/1024**3:.1f} GB"
 
 class VersionText(models.Model):
     text = models.TextField()
     version = models.ForeignKey(Version, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
             
 
