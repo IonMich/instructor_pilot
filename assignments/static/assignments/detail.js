@@ -758,6 +758,10 @@ function version_modal (data) {
             newVersionNameButton.setAttribute('aria-controls', 'pills-home' + i);
             newVersionNameButton.setAttribute('aria-selected', 'true');
             newVersionNameButton.innerHTML = 'Version ' + i;
+            // add a class to the first button
+            if (i == 1) {
+                newVersionNameButton.classList.add('active');
+            }
             // add the button to the new element
             newVersionNameElement.appendChild(newVersionNameButton);
 
@@ -776,6 +780,11 @@ function version_modal (data) {
             newTabContent.setAttribute('role', 'tabpanel');
             newTabContent.setAttribute('role', 'tabpanel');
             newTabContent.setAttribute('aria-labelledby', 'pills-home-tab' + i);
+            // show the first tab content by default
+            if (i == 1) {
+                newTabContent.classList.add('show');
+                newTabContent.classList.add('active');
+            }
             // add a field to display an image
             let newImage = document.createElement('img');
             newImage.className = 'img-fluid';
@@ -808,6 +817,7 @@ function version_modal (data) {
             newFileInput.name = 'versionFile' + i;
             // set multiple attribute to true
             newFileInput.multiple = true;
+            
             // append the text and file inputs to the form
             newForm.appendChild(newTextInput);
             newForm.appendChild(newFileInput);
