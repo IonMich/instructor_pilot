@@ -850,7 +850,13 @@ if(updateVersion) {
         for (let i = 0; i < numVersions; i++) {
             formData.append('versionTexts', document.getElementById('versionName' + (i+1)).value);
             // add a formdata object to the formdata object with name versionFiles1, versionFiles2, etc.
-            formData.append('versionFiles' + (i+1), document.getElementById('versionFile' + (i+1)).files[0]);
+            // formData.append('versionFiles' + (i+1), document.getElementById('versionFile' + (i+1)).files[0]);
+            //NOTE: Supports only one file per version
+            // add multiple files to the formdata object
+            for (let j = 0; j < document.getElementById('versionFile' + (i+1)).files.length; j++) {
+                 formData.append('versionFiles' + (i+1), document.getElementById('versionFile' + (i+1)).files[j]);
+             }
+
         }
 
         const versionForm = document.getElementById('versionForm');

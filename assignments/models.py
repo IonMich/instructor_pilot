@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+import uuid
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -367,6 +368,24 @@ class Assignment(models.Model):
                 )
                 if uploaded:
                     print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
+
+
+class Version(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
+    versions = models.CharField(max_length=255, null=True, blank=True, default=None)
+    created_at = models.DateTimeField(auto_now_add=True)
+    # add a field to store the image to determine the version
+    versionImage = models.ImageField(upload_to='assignments/versions/', null=True, blank=True)
+
+class VersionPdf(models.Model):
+    pdf = models.FileField(upload_to='assignments/versions/', null=True, blank=True)
+    version = models.ForeignKey(Version, on_delete=models.CASCADE)
+
+class VersionText(models.Model):
+    text = models.TextField()
+    version = models.ForeignKey(Version, on_delete=models.CASCADE)
 
             
 

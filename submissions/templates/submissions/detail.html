@@ -199,6 +199,37 @@
                             <textarea name="new_comment" class="form-control" id="newComment" rows="7"></textarea>
                         </div>
                     </div> {% endcomment %}
+
+                    <!--Populate Version Comments-->
+                    {% if submission.assignment.versioned == True %}
+
+                    <div class="col-xs-12 mb-2" style="height:70%;">                            
+                            <label for="newComment" style="font-size:20px;">Version Coments</label>
+                            {% for version in submission.assignment.version_set.all %}
+                                {% if version.name == submission.version %}
+                                    {% for text in version.versiontext_set.all %}
+                                    <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
+                                        {{text.text}}
+                                    </div>
+                                    {% endfor%}
+                                    {% for file in version.versionpdf_set.all %}
+                                    <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
+                                        <a name="version_comment_{{forloop.counter}}-file" class="comment-file" id="version-{{ forloop.counter }}-file" href="{{file.pdf.url}}" target="_blank">
+                                            Solution
+                                        </a>
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- End-->
+
+
+
+
+
                     {% if submission.submissions_submissioncomment_related.all %}
                         <label class="mt-3" for="old-comments" style="font-size:20px;">Old Comments</label>
                         <div class="col-xs-12 mt-2" style="height:70%;" id="old-comments">

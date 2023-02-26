@@ -10,7 +10,7 @@ from submissions.forms import (StudentClassifyForm, SubmissionFilesUploadForm,
 from submissions.models import PaperSubmission, PaperSubmissionImage, SubmissionComment
 from submissions.views import _random1000
 
-from .models import Assignment
+from .models import Assignment, Version, VersionPdf, VersionText
 
 from submissions.cluster import (crop_and_ocr, crop_images_to_text, vectorize_texts, perform_dbscan_clustering, plot_clusters_dbscan)
 
@@ -320,11 +320,18 @@ def version_view(request, course_pk, assignment_pk):
                     paperSubmission = PaperSubmissionImage.objects.filter(submission=submission, page=3)
                     cluster_images[i] = paperSubmission[0].image.url
                     break
+
+        # make the corresponding assignment versions
+        for i in range(1, cluster_types + 1):
+            # create a new version
+            # retrieve the image url from the cluster_images list and remove the first meida/ from the string
+            path_to_image = cluster_images[i-1].replace("/media", "")
+            new_version = Version(assignment=assignment, name=str(i), versions=str(cluster_types), versionImage=path_to_image)
+            new_version.save()
         # set the assignment versioned field to true
-        print(assignment.versioned)
         assignment.versioned = True
         assignment.save()
-        print(assignment.versioned)
+
         # count number of 0 in cluster_labels
         outliers = np.count_nonzero(cluster_labels == 0)
         assignment = model_to_dict(assignment)
@@ -347,6 +354,7 @@ def version_view(request, course_pk, assignment_pk):
     # send the user to the assignment detail page
     return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
 
+
 @login_required
 def version_submission(request, course_pk, assignment_pk):
     print("version_submission called")
@@ -361,6 +369,8 @@ def version_submission(request, course_pk, assignment_pk):
         
         # keep track of uploaded comment files
         loaded_files = []
+
+        """
         
         # get the submissions from the database
         submissions = PaperSubmission.objects.filter(assignment=assignment)
@@ -412,7 +422,53 @@ def version_submission(request, course_pk, assignment_pk):
                             new_comment_file.save()
                         else:
                             return JsonResponse({'message': 'error'})
-                        
+                            """
+        # find all the versions for this assignment
+        versions = Version.objects.filter(assignment=assignment)
+        # for each version, put the text and files into the version
+        for version in versions:
+            # get the text for this version
+            text = version_texts[int(version.name) - 1].strip()
+            if text != "":
+                # create a new version comment
+                new_version_text = VersionText(version=version, text=text)
+                new_version_text.save()
+            # get the files for this version
+            if request.FILES.get('versionFiles' + str(version.name)):
+                # set up the file system storage
+                new_comment_file_dir_in_media = os.path.join("submissions", 
+                f"course_{version.assignment.course.pk}", 
+                f"assignment_{version.assignment.pk}",
+                "comment")
+                new_comment_file_dir = os.path.join(
+                    settings.MEDIA_ROOT, 
+                    new_comment_file_dir_in_media)
+
+                if not os.path.exists(new_comment_file_dir):
+                    os.makedirs(new_comment_file_dir)
+                # add this as comment file for this submission
+                files = request.FILES.getlist('versionFiles' + str(version.name))
+                for file in files:
+                    if isinstance(file, InMemoryUploadedFile):
+                        if file.name not in loaded_files: 
+                            print(file.name)
+                            loaded_files.append(file.name)
+                            FileSystemStorage(location=new_comment_file_dir).save(file.name, file)
+                            # copy file to new location, while keeping the original name
+                        new_file_path_in_media = os.path.join(
+                            new_comment_file_dir_in_media,
+                            file.name,
+                        )
+                            
+                        # add this to the database
+                        new_version_file = VersionPdf.objects.create(
+                            version=version,
+                            pdf=new_file_path_in_media,
+                            )
+                        new_version_file.save()
+                    else:
+                        print("file was not an InMemoryUploadedFile")
+                
         
     return JsonResponse({'message': 'success'})
 
@@ -431,7 +487,21 @@ def version_reset(request, course_pk, assignment_pk):
         # set the assignment versioned field to false
         assignment.versioned = False
         assignment.save()
+        # delete all the versions for this assignment
+        versions = Version.objects.filter(assignment=assignment)
+        # delete all the version texts for this assignment
+        version_texts = VersionText.objects.filter(version__in=versions)
+        version_texts.delete()
+        # delete all the version pdfs for this assignment
+        version_pdfs = VersionPdf.objects.filter(version__in=versions)
+        # delete all the associated files
+        for version_pdf in version_pdfs:
+            os.remove(os.path.join(settings.MEDIA_ROOT, version_pdf.pdf.name))
+        version_pdfs.delete()
+        # delete all the versions for this assignment
+        versions.delete()
         # send a JsonResponse to the frontend with the context
+
         return JsonResponse({'message': 'success'})
     # send the user to the assignment detail page
     return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
