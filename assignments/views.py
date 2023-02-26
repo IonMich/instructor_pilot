@@ -345,7 +345,8 @@ def version_view(request, course_pk, assignment_pk):
         # 'cluster_labels': cluster_labels, 
         'cluster_images': list(cluster_images), 
         # 'course_pk': course_pk, 'assignment_pk': assignment_pk
-        'message': 'success'
+        'message': 'success',
+        'new_version': 'true'
         }
 
         # send a JsonResponse to the frontend with the context
@@ -506,3 +507,96 @@ def version_reset(request, course_pk, assignment_pk):
         return JsonResponse({'message': 'success'})
     # send the user to the assignment detail page
     return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
+
+
+@login_required
+def version_change(request, course_pk, assignment_pk):
+    # if the request is POST
+    if request.method == 'POST':
+        # get the assignment
+        assignment = get_object_or_404(Assignment, pk=assignment_pk)
+        # get the submissions for this assignment
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        # get all the versions for this assignment
+        versions = Version.objects.filter(assignment=assignment)
+        # get the cluster_images
+        cluster_images = []
+        for version in versions:
+            cluster_images.append(version.versionImage.url)
+        # get the cluster_types
+        cluster_types = len(versions)
+        # get the outliers by getting the submissions with their version set to 0
+        outliers = PaperSubmission.objects.filter(assignment=assignment, version=0)
+        outliers = len(outliers)
+        # get the version_texts for each version
+        from collections import defaultdict
+        version_texts = defaultdict(list)
+        for version in versions:
+            version_text_query = version.versiontext_set.all()
+            # add text from each query
+            for version_text in version_text_query:
+                version_texts[version.name].append({'text': version_text.text, 
+                                                    'author': version_text.author.first_name, 'date': version_text.created_at,
+                                                    'id': version_text.id
+                                                    })
+        # serialize the version_texts
+        # print(version_texts)
+        # get the version_pdfs for each version
+        version_pdfs = defaultdict(list)
+        for version in versions:
+            version_pdf_query = version.versionpdf_set.all()
+            # add text from each query
+            for version_pdf in version_pdf_query:
+                version_pdfs[version.name].append({'name': version_pdf.get_filename(),'url': version_pdf.pdf.url,
+                                                    'author': version_pdf.author.first_name, 'date': version_pdf.created_at,
+                                                    'size': version_pdf.get_filesize(),
+                                                    'id': version_pdf.id
+                                                    })
+            
+
+
+        assignment = model_to_dict(assignment)
+
+        submissions = serializers.serialize('json', submissions)
+
+        context = {'assignment': assignment,
+        'cluster_types' : cluster_types,
+        'outliers': outliers,
+        'submissions': submissions,  
+        'cluster_images': list(cluster_images), 
+        'message': 'success',
+        'new_version': 'false',
+        'version_texts': version_texts,
+        'version_pdfs': version_pdfs
+        }
+
+        # send a JsonResponse to the frontend with the context
+        return JsonResponse(context, safe=False)
+    # send the user to the assignment detail page
+    return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
+
+
+@login_required
+def delete_comment(request, course_pk, assignment_pk):
+    if request.method == 'POST':
+        # get all the data from the request
+        data = json.loads(request.body)
+        # get the type of comment
+        comment_type = data['comment_type']
+
+        # get the comment id
+        comment_id = data['comment_id']
+        # get the comment
+        if comment_type == 'text':
+            comment = get_object_or_404(VersionText, pk=comment_id)
+            # delete the comment from the database
+            comment.delete()
+        elif comment_type == 'pdf':
+            comment = get_object_or_404(VersionPdf, pk=comment_id)
+            # delete the associated file
+            os.remove(os.path.join(settings.MEDIA_ROOT, comment.pdf.name))
+            # delete the comment
+            comment.delete()
+        
+        return JsonResponse({'message': 'success'})
+    return JsonResponse({'message': 'error'})

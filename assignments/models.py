@@ -380,6 +380,7 @@ class Version(models.Model):
     versionImage = models.ImageField(upload_to='assignments/versions/', null=True, blank=True)
 
 class VersionPdf(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     pdf = models.FileField(upload_to='assignments/versions/', null=True, blank=True)
     version = models.ForeignKey(Version, on_delete=models.CASCADE)
     author = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
@@ -400,6 +401,7 @@ class VersionPdf(models.Model):
             return f"{size/1024**3:.1f} GB"
 
 class VersionText(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     text = models.TextField()
     version = models.ForeignKey(Version, on_delete=models.CASCADE)
     author = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)

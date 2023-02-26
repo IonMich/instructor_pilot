@@ -735,6 +735,9 @@ function version_modal (data) {
         let versionNameElement = document.getElementById('versionDetails');
         // remove the previous content
         versionNameElement.innerHTML = '';
+        // add margin to the modal body
+        versionNameElement.style.margin = '8px 8px 8px 8px';
+
         //create a ul element with a class name of "list-group"
         let ul = document.createElement('ul');
         ul.className = 'nav nav-pills mb-3';
@@ -791,9 +794,10 @@ function version_modal (data) {
             newImage.src = data['cluster_images'][i-1];
             newImage.alt = 'Version ' + i + ' image';
             // add some style to the newImage
-            newImage.style = 'width: 460px; height: 250px; object-fit: cover; object-position: top; border: 3px solid #ddd; border-radius: 16px; margin: 16px;';
+            newImage.style = 'width: 460px; height: 250px; object-fit: cover; object-position: top; border: 3px solid #ddd; border-radius: 16px; margin: 8px;';
             // add the image to the tab content
             newTabContent.appendChild(newImage);
+
             
             // add a form to the tab content
             let newForm = document.createElement('form');
@@ -801,6 +805,25 @@ function version_modal (data) {
             newForm.enctype = 'multipart/form-data';
             newForm.id = 'versionForm' + i;
             newForm.className = 'form-inline';
+            // add csrf token to the form
+            let csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrfmiddlewaretoken';
+            csrfToken.value = '{{ csrf_token }}';
+
+            const csrfTokenValue = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            // add this token to the form
+            newForm.appendChild(csrfToken);
+
+            // add a label to the form
+            let newLabel = document.createElement('label');
+            newLabel.className = 'sr-only';
+            newLabel.for = 'versionName' + i;
+            newLabel.innerHTML = 'New Version Comment: ';
+            // add the label to the form
+            newForm.appendChild(newLabel);
+
             // add a text input to the form
             let newTextInput = document.createElement('textarea');
             // newTextInput.type = 'text';
@@ -817,6 +840,122 @@ function version_modal (data) {
             newFileInput.name = 'versionFile' + i;
             // set multiple attribute to true
             newFileInput.multiple = true;
+
+            // do the following only if the version is not the old one
+            if (data['new_version'] == 'false') {
+                console.log('new version is false')
+
+            // add a div to display the old files and texts
+            let oldFilesDiv = document.createElement('div');
+            oldFilesDiv.className = 'form-group';
+            oldFilesDiv.id = 'oldFilesDiv' + i;
+            // add a label to the old files div
+            let oldFilesLabel = document.createElement('label');
+            oldFilesLabel.innerHTML = 'Old Version Comments: ';
+            oldFilesLabel.className = 'form-label';
+            oldFilesLabel.for = 'oldFilesDiv' + i;
+            // add the label to the old files div
+            oldFilesDiv.appendChild(oldFilesLabel);
+            // add a div to display the old files and texts
+            let oldFiles = document.createElement('div');
+            oldFiles.className = 'form-group';
+            oldFiles.id = 'oldFiles' + i;
+            // add the old texts to the old files div
+            // check if data['version_texts'][i] is not empty
+            if (data['version_texts'][i] != undefined) {
+                for (let j = 0; j < data['version_texts'][i].length; j++) {
+                    // create a new div to display the old files and texts
+                    let text = document.createElement('div');
+                    text.className = 'form-group';
+                    text.id = 'oldText' + i + j;
+                    text.innerHTML = data['version_texts'][i][j]['text'];
+
+                    // create a new button to delete the old files and texts
+                    let deleteButton = document.createElement('button');
+                    deleteButton.className = 'btn btn-outline-light';
+                    deleteButton.id = 'deleteButtonText' + i + j;
+                    deleteButton.innerHTML = 'x';
+                    // make its size smaller
+                    deleteButton.style = 'font-size: 12px; padding: 0px 4px; margin-left: 8px; border-radius: 4px;';
+                    deleteButton.addEventListener('click', function() {
+                        idText = 'oldText' + i + j;
+                        text_id = data['version_texts'][i][j]['id'];
+                        deleteComment(csrfTokenValue, 'text', idText, text_id);
+                    }
+                    );
+
+                    // add the delete button to the text
+                    text.appendChild(deleteButton);
+
+                    // add author
+                    let authorArea = document.createElement('div');
+                    let authorName = document.createElement('small');
+                    authorName.className = 'text-muted';
+                    authorName.innerHTML = data['version_texts'][i][j]['author'];
+                    authorArea.appendChild(authorName);
+
+                    // add authorArea to text
+                    text.appendChild(authorArea);
+                    // add the old text to the old files div
+                    oldFiles.appendChild(text);
+
+
+                }
+            }
+            // add the old files to the old files div
+            if (data['version_pdfs'][i] != undefined) {
+            for (let j = 0; j < data['version_pdfs'][i].length; j++) {
+                // create a new div to display the old files and texts
+                let file = document.createElement('div');
+                file.className = 'form-group';
+                file.id = 'oldFile' + i + j;
+                // create a new link to display the old files and texts
+                let fileLink = document.createElement('a');
+                fileLink.href = data['version_pdfs'][i][j]['url'];
+                fileLink.innerHTML = data['version_pdfs'][i][j]['name'];
+                // create a new button to delete the old files and texts
+                let deleteButton = document.createElement('button');
+                deleteButton.className = 'btn btn-outline-light';
+                deleteButton.id = 'deleteButtonFile' + i + j;
+                deleteButton.innerHTML = 'x';
+                
+
+                // make its size smaller
+                deleteButton.style = 'font-size: 12px; padding: 0px 4px; margin-left: 8px; border-radius: 4px;';
+                // add an event listener to the delete button
+                deleteButton.addEventListener('click', function() {
+                    idFile = 'oldFile' + i + j;
+                    pdf_id = data['version_pdfs'][i][j]['id'];
+                    deleteComment(csrfTokenValue, 'pdf', idFile, pdf_id);
+                }
+                );
+                
+                // add the author name
+                let authorArea = document.createElement('div');
+                let authorName = document.createElement('small');
+                authorName.className = 'text-muted';
+                authorName.innerHTML = data['version_pdfs'][i][j]['author'];
+                // add author name to the author area
+                authorArea.appendChild(authorName);
+                
+                
+
+                // add the old file to the old files div
+                file.appendChild(fileLink);
+                // add the delete button to the file link
+                file.appendChild(deleteButton);
+                file.appendChild(authorArea);
+                oldFiles.appendChild(file);
+            }
+        }
+            // add the old files div to the old files div
+            oldFilesDiv.appendChild(oldFiles);
+            // add the old files div to the tab content
+            newTabContent.appendChild(oldFilesDiv);
+            }
+            
+            
+
             
             // append the text and file inputs to the form
             newForm.appendChild(newTextInput);
@@ -834,6 +973,42 @@ function version_modal (data) {
         clusterInfo.className = 'alert alert-danger';
         clusterInfo.innerHTML = 'Versions updated unsuccessfully';
     }
+}
+
+// define a function to delete a comment
+function deleteComment(token, type, divId, versionId) {
+    // get the assignment id
+    const assignmentId = document.getElementById('assignment_num').value;
+    // get the course id
+    const courseId = document.getElementById('course_num').value;
+    // make a data
+    const data = {
+        'assignment_id': assignmentId,
+        'course_id': courseId,
+        'comment_id': versionId,
+        'comment_type': type
+    }
+    console.log(data)
+    
+    // make a request to delete the comment
+    fetch('/courses/' + courseId + '/assignments/' + assignmentId + '/deletecomment/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': token,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data['message'] == 'success') {
+        // delete the comment
+        let comment = document.getElementById(divId);
+        comment.remove();
+        } else {
+        console.log('error')
+        }
+    })
 }
 
 const updateVersion = document.getElementById('updateClusterBtn');
@@ -911,12 +1086,53 @@ if(updateVersion) {
 const btnClusterV = document.getElementById('btnClusterV');
 if(btnClusterV) {
         btnClusterV.addEventListener('click', function(event) {
-            // stop the default action of the button
-            event.preventDefault();
-            // get the modal
-            let modal = document.getElementById('clusterModal');
-            // show the modal
-            $(modal).modal('show');
+        // stop the default action of the button
+        event.preventDefault();
+
+        // change the button text to a spinner
+        btnClusterV.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
+        // disable the button
+        btnClusterV.disabled = true;
+        
+        // get the assignment id
+        const assignmentId = document.getElementById('assignment_num').value;
+        // courseId = JSON.parse(document.getElementById('course_id').textContent);
+        // get the course id
+        const courseId = document.getElementById('course_num').value;
+        
+
+        const url = '/courses/' + courseId + '/assignments/' + assignmentId + '/versionchange/';
+        const data = {
+            assignment_id: assignmentId
+        };
+
+        const versionForm = document.getElementById('versionForm');
+        const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
+
+        options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                
+            },
+            body: JSON.stringify(data)
+        };
+
+        fetch(url, options)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            // run the function to update the modal
+            version_modal(data);
+            // change the button text back to the original text
+            btnClusterV.innerHTML = 'Update Versions <i class="bi bi-box-arrow-up-right"></i>';
+            // enable the button
+            btnClusterV.disabled = false;
+
+
+        });
+
     });
 
 }
