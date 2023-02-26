@@ -48,6 +48,9 @@ class Assignment(models.Model):
         max_length=100,
         null=True,
         blank=True)
+    
+    # define a field to store whether versioning has been done or not
+    versioned = models.BooleanField(default=False, null=True, blank=True)
 
     def get_long_name(self):
         """Returns the name of the assignment with the name of the course."""

@@ -681,126 +681,149 @@ if(versionButton) {
         fetch(url, options)
         .then(response => response.json())
         .then(data => {
-            console.log(data);
-            // change the button text back to "Cluster"
-            versionButton.innerHTML = 'Update Versions';
-            // enable the button
-            versionButton.disabled = false; 
-            let modal = document.getElementById('clusterModal');
-            $(modal).modal('show');
-            // get the modal body
-            let clusterInfo = document.getElementById('clusterInfo');
-            // change the modal body to display the data from response
-            if (data['message'] == 'success') {
-                // get the number of versions and make it global
-                numVersions = data['cluster_types'];
-
-                const outliers = data['outliers'];
-                if (outliers == 0) {
-                    clusterInfo.className = 'alert alert-success';
-                    clusterInfo.innerHTML = numVersions + ' different Versions found.';
-                }
-                else {
-                    clusterInfo.className = 'alert alert-warning';
-                    clusterInfo.innerHTML = numVersions + ' different Versions and ' + outliers + ' Outliers found.';
-                }
-
-                // display the content of the versions
-                let versionNameElement = document.getElementById('versionDetails');
-                // remove the previous content
-                versionNameElement.innerHTML = '';
-                //create a ul element with a class name of "list-group"
-                let ul = document.createElement('ul');
-                ul.className = 'nav nav-pills mb-3';
-                ul.id = 'pills-tab';
-                ul.role = 'tablist';
-                // add this element to the modal
-                versionNameElement.appendChild(ul);
-                // create a new element to display the version name inside the modal using a for loop
-                for (let i = 1; i <= numVersions; i++) {
-                    let newVersionNameElement = document.createElement('li');
-                    newVersionNameElement.className = 'nav-item';
-                    newVersionNameElement.id = 'pills-home-tab+' + i;
-                    newVersionNameElement.role = 'presentation';
-                    // create a button element to display the version name
-                    let newVersionNameButton = document.createElement('button');
-                    newVersionNameButton.className = 'nav-link';
-                    newVersionNameButton.id = 'pills-home-tab' + i;
-                    newVersionNameButton.setAttribute('data-bs-toggle', 'pill');
-                    newVersionNameButton.setAttribute('data-bs-target', '#pills-home' + i);
-                    newVersionNameButton.setAttribute('role', 'tab');
-                    newVersionNameButton.setAttribute('aria-controls', 'pills-home' + i);
-                    newVersionNameButton.setAttribute('aria-selected', 'true');
-                    newVersionNameButton.innerHTML = 'Version ' + i;
-                    // add the button to the new element
-                    newVersionNameElement.appendChild(newVersionNameButton);
-
-                    // add this element to the modal
-                    ul.appendChild(newVersionNameElement);
-                }
-                // create a new div to display the tab contents using a for loop
-                let tabContent = document.createElement('div');
-                tabContent.className = 'tab-content';
-                tabContent.id = 'pills-tabContent';
-                // create a new div to display the tab contents using a for loop
-                for (let i = 1; i <= numVersions; i++) {
-                    let newTabContent = document.createElement('div');
-                    newTabContent.className = 'tab-pane fade';
-                    newTabContent.id = 'pills-home' + i;
-                    newTabContent.setAttribute('role', 'tabpanel');
-                    newTabContent.setAttribute('role', 'tabpanel');
-                    newTabContent.setAttribute('aria-labelledby', 'pills-home-tab' + i);
-                    // add a field to display an image
-                    let newImage = document.createElement('img');
-                    newImage.className = 'img-fluid';
-                    newImage.src = data['cluster_images'][i-1];
-                    newImage.alt = 'Version ' + i + ' image';
-                    // add some style to the newImage
-                    newImage.style = 'width: 460px; height: 250px; object-fit: cover; object-position: top; border: 3px solid #ddd; border-radius: 16px; margin: 16px;';
-                    // add the image to the tab content
-                    newTabContent.appendChild(newImage);
-                    
-                    // add a form to the tab content
-                    let newForm = document.createElement('form');
-                    // make this form a multipart form
-                    newForm.enctype = 'multipart/form-data';
-                    newForm.id = 'versionForm' + i;
-                    newForm.className = 'form-inline';
-                    // add a text input to the form
-                    let newTextInput = document.createElement('textarea');
-                    // newTextInput.type = 'text';
-                    newTextInput.className = 'form-control mb-2 mr-sm-2';
-                    newTextInput.id = 'versionName' + i;
-                    newTextInput.placeholder = 'Version Solution';
-                    newTextInput.name = 'versionText' + i;
-                    // add a file input to the form
-                    let newFileInput = document.createElement('input');
-                    newFileInput.type = 'file';
-                    newFileInput.className = 'form-control mb-2 mr-sm-2';
-                    newFileInput.id = 'versionFile' + i;
-                    newFileInput.placeholder = 'Version File';
-                    newFileInput.name = 'versionFile' + i;
-                    // set multiple attribute to true
-                    newFileInput.multiple = true;
-                    // append the text and file inputs to the form
-                    newForm.appendChild(newTextInput);
-                    newForm.appendChild(newFileInput);
-                    // append the form to the tab content
-                    newTabContent.appendChild(newForm);
-
-                    // add this element to the modal
-                    tabContent.appendChild(newTabContent);
-                }
-                // add this element to the modal
-                versionNameElement.appendChild(tabContent);
-
-            } else {
-                clusterInfo.className = 'alert alert-danger';
-                clusterInfo.innerHTML = 'Versions updated unsuccessfully';
-            }        
+            console.log(data); 
+            // call the function to display the message
+            version_modal(data);
+            // // change the button text back to "Cluster"
+            // versionButton.innerHTML = `Update Versions <i class="bi bi-box-arrow-up-right"></i>`;
+            // // enable the button
+            // versionButton.disabled = false; 
+            // remove the button and replace it with another button with id "btnClusterV"
+            let btnCluster = document.getElementById('btnCluster');
+            // make another button with id "btnClusterV"
+            const btnClusterV = document.createElement('button');
+            btnClusterV.className = 'btn btn-primary';
+            btnClusterV.id = 'btnClusterV';
+            btnClusterV.innerHTML = 'Update Versions <i class="bi bi-box-arrow-up-right"></i>';
+            // replace btnCluster with btnClusterV
+            btnCluster.replaceWith(btnClusterV);
+            // add event listener to the new button
+            btnClusterV.addEventListener('click', function(event) {
+                // do not reload the page
+                event.preventDefault();
+                version_modal(data);
+            });
+            
         }
+        
         );
     });
+}
+
+// add a function to build a modal for the versioning
+function version_modal (data) {
+    let modal = document.getElementById('clusterModal');
+    $(modal).modal('show');
+    // get the modal body
+    let clusterInfo = document.getElementById('clusterInfo');
+    // change the modal body to display the data from response
+    if (data['message'] == 'success') {
+        // get the number of versions and make it global
+        numVersions = data['cluster_types'];
+
+        const outliers = data['outliers'];
+        if (outliers == 0) {
+            clusterInfo.className = 'alert alert-success';
+            clusterInfo.innerHTML = numVersions + ' different Versions found.';
+        }
+        else {
+            clusterInfo.className = 'alert alert-warning';
+            clusterInfo.innerHTML = numVersions + ' different Versions and ' + outliers + ' Outliers found.';
+        }
+
+        // display the content of the versions
+        let versionNameElement = document.getElementById('versionDetails');
+        // remove the previous content
+        versionNameElement.innerHTML = '';
+        //create a ul element with a class name of "list-group"
+        let ul = document.createElement('ul');
+        ul.className = 'nav nav-pills mb-3';
+        ul.id = 'pills-tab';
+        ul.role = 'tablist';
+        // add this element to the modal
+        versionNameElement.appendChild(ul);
+        // create a new element to display the version name inside the modal using a for loop
+        for (let i = 1; i <= numVersions; i++) {
+            let newVersionNameElement = document.createElement('li');
+            newVersionNameElement.className = 'nav-item';
+            newVersionNameElement.id = 'pills-home-tab+' + i;
+            newVersionNameElement.role = 'presentation';
+            // create a button element to display the version name
+            let newVersionNameButton = document.createElement('button');
+            newVersionNameButton.className = 'nav-link';
+            newVersionNameButton.id = 'pills-home-tab' + i;
+            newVersionNameButton.setAttribute('data-bs-toggle', 'pill');
+            newVersionNameButton.setAttribute('data-bs-target', '#pills-home' + i);
+            newVersionNameButton.setAttribute('role', 'tab');
+            newVersionNameButton.setAttribute('aria-controls', 'pills-home' + i);
+            newVersionNameButton.setAttribute('aria-selected', 'true');
+            newVersionNameButton.innerHTML = 'Version ' + i;
+            // add the button to the new element
+            newVersionNameElement.appendChild(newVersionNameButton);
+
+            // add this element to the modal
+            ul.appendChild(newVersionNameElement);
+        }
+        // create a new div to display the tab contents using a for loop
+        let tabContent = document.createElement('div');
+        tabContent.className = 'tab-content';
+        tabContent.id = 'pills-tabContent';
+        // create a new div to display the tab contents using a for loop
+        for (let i = 1; i <= numVersions; i++) {
+            let newTabContent = document.createElement('div');
+            newTabContent.className = 'tab-pane fade';
+            newTabContent.id = 'pills-home' + i;
+            newTabContent.setAttribute('role', 'tabpanel');
+            newTabContent.setAttribute('role', 'tabpanel');
+            newTabContent.setAttribute('aria-labelledby', 'pills-home-tab' + i);
+            // add a field to display an image
+            let newImage = document.createElement('img');
+            newImage.className = 'img-fluid';
+            newImage.src = data['cluster_images'][i-1];
+            newImage.alt = 'Version ' + i + ' image';
+            // add some style to the newImage
+            newImage.style = 'width: 460px; height: 250px; object-fit: cover; object-position: top; border: 3px solid #ddd; border-radius: 16px; margin: 16px;';
+            // add the image to the tab content
+            newTabContent.appendChild(newImage);
+            
+            // add a form to the tab content
+            let newForm = document.createElement('form');
+            // make this form a multipart form
+            newForm.enctype = 'multipart/form-data';
+            newForm.id = 'versionForm' + i;
+            newForm.className = 'form-inline';
+            // add a text input to the form
+            let newTextInput = document.createElement('textarea');
+            // newTextInput.type = 'text';
+            newTextInput.className = 'form-control mb-2 mr-sm-2';
+            newTextInput.id = 'versionName' + i;
+            newTextInput.placeholder = 'Version Solution';
+            newTextInput.name = 'versionText' + i;
+            // add a file input to the form
+            let newFileInput = document.createElement('input');
+            newFileInput.type = 'file';
+            newFileInput.className = 'form-control mb-2 mr-sm-2';
+            newFileInput.id = 'versionFile' + i;
+            newFileInput.placeholder = 'Version File';
+            newFileInput.name = 'versionFile' + i;
+            // set multiple attribute to true
+            newFileInput.multiple = true;
+            // append the text and file inputs to the form
+            newForm.appendChild(newTextInput);
+            newForm.appendChild(newFileInput);
+            // append the form to the tab content
+            newTabContent.appendChild(newForm);
+
+            // add this element to the modal
+            tabContent.appendChild(newTabContent);
+        }
+        // add this element to the modal
+        versionNameElement.appendChild(tabContent);
+
+    } else {
+        clusterInfo.className = 'alert alert-danger';
+        clusterInfo.innerHTML = 'Versions updated unsuccessfully';
+    }
 }
 
 const updateVersion = document.getElementById('updateClusterBtn');
@@ -862,6 +885,79 @@ if(updateVersion) {
                 let clusterMessage = document.getElementById('clusterMessage');
                 clusterMessage.className = 'alert alert-danger';
                 clusterMessage.innerHTML = 'Solutions for versions uploaded unsuccessfully.';
+            }
+        });
+
+    });
+}
+
+// add an event listener to update version button
+const btnClusterV = document.getElementById('btnClusterV');
+if(btnClusterV) {
+        btnClusterV.addEventListener('click', function(event) {
+            // stop the default action of the button
+            event.preventDefault();
+            // get the modal
+            let modal = document.getElementById('clusterModal');
+            // show the modal
+            $(modal).modal('show');
+    });
+
+}
+
+const resetClusterBtn = document.getElementById('resetClusterBtn');
+if(resetClusterBtn) {
+    resetClusterBtn.addEventListener('click', function(event) {
+        // close the modal
+        let modal = document.getElementById('clusterModal');
+        $(modal).modal('hide');
+        console.log('reset cluster button clicked')
+        // get the assignment id
+        const assignmentId = document.getElementById('assignment_num').value;
+        // courseId = JSON.parse(document.getElementById('course_id').textContent);
+        // get the course id
+        const courseId = document.getElementById('course_num').value;     
+
+        const url = '/courses/' + courseId + '/assignments/' + assignmentId + '/versionreset/';
+
+        const data = {
+            'assignment_id': assignmentId,
+            'course_id': courseId
+        };
+
+        const versionForm = document.getElementById('versionForm');
+        const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
+
+        options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                
+            },
+            body: JSON.stringify(data)
+        };
+
+        fetch(url, options)
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            // if the message is success
+            if (data['message'] == 'success') {
+                // display the success message in the div with id clusterMessage
+                let clusterMessage = document.getElementById('clusterMessage');
+                clusterMessage.className = 'alert alert-success';
+                clusterMessage.innerHTML = 'Cluster reset successfully.';
+                // reload the entire page
+                location.reload();
+
+            }
+            // if the message is failure
+            else {
+                // display the failure message in the div with id clusterMessage
+                let clusterMessage = document.getElementById('clusterMessage');
+                clusterMessage.className = 'alert alert-danger';
+                clusterMessage.innerHTML = 'Cluster reset unsuccessfully.';
             }
         });
 

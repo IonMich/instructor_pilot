@@ -320,6 +320,11 @@ def version_view(request, course_pk, assignment_pk):
                     paperSubmission = PaperSubmissionImage.objects.filter(submission=submission, page=3)
                     cluster_images[i] = paperSubmission[0].image.url
                     break
+        # set the assignment versioned field to true
+        print(assignment.versioned)
+        assignment.versioned = True
+        assignment.save()
+        print(assignment.versioned)
         # count number of 0 in cluster_labels
         outliers = np.count_nonzero(cluster_labels == 0)
         assignment = model_to_dict(assignment)
@@ -410,3 +415,23 @@ def version_submission(request, course_pk, assignment_pk):
                         
         
     return JsonResponse({'message': 'success'})
+
+@login_required
+def version_reset(request, course_pk, assignment_pk):
+    # if the request is POST
+    if request.method == 'POST':
+        # get the assignment
+        assignment = get_object_or_404(Assignment, pk=assignment_pk)
+        # get all the submissions for this assignment
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        # for each submission, set the version to 0
+        for submission in submissions:
+            submission.version = None
+            submission.save()
+        # set the assignment versioned field to false
+        assignment.versioned = False
+        assignment.save()
+        # send a JsonResponse to the frontend with the context
+        return JsonResponse({'message': 'success'})
+    # send the user to the assignment detail page
+    return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)

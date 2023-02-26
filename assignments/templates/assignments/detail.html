@@ -91,7 +91,13 @@
                     </div>
                     <form action="" method="POST" id="versionForm">
                         {% csrf_token %}
-                        <button type="submit" name="submit-cluster" id="btnCluster" class="btn btn-primary">Version <i class="bi bi-box-arrow-up-right"></i></button>
+                        <div id="versionBtn">
+                        {% if assignment.versioned == False %}
+                        <button type="button" name="submit-cluster" id="btnCluster" class="btn btn-primary">Version <i class="bi bi-box-arrow-up-right"></i></button>
+                        {% else %}
+                        <button type="button" name="submit-cluster" id="btnClusterV" class="btn btn-primary">Update Versions <i class="bi bi-box-arrow-up-right"></i></button>
+                        {% endif %}
+                        </div>
                     </form>
                     <div id="clusterMessage">
                     </div>
@@ -124,6 +130,7 @@
                                 <form action="" method="POST" id="cluster-from-form">
                                     {% csrf_token %}
                                     <button type="button" id="updateClusterBtn" class="btn btn-primary">Submit</button>
+                                    <button type="button" id="resetClusterBtn" class="btn btn-danger">RESET</button>
                                 </form>
                                 
                             </div>
