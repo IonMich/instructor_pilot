@@ -30,3 +30,14 @@
     visibility: visible;
 }
 
+.oldFiles {
+    background-color: #f5f5f5;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    border: 2px solid #e3e3e3;
+}
+
+.labels {
+    font-weight: bold;
+}

@@ -102,6 +102,19 @@
                       <i>No Grade</i>
                     </p>
                   {% endif %}
+
+                  <!-- Makes changes here to show clustering-->
+
+                  <p class="card-text">
+                    <small class="text-muted">
+                      
+                      {% if obj.version != None %}
+                        Version: <i>{{obj.version}}</i>
+                      {% endif %}
+                      </small>
+                    </p>
+
+                  <!-- Changes end here-->
                   
                   
                   <a href="{{obj.get_absolute_url}}" class="stretched-link"></a>

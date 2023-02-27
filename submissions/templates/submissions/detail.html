@@ -139,18 +139,34 @@
                             </select>
                             {% if submission.student is not None %}
                                 {% if submission.classification_type == "D"%}
-                                <span class="badge bg-primary">{{submission.classification_type}}</span> 
+                                <span class="badge bg-primary" title="Classified using University ID">{{submission.classification_type}}</span> 
                                 
                                 {% elif submission.classification_type == "M"%}
-                                <span class="badge bg-warning">{{submission.classification_type}}</span> 
+                                <span class="badge bg-warning" title="Classified manually">{{submission.classification_type}}</span> 
             
                                 {% elif submission.classification_type == "W"%}
-                                <span class="badge bg-info text-dark">{{submission.classification_type}}</span> 
+                                <span class="badge bg-info text-dark" title="Classified using Name">{{submission.classification_type}}</span> 
                                 
                                 {% else %}
                                 <span class="badge bg-danger">?</span> 
                                 {% endif %}
                             {% endif %}
+
+
+                             <!-- label showing the clustering status -->
+
+                            
+                             {% if submission.version is not None %}
+                             {% if submission.version == '0' %}
+                                 <span class="badge rounded-pill bg-danger" title="Outlier">V{{submission.version}}</span> 
+                             {% else %}
+                                 <span class="badge rounded-pill bg-success" title="Version {{submission.version}}">V{{submission.version}}</span> 
+                             {% endif %}
+                             {% endif %}
+                             
+ 
+                             <!-- End of changes made-->
+
                         </div>
                         <div class="form-outline">
                             {% for q_grade, q_max_grade in grades_zipped %} 
@@ -183,6 +199,59 @@
                             <textarea name="new_comment" class="form-control" id="newComment" rows="7"></textarea>
                         </div>
                     </div> {% endcomment %}
+
+                    <!--Populate Version Comments-->
+                    {% if submission.assignment.versioned == True %}
+
+                    <div class="col-xs-12 mb-2" style="height:70%;">                            
+                            <label for="newComment" style="font-size:20px;">Version Comments</label>
+                            {% for version in submission.assignment.version_set.all %}
+                                {% if version.name == submission.version %}
+                                    {% for text in version.versiontext_set.all %}
+                                    <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
+                                        {{text.text}}
+                                        <div class="d-flex">
+                                            <small class="ms-auto comment-info text-muted">
+                                                {% comment %} add author {% endcomment %}
+                                                <span class="comment-author">{{text.author.first_name}} - </span>
+                                                {% comment %} add date {% endcomment %}
+                                                <span class="comment-date">{{text.created_at}}</span>
+                                                {% comment %} if file, add filesize {% endcomment %}
+                                                {% comment %} {% if comment.comment_file %}
+                                                    <span class="comment-filesize">({{comment.get_filesize}})</span>
+                                                {% endif %} {% endcomment %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    {% endfor%}
+                                    {% for file in version.versionpdf_set.all %}
+                                    <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
+                                        <a name="version_comment_{{forloop.counter}}-file" class="comment-file" id="version-{{ forloop.counter }}-file" href="{{file.pdf.url}}" target="_blank">
+                                            {{ file.get_filename }}
+                                        </a>
+                                        <div class="d-flex">
+                                            <small class="ms-auto comment-info text-muted">
+                                                {% comment %} add author {% endcomment %}
+                                                <span class="comment-author">{{file.author.first_name}} - </span>
+                                                {% comment %} add date {% endcomment %}
+                                                <span class="comment-date">{{file.created_at}}</span>
+                                                {% comment %} if file, add filesize {% endcomment %}
+                                                <span class="comment-filesize">({{file.get_filesize}})</span>
+                                            </small>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- End-->
+
+
+
+
+
                     {% if submission.submissions_submissioncomment_related.all %}
                         <label class="mt-3" for="old-comments" style="font-size:20px;">Old Comments</label>
                         <div class="col-xs-12 mt-2" style="height:70%;" id="old-comments">
