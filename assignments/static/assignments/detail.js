@@ -818,7 +818,7 @@ function version_modal (data) {
 
             // add a label to the form
             let newLabel = document.createElement('label');
-            newLabel.className = 'sr-only';
+            newLabel.className = 'form-label labels';
             newLabel.for = 'versionName' + i;
             newLabel.innerHTML = 'New Version Comment: ';
             // add the label to the form
@@ -829,7 +829,7 @@ function version_modal (data) {
             // newTextInput.type = 'text';
             newTextInput.className = 'form-control mb-2 mr-sm-2';
             newTextInput.id = 'versionName' + i;
-            newTextInput.placeholder = 'Version Solution';
+            newTextInput.placeholder = 'Enter new text comment here';
             newTextInput.name = 'versionText' + i;
             // add a file input to the form
             let newFileInput = document.createElement('input');
@@ -847,12 +847,12 @@ function version_modal (data) {
 
             // add a div to display the old files and texts
             let oldFilesDiv = document.createElement('div');
-            oldFilesDiv.className = 'form-group';
+            oldFilesDiv.className = 'form-group oldFiles';
             oldFilesDiv.id = 'oldFilesDiv' + i;
             // add a label to the old files div
             let oldFilesLabel = document.createElement('label');
             oldFilesLabel.innerHTML = 'Old Version Comments: ';
-            oldFilesLabel.className = 'form-label';
+            oldFilesLabel.className = 'form-label labels';
             oldFilesLabel.for = 'oldFilesDiv' + i;
             // add the label to the old files div
             oldFilesDiv.appendChild(oldFilesLabel);
