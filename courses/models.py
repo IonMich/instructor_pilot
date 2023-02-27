@@ -173,6 +173,16 @@ class Course(models.Model):
 
             from django.core.files import File
             result = request.urlretrieve(image_url)
+            from hashlib import md5
+            new_avatar_md5 = md5(open(result[0], 'rb').read()).hexdigest()
+            try:
+                old_avatar_md5 = md5(open(course.image.path, 'rb').read()).hexdigest()
+                if new_avatar_md5 == old_avatar_md5:
+                    print("Course image is the same. Not updating.")
+            except Exception as e:
+                print("Handling exception: ", e)
+                pass
+            print("Course image has changed. Updating.")
             self.image.save(
                 f"{self.course_code}_{self.term}.png",
                 File(open(result[0], 'rb'))
@@ -223,14 +233,13 @@ class Course(models.Model):
         # now update the assignments
         self.update_assignments_from_canvas(canvas_course)
 
-        # # now update the students
+        # now update the students
         self.update_students_from_canvas(canvas_course)
 
+        # TODO: too slow. Need to find a better way to do this.
         # # now update the submission comments
-        self.update_submission_comments_from_canvas()
-        
-        
-        
+        # self.update_submission_comments_from_canvas()
+    
         return self
     
     def update_assignments_from_canvas(self, canvas_course):

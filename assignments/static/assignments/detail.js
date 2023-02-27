@@ -1,3 +1,264 @@
+(function () {
+    'use strict'
+  
+    // apply custom Bootstrap validation styles to forms with the .needs-validation class
+    // Fetch all the forms we want to apply custom Bootstrap validation styles to
+    var forms = document.querySelectorAll('.needs-validation')
+
+    // Loop over them and prevent submission
+    Array.prototype.slice.call(forms)
+        .forEach(function (form) {
+            console.log("form", form);
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+					console.log("form is not valid");
+					// prevent the default POST request that a submitted form sends to the server
+                    event.preventDefault()
+                    // prevent the event from triggering actions in parent elements
+                    event.stopPropagation()
+                    // do not trigger other event handlers that listen on this event
+                    event.stopImmediatePropagation()
+                } else {
+                    console.log("form is client-side valid");
+                }
+                // `was-validated` does not mean that the form is valid. 
+                // It just means that JS has checked whether it is valid or not.
+                // This allows Bootstrap green/red validity indicators to be displayed on inputs
+                form.classList.add('was-validated')
+            }, false)
+        })
+})();
+
+const uploadPDFsForm = document.getElementById('uploadPDFsForm');
+
+if (uploadPDFsForm) {
+    uploadPDFsForm.addEventListener("submit", (event) =>
+    uploadPDFs(event, uploadPDFsForm));
+};
+
+const uploadMorePDFsForm = document.getElementById('uploadMorePDFsForm');
+
+if (uploadMorePDFsForm) {
+    uploadMorePDFsForm.addEventListener("submit", (event) => 
+    uploadPDFs(event, uploadMorePDFsForm));
+};
+
+function uploadPDFs (event, form) {
+    console.log("prevent default");
+    event.preventDefault();
+    
+    const formData = new FormData(form);
+
+    const uploadPDFsButton = form.querySelector('button[name="submit-upload"]');
+    const buttonText = uploadPDFsButton.innerHTML;
+    // Disable the upload PDFs button
+    uploadPDFsButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
+    uploadPDFsButton.disabled = true;
+    
+    formData.forEach((value, key) => {
+        console.log(key, value);
+    });
+
+    // append the button name to the form data
+    formData.append('submit-upload', 'Upload');
+    // Fetch request to upload PDFs
+    fetch(window.location.href, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": formData.get('csrfmiddlewaretoken'),
+        },
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("data", data);
+        if (data.message_type === "success") {
+            if ( window.history.replaceState ) {
+                window.history.replaceState( null, null, window.location.href );
+            }
+            window.location = window.location.href;
+        } else {
+            // Enable the upload PDFs button
+            uploadPDFsButton.innerHTML = buttonText;
+            uploadPDFsButton.disabled = false;
+            // Display error message as an alert
+        }})
+    .catch(error => {
+        console.log("error", error);
+        // Enable the upload PDFs button
+        uploadPDFsButton.innerHTML = buttonText;
+        uploadPDFsButton.disabled = false;
+    });
+
+}
+
+const identifyStudentsForm = document.getElementById('identifyStudentsForm');
+
+if (identifyStudentsForm) {
+    identifyStudentsForm.addEventListener("submit", (event) => 
+    identifyStudents(event, identifyStudentsForm));
+};
+
+function identifyStudents (event, form) {
+    console.log("prevent default");
+    event.preventDefault();
+    const buttonName = "submit-classify"
+	const buttonQuery = `button[name="${buttonName}"]`
+	const submitButton = form.querySelector(buttonQuery);
+    const buttonText = submitButton.innerHTML;
+    const spinnerSpan = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+    submitButton.innerHTML = `${spinnerSpan} Identifying...`;
+    submitButton.disabled = true;
+	
+	const formData = new FormData(form);
+	// append the button name to the form data
+    formData.append(buttonName, 'Classify');
+	// ADAPT url if the fetch request is submitted at a different url than the current page.
+	const url = window.location.href
+	fetch(url, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": formData.get('csrfmiddlewaretoken'),
+        },
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("data", data);
+                // ADAPT if the server JSON response does not contain a status key
+        if (data.message_type !== "danger") {
+            // design that makes sure that form will not be resubmitted
+            // even after page reload, or back button is pressed
+            if ( window.history.replaceState ) {
+                window.history.replaceState( null, null, window.location.href );
+            }
+            window.location = window.location.href;
+        } else {
+            // Enable the upload PDFs button
+            console.log("handled server error", data.message);
+            submitButton.innerHTML = buttonText;
+            submitButton.disabled = false;
+            // Display error message as a Toast
+            const toast = createToastElement(data.message, data.message_type);
+            // append the toast to the toast-container
+            const toastContainer = document.querySelector('#toast-container');
+            toastContainer.appendChild(toast);
+            console.log("toast", toast);
+            var toastElement = new bootstrap.Toast(toast,
+                {delay: 10000, autohide: false});
+            toastElement.show();
+        }})
+    .catch(error => {
+        console.log("caught JS error", error);
+        // Enable the upload PDFs button
+        submitButton.innerHTML = buttonText;
+        submitButton.disabled = false;
+        // Display error message as an alert
+                
+    });
+};
+
+const uploadToCanvasModalForm = document.getElementById('syncToCanvasForm');
+
+if (uploadToCanvasModalForm) {
+    uploadToCanvasModalForm.addEventListener("submit", (event) => 
+    uploadToCanvas(event, uploadToCanvasModalForm));
+};
+
+function uploadToCanvas (event, form) {
+    console.log("prevent default");
+    console.log("form", form);
+    event.preventDefault();
+    const buttonName = "submit-sync-to";
+    const buttonQuery = `button[name="${buttonName}"]`;
+    console.log("buttonQuery", buttonQuery);
+    const submitButton = form.querySelector(buttonQuery);
+    console.log("submitButton", submitButton);
+    const buttonText = submitButton.innerHTML;
+    const spinnerSpan = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+    submitButton.innerHTML = `${spinnerSpan} Posting...`;
+    submitButton.disabled = true;
+
+    const formData = new FormData(form);
+    // append the button name to the form data
+    formData.append(buttonName, 'Upload to Canvas');
+    
+    const url = window.location.href
+    fetch(url, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": formData.get('csrfmiddlewaretoken'),
+        },
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("data", data);
+        if (data.message_type !== "danger") {
+            if ( window.history.replaceState ) {
+                window.history.replaceState( null, null, window.location.href );
+            }
+        } else {
+            console.log("handled server error", data.message);   
+        }
+        // close the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('syncToModal'));
+        modal.hide();
+        submitButton.innerHTML = buttonText;
+        submitButton.disabled = false;
+        // Display error message as a Toast
+        const toast = createToastElement(data.message, data.message_type);
+        // append the toast to the toast-container
+        const toastContainer = document.querySelector('#toast-container');
+        toastContainer.appendChild(toast);
+        console.log("toast", toast);
+        var toastElement = new bootstrap.Toast(toast,
+            {delay: 10000, autohide: false});
+        toastElement.show();
+        
+    })
+    .catch(error => {
+        console.log("caught JS error", error);
+        // Enable the upload PDFs button
+        submitButton.innerHTML = buttonText;
+        submitButton.disabled = false;
+    });
+};
+            
+            
+
+
+function createToastElement (message, message_type) {
+    const toast = document.createElement('div');
+    toast.classList.add('toast', 'fade', 'border-0');
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('data-bs-autohide', 'false');
+    if (message_type === "success") {
+        toast.classList.add('bg-success', 'text-white');
+    } else if (message_type === "warning") {
+        toast.classList.add('bg-warning', 'text-dark');
+    } else if (message_type === "danger") {
+        toast.classList.add('bg-danger', 'text-white');
+    } else if (message_type === "info") {
+        toast.classList.add('bg-primary', 'text-white');
+    }
+    toast.innerHTML = `
+    <div class="d-flex">
+        <div class="toast-body">
+            ${message}
+        </div>
+        <button 
+            type="button" class="btn-close btn-close-white me-2 m-auto" 
+            data-bs-dismiss="toast" aria-label="Close">
+        </button>
+    </div>`;
+    return toast;
+}
+
+
+
 function syncSubsFromCanvas(event) {
     event.preventDefault();
     // get parent form
@@ -60,7 +321,14 @@ function syncSubsFromCanvas(event) {
         btnFetch.disabled = false;
         // append success message in form
         appendSuccessMsg(form, syncedCount, notSyncedCount);
-    });
+    })
+    .catch(error => {
+        console.log("caught JS error", error);
+        // remove spinner and enable button
+        btnFetch.textContent = `Sync`;
+        btnFetch.disabled = false;
+    }
+    );
 };
 
 function appendSuccessMsg(form, syncedCount, notSyncedCount) {

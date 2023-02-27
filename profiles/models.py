@@ -52,6 +52,11 @@ class UserProfile(BaseProfile):
     def get_absolute_url(self):
         return reverse('profiles:detail', kwargs={'pk': self.pk})
 
+    def get_universities(self):
+        # each user has user.sections, each section has section.course
+        # each course has course.university
+        return {section.course.university for section in self.user.sections.all()}
+
     @classmethod
     def create_from_canvas_user(cls, canvas_user_id):
         raise NotImplementedError

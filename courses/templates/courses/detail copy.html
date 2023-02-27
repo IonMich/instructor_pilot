@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="{% static 'courses/style.css' %}">
 {% endblock %}
 
+{% comment %} add javascript {% endcomment %}
+{% block scripts %}
+    <script src="{% static 'courses/detail.js' %}" defer></script>
+{% endblock %}
+
 {% block title %}
 
 | {{ course.course_code }}
@@ -25,7 +30,8 @@
 
 <p> {{course.description}} </p>
 
-<form method="post">
+<form method="post" id="syncCourseForm">
+    <input type="hidden" name="course_id" value="{{course.pk}}">
     {% csrf_token %}
     <button class="btn btn-primary" name="sync_from_canvas" value="sync" type="submit">
     {% if course.university.name == "University of Florida" %}
@@ -34,6 +40,18 @@
     Sync from Canvas
     {% endif %}
     </button>
+    
+    <div class="position-fixed bottom-0 end-0 p-5" style="z-index: 11">
+        <div id="liveToastSync" class="toast align-items-center text-white bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+            Action completed. Reload page to see changes.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        </div>
+    </div>
+
 </form>
 
 {% comment %} Create 2x2 CSS div grid for sections, assignments, announcements, messages {% endcomment %}

@@ -1,0 +1,87 @@
+.information-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    grid-auto-rows: minmax(30px, auto);
+    grid-template-areas:
+        "avatar current-info"
+        "avatar image-drop"
+        ". image-drop"
+        "item-label item-input";
+
+    grid-gap: 1rem;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.information-grid .avatar {
+    grid-area: avatar;
+}
+
+.information-grid .current-info {
+    grid-area: current-info;
+}
+
+.information-grid .image-drop {
+    grid-area: image-drop;
+}
+
+.information-grid #saveBtn {
+    grid-column: 2 / 3;
+    width: 25%;
+    margin-bottom: 5rem;
+}
+
+.image-drop {
+    border-radius: 5px;
+    padding: 20px;
+    text-align: center;
+    background-color: #f8f8f8;
+    transition: all 0.3s ease;
+    border: 2px solid black;
+    border-style: dashed;
+    flex-direction: column;
+}
+
+.image-drop.encourage-drop{
+    border: 2px dashed palegreen;
+    background-color: paleturquoise;
+}
+
+.image-drop .icon{
+    font-size: 3rem;
+    color: #000;
+}
+.image-drop header{
+    font-size: 1rem;
+    font-weight: 500;
+    color: #000;
+}
+.image-drop span{
+    font-size: 25px;
+    font-weight: 500;
+    color: #000;
+    margin: 10px 0 15px 0;
+}
+.image-drop button{
+    padding: 10px 25px;
+    font-size: 1rem;
+    font-weight: 500;
+    border: solid #000;
+    outline: none;
+    background: #000;
+    color: #f8f8f8;
+    border-radius: 5px;
+}
+
+.image-drop button:hover{
+    background: #f8f8f8;
+    color: #000;
+    border: solid #000;
+}
+
+.image-drop img{
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 5px;
+}

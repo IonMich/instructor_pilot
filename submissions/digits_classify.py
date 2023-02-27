@@ -34,8 +34,9 @@ def remove_lines_img(
     rect_kernel_width=1, 
     restruct_kernel_size=1, 
     do_reconstruct=False,
-    dpi=150):
-    # import matplotlib.pyplot as plt
+    dpi=150,
+    debug=False):
+
     if mode == "vertical":
         rect_kernel = (rect_kernel_width,rect_kernel_size)
         restruct_kernel = (restruct_kernel_size,rect_kernel_width)
@@ -44,29 +45,31 @@ def remove_lines_img(
         restruct_kernel = (rect_kernel_width,restruct_kernel_size)
     else:
         raise ValueError("mode must be either 'vertical' or 'horizontal'")
-    # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     removed = img.copy()
     
-    # thresholding essentially inverts the image
     thresh = cv2.threshold(removed, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-    # if mode == "vertical":
-    #     plt.imshow(removed, cmap="gray")
-    #     plt.show()
-    #     plt.imshow(thresh, cmap="gray")
-    #     plt.show()
+    if debug:
+        import matplotlib.pyplot as plt
+        if mode == "vertical":
+            plt.imshow(removed, cmap="gray")
+            plt.show()
+            plt.imshow(thresh, cmap="gray")
+            plt.show()
     # Remove vertical
-    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, rect_kernel)
+    line_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, rect_kernel)
     detected_lines = cv2.morphologyEx(
         thresh, 
         cv2.MORPH_OPEN, 
-        vertical_kernel, 
+        line_kernel, 
         iterations=1)
     cnts = cv2.findContours(
         detected_lines, 
         cv2.RETR_EXTERNAL, 
         cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-    # print(len(cnts))
+    if debug:
+        print(f"Found {len(cnts)} lines in {mode} mode.")
+        print(f"Checking if they are in the right location...")
 
     if cnts:
         if mode == "vertical":
@@ -89,13 +92,17 @@ def remove_lines_img(
             if (abs((x_loc - x_left) % avg_x_distance)>2*(dpi//150)
             and abs((x_loc - x_left) % avg_x_distance - avg_x_distance)>2*(dpi//150)
             ):
-                print("Found vertical line, but won't remove because it's not a multiple of avg_x_distance away from x_left")
+                if debug:
+                    print("Found vertical line, but won't remove because it's not a multiple of avg_x_distance away from x_left")
                 continue
         count_lines += 1
         cv2.drawContours(removed, [c], -1, (255,255,255), 2*dpi//150)
-    
-    # plt.imshow(removed, cmap="gray")
-    # plt.show()
+
+    if debug:
+        print(f"Overall, {count_lines} lines were removed in {mode} mode.")
+        plt.imshow(removed, cmap="gray")
+        plt.show()
+
     # Repair image
     if do_reconstruct:
         repair_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
@@ -120,6 +127,13 @@ def import_students_from_db(course):
             })
 
     df_ids = pd.DataFrame(student_info, columns=["Student", "SIS User ID"])
+    # skip rows where SIS User ID is not an integer of length UFID_LENGTH
+    # first keep the rows where SIS User ID is an integer
+    df_ids = df_ids[df_ids["SIS User ID"].apply(lambda x: str(x).isnumeric())]
+    
+    # then keep the rows where SIS User ID is of length UFID_LENGTH
+    df_ids = df_ids[df_ids["SIS User ID"].apply(lambda x: len(str(x)) == UFID_LENGTH)]
+    print(f"Found {len(df_ids)} students with valid University IDs.")
         
     return df_ids
 
@@ -225,7 +239,7 @@ def extract_digit_boxes_from_img_new(
         print("No contours found with the appropriate number of horizontal and vertical lines")
         return None
 
-    if x_right is not None and x_left is not None:
+    if all([x is not None for x in [x_left, x_right, y_top, y_bottom]]):
         image_boundary_pixels_x_left = x_left 
         len_x = x_right - x_left
         separation = len_x // UFID_LENGTH

@@ -78,19 +78,39 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 else:
                     message = "No files uploaded."
                     message_type = 'danger'
+                return JsonResponse({
+                    "message": message,
+                    "message_type": message_type,
+                })
         elif 'submit-classify' in request.POST:
             print("request was POST:classify")
             classify_form = StudentClassifyForm(no_assignment=False, data=request.POST)
             if classify_form.is_valid():
                 print("form is valid")
-                classified_submission_pks, not_classified_submission_pks = classify_form.save()
-                qs_classified = PaperSubmission.objects.filter(pk__in=classified_submission_pks)
-                qs_not = PaperSubmission.objects.filter(pk__in=not_classified_submission_pks)
-                message = "Classified {} submissions and {} submissions were not classified".format(len(qs_classified), len(qs_not))
-                if len(qs_not) > 0:
-                    message_type = 'warning'
-                else:
-                    message_type = 'success'
+                try:
+                    classified_submission_pks, not_classified_submission_pks = classify_form.save()
+                    qs_classified = PaperSubmission.objects.filter(pk__in=classified_submission_pks)
+                    qs_not = PaperSubmission.objects.filter(pk__in=not_classified_submission_pks)
+                    message = "Classified {} submissions and {} submissions were not classified".format(len(qs_classified), len(qs_not))
+                    print(message)
+                    if len(qs_classified) == 0:
+                        message_type = 'danger'
+                    elif len(qs_not) > 0:
+                        message_type = 'warning'
+                    else:
+                        message_type = 'success'
+                    
+                except Exception as e:
+                    print("An error occured while classifying submissions")
+                    import traceback
+                    print(traceback.format_exc())
+                    message = "An error occured while classifying submissions"
+                    message_type = 'danger'
+                return JsonResponse({
+                        "message": message,
+                        "message_type": message_type,
+                    })
+                
         elif "submit-sync-from" in request.POST:
             # Handle ajax request and return json response with the submissions that were synced
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -123,11 +143,30 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 data=request.POST)
             if sync_to_form.is_valid():
                 print("form is valid")
-                sync_to_form.save()
-                message = 'Sync to canvas successful'
-                message_type = 'success'
+                try:
+                    sync_to_form.save()
+                    message = 'Upload to canvas completed gracefully. Details in the terminal.'
+                    message_type = 'info'
+                except Exception as e:
+                    print("An error occured while syncing submissions to canvas")
+                    import traceback
+                    print(traceback.format_exc())
+                    message = "An error occured while syncing submissions to canvas"
+                    message_type = 'danger'
+
+                
             else:
                 print(sync_to_form.errors)
+                message = 'Sync to canvas failed'
+                message_type = 'danger'
+            return JsonResponse({
+                "message": message,
+                "message_type": message_type,
+            })
+        else:
+            print("request was POST but not any of the above")
+            print(request.POST)
+            return JsonResponse({'error': 'request was POST but not any recognized action'})
     return render(
         request,
         'assignments/detail.html',

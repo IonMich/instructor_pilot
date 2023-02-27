@@ -116,6 +116,36 @@ def course_create_view(request):
     return JsonResponse(response)
 
 @login_required
+def course_sync_view(request):
+    if request.method != 'POST':
+        return JsonResponse(
+            {
+                'message': 'Only POST requests are allowed.',
+                'success': False,
+        })
+    import json
+    data = json.loads(request.body)
+    print(data)
+    course_id = data.get('course_id')
+    sync_from_canvas = data.get('sync_from_canvas')
+    if not sync_from_canvas:
+        return JsonResponse(
+            {
+                'message': "Can't recognize the request.",
+                'success': False,
+        })
+    course = Course.objects.get(pk=course_id)
+    course.update_from_canvas(request.user)
+    course.save()
+    response = {
+        'message': 'Course synced successfully!',
+        'course_id': course.pk,
+        'success': True,
+    }
+    return JsonResponse(response)
+
+
+@login_required
 def grading_scheme_update_view(request, course_pk):
     """
     The request.body contains e.g.

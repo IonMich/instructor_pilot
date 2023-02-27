@@ -83,6 +83,12 @@ class Section(models.Model):
     @classmethod
     def update_from_ufsoc(cls, requester, course):
         user = User.objects.get(username=requester)
+        if not user.last_name:
+            raise ValueError("User does not have a last name. Cannot search UF SOC. Please update your profile.")
+            return []
+        if course.term == "Development Term":
+            print("Development term. Skipping UF SOC update.")
+            return []
         from autocanvas.pipes.ufsoc import get_course_from_UFSOC_apix
         json_response = get_course_from_UFSOC_apix(
             course.term,
@@ -90,12 +96,31 @@ class Section(models.Model):
             instructor_name=user.last_name,
             program_level_name="Undergraduate",
         )
+        # if nothing is found, try again without the instructor name
+        # if only one result is found, then this means that this is the 
+        # only section, and thus we can assume that this is what we are looking for
+        # this is relevant for courses where the grader is not listed as the instructor
+        if not json_response:
+            print(f"No results found for {user.last_name} in UF SOC. Trying again without instructor name ...")
+            json_response = get_course_from_UFSOC_apix(
+                course.term,
+                course_code=course.course_code,
+                program_level_name="Undergraduate",
+            )
+        if not json_response:
+            print(f"No results found in UF SOC. Skipping ...")
+            return []
+        if len(json_response) >= 1:
+            print(f"Found {len(json_response)} courses in UF SOC. Using first result.")
+
         course.description = json_response[0]["description"]
         course.save()
         ufsoc_sections = json_response[0]["sections"]
         if not ufsoc_sections:
             print(f"No sections found in UF SOC. Skipping ...")
             return []
+        else:
+            print(f"Found {len(ufsoc_sections)} sections in UF SOC.")
         for ufsoc_section in ufsoc_sections:
             assert len(str(ufsoc_section['classNumber'])) == 5
             section = cls.objects.filter(name__contains=f"({ufsoc_section['classNumber']})").first()
@@ -136,7 +161,7 @@ class Section(models.Model):
     @classmethod
     def update_from_canvas(cls, requester, course, canvas_sections, only_enrolled_sections=True):
         user = User.objects.get(username=requester)
-        Section.update_from_ufsoc(requester, course)
+        cls.update_from_ufsoc(requester, course)
         for canvas_section in canvas_sections:
             try:
                 canvas_section_id = canvas_section['id']
@@ -144,6 +169,11 @@ class Section(models.Model):
             except:
                 canvas_section_id = canvas_section.id
                 canvas_section_name = canvas_section.name
+                
+            if canvas_section_name == course.name:
+                # Skip the default course section
+                print(f"Skipping default course section {canvas_section_name}")
+                continue
             section = cls.objects.filter(
                 Q(canvas_id=canvas_section_id)
                 | Q(name=canvas_section_name)
@@ -151,7 +181,7 @@ class Section(models.Model):
                 ).first()
 
             if section:
-                print(f"Found section {canvas_section_name}. Updating ...")
+                print(f"Found db section {section.name} with canvas_id: {section.canvas_id} on Canvas. Updating from Canvas")
                 section.name = canvas_section_name
                 section.course = course
                 section.canvas_id = canvas_section_id

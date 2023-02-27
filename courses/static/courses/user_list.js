@@ -195,7 +195,14 @@ courseCards.forEach( (courseCard) => {
 const syncSwitch = document.querySelector('#sync');
 
 if (syncSwitch) {
-    const expander = document.querySelector('.expander:has(.expander-content)');
+    // get the one with child .expander-content
+    const expanders = document.querySelectorAll('.expander');
+    for (var i = 0; i < expanders.length; i++) {
+        if (expanders[i].querySelector('.expander-content')) {
+            var expander = expanders[i];
+            break;
+        }
+    }
     syncSwitch.addEventListener('change', function(event) {
         console.log('checkbox changed');
         if (syncSwitch.checked) {

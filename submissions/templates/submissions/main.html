@@ -6,7 +6,14 @@
 
   {% block content %}
 <div class="submissions-header">
-    <h3>{{title}}</h3>
+    <h3>{{title}}
+      {% if object_list %}
+      <span class="submissions-header__count badge bg-secondary" title="Number of submissions">
+        {{object_list|length}} <i class="bi bi-file-earmark-fill"></i>
+      </span>
+      {% endif %}
+    </h3>
+    
     {% comment %} button to search, add, remove {% endcomment %}
     <div class="submissions-header__tools">
       
@@ -208,7 +215,7 @@
         </div>
         
         <div class="modal-body">
-          <form action="" enctype="multipart/form-data" method="POST">
+          <form class="needs-validation" action="" enctype="multipart/form-data" method="POST" id="uploadMorePDFsForm" novalidate>
             {% csrf_token %}
             {{ upload_form|crispy }}
             <button type="submit" name="submit-upload" class="btn btn-primary mt-3">Upload</button>
