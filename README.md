@@ -2,6 +2,7 @@
 
 # Instructor Pilot
 
+![Instructor Pilot](assets/readme_image.png)
 ## Description
 
 A Django app to assist Teaching Assistants and Instructors with Canvas integration.
