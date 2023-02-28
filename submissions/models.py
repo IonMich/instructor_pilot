@@ -214,6 +214,17 @@ class PaperSubmission(Submission):
         verbose_name_plural = "Paper Submissions" 
         ordering = ["created"] 
 
+    def non_grade_comments(self, include_file_comments=True):
+        """get all the comments that have is_grade_summary=False
+        
+        If include_files is True, then include the comment files in the
+        returned comments.
+        """
+        comments = self.submissions_submissioncomment_related.filter(is_grade_summary=False)
+        if not include_file_comments:
+            comments = comments.filter(comment_file=None)
+        return comments
+
     def upload_to_canvas(self):
         # get the canvas course id
         pass
