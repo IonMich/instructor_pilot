@@ -351,9 +351,29 @@ class Assignment(models.Model):
                         )
                         if uploaded:
                             print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
+
+            print(f'Submission comment file url: {submission.pdf}')
             
+            new_file_name = f"submission_{submission.student.first_name}_{submission.student.last_name}.pdf"
+            tmp_folder_path = os.path.join(settings.BASE_DIR, "tmp")
+            if not os.path.exists(tmp_folder_path):
+                os.makedirs(tmp_folder_path)
+            with tempfile.TemporaryDirectory(dir=tmp_folder_path) as tmp_dir:
+                tmp_file_path = os.path.join(tmp_dir, new_file_name)
+                shutil.copyfile(submission.pdf.path, tmp_file_path)
+
+                uploaded = canvas_submission.upload_comment(
+                    file=tmp_file_path,
+                )
+                if uploaded:
+                    print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
+
             # get the version comments for this submission
             submission_version_string = submission.version
+            if submission_version_string is None or submission_version_string == "":
+                print(f"Will not upload version comments for {canvas_submission.user['name']} because "
+                        "the submission version is None.")
+                continue
             submission_version = self.version_set.all().get(name=submission_version_string)
             version_text_comments = submission_version.versiontext_set.filter(
                 author=request_user,
@@ -383,22 +403,7 @@ class Assignment(models.Model):
                     if uploaded:
                         print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
             
-            print(f'Submission comment file url: {submission.pdf}')
             
-            new_file_name = f"submission_{submission.student.first_name}_{submission.student.last_name}.pdf"
-            tmp_folder_path = os.path.join(settings.BASE_DIR, "tmp")
-            if not os.path.exists(tmp_folder_path):
-                os.makedirs(tmp_folder_path)
-            with tempfile.TemporaryDirectory(dir=tmp_folder_path) as tmp_dir:
-                tmp_file_path = os.path.join(tmp_dir, new_file_name)
-                shutil.copyfile(submission.pdf.path, tmp_file_path)
-
-                uploaded = canvas_submission.upload_comment(
-                    file=tmp_file_path,
-                )
-                if uploaded:
-                    print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
-
 
 class Version(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
