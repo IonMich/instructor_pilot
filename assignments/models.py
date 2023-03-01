@@ -369,12 +369,13 @@ class Assignment(models.Model):
                     print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
 
             # get the version comments for this submission
-            submission_version_string = submission.version
-            if submission_version_string is None or submission_version_string == "":
-                print(f"Will not upload version comments for {canvas_submission.user['name']} because "
-                        "the submission version is None.")
+            # if something goes wrong, we continue to the next submission
+            try:
+                submission_version_string = submission.version
+                submission_version = self.version_set.all().get(name=submission_version_string)
+            except Exception as e:
+                print(f"Coud not find submission version for {canvas_submission.user['name']}")
                 continue
-            submission_version = self.version_set.all().get(name=submission_version_string)
             version_text_comments = submission_version.versiontext_set.filter(
                 author=request_user,
             )
