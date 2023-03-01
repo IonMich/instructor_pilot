@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
@@ -128,7 +129,10 @@ class Course(models.Model):
         
         try:
             university_code = canvas_course.sis_course_id.split(".")[0].lower()
-            university = University.objects.get(university_code=university_code)
+            university = University.objects.get(
+                Q(university_code__iexact=university_code)
+            )
+
         except Exception as e:
             print(e)
             print("University not found. Assigning to first university.")

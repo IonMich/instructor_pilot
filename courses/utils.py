@@ -1,13 +1,25 @@
 import os
+from dotenv import load_dotenv
 
 import autocanvas.core as ac
-import pandas as pd
 from autocanvas.config import INPUT_DIR, OUTPUT_DIR, get_API_key
-from autocanvas.core.conversions import (df_from_api_list,
-                                         series_from_api_object)
 from canvasapi import Canvas
 
-API_URL = "https://ufl.instructure.com/"
+def get_canvas_url():
+    """
+    Return the Canvas URL, appending a trailing slash if needed.
+    """
+    load_dotenv()
+    if os.getenv("API_URL") is not None:
+        api_url =  os.getenv("API_URL")
+    else:
+        api_url = "https://ufl.instructure.com/"
+    
+    if api_url[-1] != "/":
+        api_url += "/"
+    return api_url
+
+API_URL = get_canvas_url()
 CANVAS_API_KEY = get_API_key()
 
 def get_canvas_object():
@@ -25,7 +37,7 @@ def get_canvas_course(course_code=None, term_name=None, canvas_id=None):
             "teachers","total_students",
             "sections","course_progress",
             "term","public_description"]
-    canvas = Canvas(API_URL, CANVAS_API_KEY)
+    canvas = get_canvas_object()
     if canvas_id is not None:
         return canvas.get_course(
             int(canvas_id), 

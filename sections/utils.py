@@ -3,6 +3,7 @@ import os
 
 import pandas as pd
 
+from django.db.models import Q
 from sections.models import Section
 from students.models import Student
 from universities.models import University
@@ -22,8 +23,10 @@ def import_students_to_sections(csv_fpath):
         except Section.DoesNotExist:
             print("section does not exist")
             section = None
-
-        university = University.objects.get(name="University of Florida")
+        
+        university = University.objects.get(
+            Q(university_code__iexact="ufl")
+        )
         
         match = re.match("(.*),\s(.*)",row['Student'])
         print(f"{match.group(1)} {match.group(2)}")

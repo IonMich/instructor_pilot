@@ -34,10 +34,10 @@
     <input type="hidden" name="course_id" value="{{course.pk}}">
     {% csrf_token %}
     <button class="btn btn-primary" name="sync_from_canvas" value="sync" type="submit">
-    {% if course.university.name == "University of Florida" %}
-    Sync from Canvas and UF
+    {% if course.university.university_code.lower == "ufl" %}
+        Sync from Canvas and UF
     {% else %}
-    Sync from Canvas
+        Sync from Canvas
     {% endif %}
     </button>
     
@@ -167,8 +167,8 @@
             <ul class="list-group overflow-auto d-flex" style="margin-bottom:1em">
             {% for announcement in course.announcements.all %}
                 <a href=
-                {% if course.university.name == "University of Florida" %}
-                    "https://ufl.instructure.com/courses/{{course.canvas_id}}/discussion_topics/{{announcement.canvas_id}}"
+                {% if course.university.university_code.lower == "ufl" %}
+                    "{{course.university.canvas_api_url}}courses/{{course.canvas_id}}/discussion_topics/{{announcement.canvas_id}}"
                 {% else %}
                     {{announcement.get_canvas_url}}
                 {% endif %}                
