@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Assignment, Version, VersionPdf, VersionText
+from .models import Assignment, Version, VersionFile, VersionText
 
 # Register your models here.
 
@@ -16,5 +16,5 @@ class AssignmentAdmin(admin.ModelAdmin):
 admin.site.register(Assignment, AssignmentAdmin)
 
 admin.site.register(Version)
-admin.site.register(VersionPdf)
+admin.site.register(VersionFile)
 admin.site.register(VersionText)

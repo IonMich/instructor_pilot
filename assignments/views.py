@@ -10,7 +10,7 @@ from submissions.forms import (StudentClassifyForm, SubmissionFilesUploadForm,
 from submissions.models import PaperSubmission, PaperSubmissionImage, SubmissionComment
 from submissions.views import _random1000
 
-from .models import Assignment, Version, VersionPdf, VersionText
+from .models import Assignment, Version, VersionFile, VersionText
 
 from submissions.cluster import (crop_and_ocr, crop_images_to_text, vectorize_texts, perform_dbscan_clustering, plot_clusters_dbscan)
 
@@ -501,7 +501,7 @@ def version_submission(request, course_pk, assignment_pk):
                         )
                             
                         # add this to the database
-                        new_version_file = VersionPdf.objects.create(
+                        new_version_file = VersionFile.objects.create(
                             version=version,
                             pdf=new_file_path_in_media,
                             author=request.user,
@@ -534,7 +534,7 @@ def version_reset(request, course_pk, assignment_pk):
         version_texts = VersionText.objects.filter(version__in=versions)
         version_texts.delete()
         # delete all the version pdfs for this assignment
-        version_pdfs = VersionPdf.objects.filter(version__in=versions)
+        version_pdfs = VersionFile.objects.filter(version__in=versions)
         # delete all the associated files
         for version_pdf in version_pdfs:
             os.remove(os.path.join(settings.MEDIA_ROOT, version_pdf.pdf.name))
@@ -631,7 +631,7 @@ def delete_comment(request, course_pk, assignment_pk):
             # delete the comment from the database
             comment.delete()
         elif comment_type == 'pdf':
-            comment = get_object_or_404(VersionPdf, pk=comment_id)
+            comment = get_object_or_404(VersionFile, pk=comment_id)
             # delete the associated file
             os.remove(os.path.join(settings.MEDIA_ROOT, comment.pdf.name))
             # delete the comment

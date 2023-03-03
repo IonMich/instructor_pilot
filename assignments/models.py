@@ -410,12 +410,11 @@ class Version(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
-    versions = models.CharField(max_length=255, null=True, blank=True, default=None)
     created_at = models.DateTimeField(auto_now_add=True)
     # add a field to store the image to determine the version
     versionImage = models.ImageField(upload_to='assignments/versions/', null=True, blank=True)
 
-class VersionPdf(models.Model):
+class VersionFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     pdf = models.FileField(upload_to='assignments/versions/', null=True, blank=True)
     version = models.ForeignKey(Version, on_delete=models.CASCADE)
