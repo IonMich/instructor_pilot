@@ -416,16 +416,16 @@ class Version(models.Model):
 
 class VersionFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    pdf = models.FileField(upload_to='assignments/versions/', null=True, blank=True)
+    v_file = models.FileField(upload_to='assignments/versions/', null=True, blank=True)
     version = models.ForeignKey(Version, on_delete=models.CASCADE)
     author = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     def get_filename(self):
-        return os.path.basename(self.pdf.name)
+        return os.path.basename(self.v_file.name)
     
     def get_filesize(self):
-        size = os.path.getsize(self.pdf.path)
+        size = os.path.getsize(self.v_file.path)
         if size < 1024:
             return f"{size} B"
         elif size < 1024**2:

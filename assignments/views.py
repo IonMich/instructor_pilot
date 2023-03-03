@@ -184,133 +184,6 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
         })
 
 
-@login_required
-def cluster_view(request, course_pk, assignment_pk):
-    # if the request is POST, then cluster the submissions
-    if request.method == 'POST':
-        assignment = get_object_or_404(Assignment, pk=assignment_pk)
-        # select submissions to cluster from model submissions.PaperSubmission
-        # get the submissions from the database
-        submissions = PaperSubmission.objects.filter(assignment=assignment)
-        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
-        # get the items in the field
-        images = []
-        for submission in submissions:
-            submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=3)
-            images.append(submission_image[0].image.url)
-
-        # use the crop_images_to_text function to get the text from the images
-        texts = crop_images_to_text(images)
-
-        # vectorize the text
-        print("vectorizing texts")
-        X = vectorize_texts(texts)
-        # cluster the text
-        print("clustering images")
-        dbscan, cluster_labels = perform_dbscan_clustering(X)
-        # add the cluster labels to the database
-        for i, submission in enumerate(submissions):
-            cluster_labels[i] += 1
-            submission.version = cluster_labels[i]
-            submission.save()
-
-        # renew the submissions_image queryset after the above changes
-        submissions = PaperSubmission.objects.filter(assignment=assignment)
-        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
-
-        # get the images for each cluster
-        cluster_types = len(set(cluster_labels))
-        # separate out the outliers
-        if 0 in cluster_labels:
-            cluster_types -= 1
-        cluster_images = [0]*cluster_types
-        for submission in submissions:
-            for i in range(cluster_types):
-                if int(submission.version) == (i+1) and cluster_images[i] == 0:
-                    # get the image url from the submission's associated PaperSubmissionImage with page=3
-                    paperSubmission = PaperSubmissionImage.objects.filter(submission=submission, page=3)
-                    cluster_images[i] = paperSubmission[0].image.url
-                    break
-        # context
-        context = {'assignment': assignment, 'submissions': submissions, 
-        'cluster_labels': cluster_labels, 
-        'cluster_images': cluster_images, 'course_pk': course_pk, 'assignment_pk': assignment_pk}
-        
-        return render(request, 'assignments/cluster.html', context)
-    
-    # send the user to the assignment detail page
-    return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
-
-
-@login_required
-def cluster_submission(request, course_pk, assignment_pk):
-    # if the request is POST
-    if request.method == 'POST':
-        print("request was POST")
-        # get the assignment
-        assignment = get_object_or_404(Assignment, pk=assignment_pk)
-        # get all the data from the POST request
-        data = request.POST
-        # convert this queryDict data to a dictionary
-        data = data.dict()
-        # keep track of uploaded comment files
-        loaded_files = []
-        
-        # get the submissions from the database
-        submissions = PaperSubmission.objects.filter(assignment=assignment)
-        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
-        # get the each of the submissions
-        for submission in submissions:
-            # get the cluster label for this submission
-            version = submission.version
-            if int(version) != 0:
-                # get the text for this cluster
-                text = data['clusterText1-'+str(version)].strip()
-                if text != "":
-                    # create a new submission comment
-                    submission_comment = SubmissionComment(paper_submission=submission, text=text, author=request.user)
-                    submission_comment.save()
-                
-                # get files for this version
-                if request.FILES.get('clusterFile-'+str(version)):
-                    # set up the file system storage
-                    new_comment_file_dir_in_media = os.path.join("submissions", 
-                    f"course_{submission.assignment.course.pk}", 
-                    f"assignment_{submission.assignment.pk}",
-                    "comment")
-                    new_comment_file_dir = os.path.join(
-                        settings.MEDIA_ROOT, 
-                        new_comment_file_dir_in_media)
-
-                    if not os.path.exists(new_comment_file_dir):
-                        os.makedirs(new_comment_file_dir)
-                    # add this as comment file for this submission
-                    files = request.FILES.getlist('clusterFile-'+str(version))
-                    for file in files:
-                        if file.name not in loaded_files:
-                            loaded_files.append(file.name)
-                            FileSystemStorage(location=new_comment_file_dir).save(file.name, file)
-                            # copy file to new location, while keeping the original name
-                        new_file_path_in_media = os.path.join(
-                            new_comment_file_dir_in_media,
-                            file.name,
-                        )
-                            
-                        # add this to the database
-                        new_comment_file = SubmissionComment.objects.create(
-                            paper_submission=submission,
-                            comment_file=new_file_path_in_media,
-                            author=request.user,
-                            )
-                        new_comment_file.save()
-                        
-                    # SubmissionComment.add_commentfiles_to_db(
-                    # submission_target=submission,
-                    # uploaded_files=files,
-                    # author=request.user)
-
-        
-    return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
 
 @login_required
 def version_view(request, course_pk, assignment_pk):
@@ -365,7 +238,7 @@ def version_view(request, course_pk, assignment_pk):
             # create a new version
             # retrieve the image url from the cluster_images list and remove the first meida/ from the string
             path_to_image = cluster_images[i-1].replace("/media", "")
-            new_version = Version(assignment=assignment, name=str(i), versions=str(cluster_types), versionImage=path_to_image)
+            new_version = Version(assignment=assignment, name=str(i), versionImage=path_to_image)
             new_version.save()
         # set the assignment versioned field to true
         assignment.versioned = True
@@ -410,59 +283,7 @@ def version_submission(request, course_pk, assignment_pk):
         # keep track of uploaded comment files
         loaded_files = []
 
-        """
-        
-        # get the submissions from the database
-        submissions = PaperSubmission.objects.filter(assignment=assignment)
-        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
-        # get the each of the submissions
-        for submission in submissions:
-            # get the cluster label for this submission
-            version = submission.version
-            if int(version) != 0:
-                # get the text for this cluster
-                # text = data['versionText'+str(version)].strip()
-                text = version_texts[int(version) - 1].strip()
-                if text != "":
-                    # create a new submission comment
-                    submission_comment = SubmissionComment(paper_submission=submission, text=text, author=request.user)
-                    submission_comment.save()
-                
-                if request.FILES.get('versionFiles' + str(version)):
-                    # set up the file system storage
-                    new_comment_file_dir_in_media = os.path.join("submissions", 
-                    f"course_{submission.assignment.course.pk}", 
-                    f"assignment_{submission.assignment.pk}",
-                    "comment")
-                    new_comment_file_dir = os.path.join(
-                        settings.MEDIA_ROOT, 
-                        new_comment_file_dir_in_media)
 
-                    if not os.path.exists(new_comment_file_dir):
-                        os.makedirs(new_comment_file_dir)
-                    # add this as comment file for this submission
-                    files = request.FILES.getlist('versionFiles' + str(version))
-                    for file in files:
-                        if isinstance(file, InMemoryUploadedFile):
-                            if file.name not in loaded_files: 
-                                loaded_files.append(file.name)
-                                FileSystemStorage(location=new_comment_file_dir).save(file.name, file)
-                                # copy file to new location, while keeping the original name
-                            new_file_path_in_media = os.path.join(
-                                new_comment_file_dir_in_media,
-                                file.name,
-                            )
-                                
-                            # add this to the database
-                            new_comment_file = SubmissionComment.objects.create(
-                                paper_submission=submission,
-                                comment_file=new_file_path_in_media,
-                                author=request.user,
-                                )
-                            new_comment_file.save()
-                        else:
-                            return JsonResponse({'message': 'error'})
-                            """
         # find all the versions for this assignment
         versions = Version.objects.filter(assignment=assignment)
         # for each version, put the text and files into the version
@@ -503,7 +324,7 @@ def version_submission(request, course_pk, assignment_pk):
                         # add this to the database
                         new_version_file = VersionFile.objects.create(
                             version=version,
-                            pdf=new_file_path_in_media,
+                            v_file=new_file_path_in_media,
                             author=request.user,
                             )
                         new_version_file.save()
@@ -534,11 +355,11 @@ def version_reset(request, course_pk, assignment_pk):
         version_texts = VersionText.objects.filter(version__in=versions)
         version_texts.delete()
         # delete all the version pdfs for this assignment
-        version_pdfs = VersionFile.objects.filter(version__in=versions)
+        version_files = VersionFile.objects.filter(version__in=versions)
         # delete all the associated files
-        for version_pdf in version_pdfs:
-            os.remove(os.path.join(settings.MEDIA_ROOT, version_pdf.pdf.name))
-        version_pdfs.delete()
+        for version_file in version_files:
+            os.remove(os.path.join(settings.MEDIA_ROOT, version_file.v_file.name))
+        version_files.delete()
         # delete all the versions for this assignment
         versions.delete()
         # send a JsonResponse to the frontend with the context
@@ -581,15 +402,15 @@ def version_change(request, course_pk, assignment_pk):
         # serialize the version_texts
         # print(version_texts)
         # get the version_pdfs for each version
-        version_pdfs = defaultdict(list)
+        version_files = defaultdict(list)
         for version in versions:
-            version_pdf_query = version.versionpdf_set.all()
+            version_file_query = version.versionfile_set.all()
             # add text from each query
-            for version_pdf in version_pdf_query:
-                version_pdfs[version.name].append({'name': version_pdf.get_filename(),'url': version_pdf.pdf.url,
-                                                    'author': version_pdf.author.first_name, 'date': version_pdf.created_at,
-                                                    'size': version_pdf.get_filesize(),
-                                                    'id': version_pdf.id
+            for version_file in version_file_query:
+                version_files[version.name].append({'name': version_file.get_filename(),'url': version_file.v_file.url,
+                                                    'author': version_file.author.first_name, 'date': version_file.created_at,
+                                                    'size': version_file.get_filesize(),
+                                                    'id': version_file.id
                                                     })
             
 
@@ -606,7 +427,7 @@ def version_change(request, course_pk, assignment_pk):
         'message': 'success',
         'new_version': 'false',
         'version_texts': version_texts,
-        'version_pdfs': version_pdfs
+        'version_pdfs': version_files
         }
 
         # send a JsonResponse to the frontend with the context
@@ -633,7 +454,7 @@ def delete_comment(request, course_pk, assignment_pk):
         elif comment_type == 'pdf':
             comment = get_object_or_404(VersionFile, pk=comment_id)
             # delete the associated file
-            os.remove(os.path.join(settings.MEDIA_ROOT, comment.pdf.name))
+            os.remove(os.path.join(settings.MEDIA_ROOT, comment.v_file.name))
             # delete the comment
             comment.delete()
         
