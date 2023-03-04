@@ -221,7 +221,7 @@ def version_view(request, course_pk, assignment_pk):
 
         outlier_label = -1
         cluster_types = set(cluster_labels) - {outlier_label,}
-        len_cluster_types = len(set(cluster_labels))
+        len_cluster_types = len(set(cluster_types))
         # create the versions
         
         for label in cluster_types:
