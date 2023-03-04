@@ -209,37 +209,54 @@ def version_view(request, course_pk, assignment_pk):
         # cluster the text
         print("clustering images")
         dbscan, cluster_labels = perform_dbscan_clustering(X)
-        # add the cluster labels to the database
-        for i, submission in enumerate(submissions):
-            cluster_labels[i] += 1
-            submission.version = cluster_labels[i]
-            submission.save()
 
-        # renew the submissions_image queryset after the above changes
-        submissions = PaperSubmission.objects.filter(assignment=assignment)
-        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
+        # delete the old versions if any
+        try:
+            assignment.version_set.all().delete()
+        except Exception as e:
+            print("No versions to delete")
+            pass
+        finally:
+            assignment.versioned = False
+
+        # create the versions
+        for label in set(cluster_labels):
+            # create a new version for each cluster
+            if label == -1:
+                continue
+            Version.objects.create(
+                name = label + 1,
+                assignment=assignment
+            )
 
         # get the images for each cluster
         cluster_types = len(set(cluster_labels))
         # separate out the outliers
         if 0 in cluster_labels:
             cluster_types -= 1
-        cluster_images = [0]*cluster_types
-        for submission in submissions:
-            for i in range(cluster_types):
-                if int(submission.version) == (i+1) and cluster_images[i] == 0:
-                    # get the image url from the submission's associated PaperSubmissionImage with page=3
-                    paperSubmission = PaperSubmissionImage.objects.filter(submission=submission, page=3)
-                    cluster_images[i] = paperSubmission[0].image.url
-                    break
+        cluster_images = [""]*cluster_types
+        # add the cluster labels to the database
+        for i, submission in enumerate(submissions):
+            cluster_labels[i] += 1
+            # get the version with the corresponding cluster label
+            if cluster_labels[i] == 0:
+                continue
+            version = Version.objects.get(assignment=assignment, name=cluster_labels[i])
+            submission.version = version
+            # check if version already has an image
+            if version.version_image == "":
+                # get the image url from the submission's associated PaperSubmissionImage with page=3
+                submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=3)
+                cluster_images[int(version.name)-1] = submission_image[0].image.url
+                # url.replace("/media", "")
+                version.version_image = cluster_images[int(version.name)-1].replace("/media", "")
+                version.save()
+                
+            submission.save()
+        # renew the submissions_image queryset after the above changes
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
 
-        # make the corresponding assignment versions
-        for i in range(1, cluster_types + 1):
-            # create a new version
-            # retrieve the image url from the cluster_images list and remove the first meida/ from the string
-            path_to_image = cluster_images[i-1].replace("/media", "")
-            new_version = Version(assignment=assignment, name=str(i), versionImage=path_to_image)
-            new_version.save()
         # set the assignment versioned field to true
         assignment.versioned = True
         assignment.save()
@@ -255,7 +272,7 @@ def version_view(request, course_pk, assignment_pk):
         'outliers': outliers,
         'submissions': submissions, 
         # 'cluster_labels': cluster_labels, 
-        'cluster_images': list(cluster_images), 
+        'cluster_images': cluster_images, 
         # 'course_pk': course_pk, 'assignment_pk': assignment_pk
         'message': 'success',
         'new_version': 'true'
@@ -280,9 +297,7 @@ def version_submission(request, course_pk, assignment_pk):
         # Get the data from the form
         version_texts = request.POST.getlist('versionTexts')
         
-        # keep track of uploaded comment files
-        loaded_files = []
-
+    
 
         # find all the versions for this assignment
         versions = Version.objects.filter(assignment=assignment)
@@ -311,20 +326,18 @@ def version_submission(request, course_pk, assignment_pk):
                 files = request.FILES.getlist('versionFiles' + str(version.name))
                 for file in files:
                     if isinstance(file, InMemoryUploadedFile):
-                        if file.name not in loaded_files: 
-                            print(file.name)
-                            loaded_files.append(file.name)
-                            FileSystemStorage(location=new_comment_file_dir).save(file.name, file)
+                        # save the file to the file system
+                        file_name = FileSystemStorage(location=new_comment_file_dir).save(file.name, file)
                             # copy file to new location, while keeping the original name
                         new_file_path_in_media = os.path.join(
                             new_comment_file_dir_in_media,
-                            file.name,
+                            file_name,
                         )
                             
                         # add this to the database
                         new_version_file = VersionFile.objects.create(
                             version=version,
-                            v_file=new_file_path_in_media,
+                            version_file=new_file_path_in_media,
                             author=request.user,
                             )
                         new_version_file.save()
@@ -340,12 +353,7 @@ def version_reset(request, course_pk, assignment_pk):
     if request.method == 'POST':
         # get the assignment
         assignment = get_object_or_404(Assignment, pk=assignment_pk)
-        # get all the submissions for this assignment
-        submissions = PaperSubmission.objects.filter(assignment=assignment)
         # for each submission, set the version to 0
-        for submission in submissions:
-            submission.version = None
-            submission.save()
         # set the assignment versioned field to false
         assignment.versioned = False
         assignment.save()
@@ -358,7 +366,7 @@ def version_reset(request, course_pk, assignment_pk):
         version_files = VersionFile.objects.filter(version__in=versions)
         # delete all the associated files
         for version_file in version_files:
-            os.remove(os.path.join(settings.MEDIA_ROOT, version_file.v_file.name))
+            os.remove(os.path.join(settings.MEDIA_ROOT, version_file.version_file.name))
         version_files.delete()
         # delete all the versions for this assignment
         versions.delete()
@@ -382,11 +390,11 @@ def version_change(request, course_pk, assignment_pk):
         # get the cluster_images
         cluster_images = []
         for version in versions:
-            cluster_images.append(version.versionImage.url)
+            cluster_images.append(version.version_image.url)
         # get the cluster_types
         cluster_types = len(versions)
         # get the outliers by getting the submissions with their version set to 0
-        outliers = PaperSubmission.objects.filter(assignment=assignment, version=0)
+        outliers = PaperSubmission.objects.filter(assignment=assignment, version=None)
         outliers = len(outliers)
         # get the version_texts for each version
         from collections import defaultdict
@@ -407,7 +415,7 @@ def version_change(request, course_pk, assignment_pk):
             version_file_query = version.versionfile_set.all()
             # add text from each query
             for version_file in version_file_query:
-                version_files[version.name].append({'name': version_file.get_filename(),'url': version_file.v_file.url,
+                version_files[version.name].append({'name': version_file.get_filename(),'url': version_file.version_file.url,
                                                     'author': version_file.author.first_name, 'date': version_file.created_at,
                                                     'size': version_file.get_filesize(),
                                                     'id': version_file.id
@@ -454,7 +462,7 @@ def delete_comment(request, course_pk, assignment_pk):
         elif comment_type == 'pdf':
             comment = get_object_or_404(VersionFile, pk=comment_id)
             # delete the associated file
-            os.remove(os.path.join(settings.MEDIA_ROOT, comment.v_file.name))
+            os.remove(os.path.join(settings.MEDIA_ROOT, comment.version_file.name))
             # delete the comment
             comment.delete()
         

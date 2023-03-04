@@ -156,12 +156,12 @@
                              <!-- label showing the clustering status -->
 
                             
-                             {% if submission.version is not None %}
-                             {% if submission.version == '0' %}
-                                 <span class="badge rounded-pill bg-danger" title="Outlier">V{{submission.version}}</span> 
+                             {% if submission.version %}
+                                <span class="badge rounded-pill bg-success" title="Version {{submission.version.name}}">V{{submission.version.name}}</span> 
                              {% else %}
-                                 <span class="badge rounded-pill bg-success" title="Version {{submission.version}}">V{{submission.version}}</span> 
-                             {% endif %}
+                                {% if submission.assignment.versioned %}
+                                    <span class="badge rounded-pill bg-danger" title="Outlier">V0</span> 
+                                {% endif %}
                              {% endif %}
                              
  
@@ -201,48 +201,43 @@
                     </div> {% endcomment %}
 
                     <!--Populate Version Comments-->
-                    {% if submission.assignment.versioned == True %}
+                    {% if submission.version.versiontext_set.all or submission.version.versionfile_set.all %}
 
                     <div class="col-xs-12 mb-2" style="height:70%;">                            
                             <label for="newComment" style="font-size:20px;">Version Comments</label>
-                            {% for version in submission.assignment.version_set.all %}
-                                {% if version.name == submission.version %}
-                                    {% for text in version.versiontext_set.all %}
-                                    <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
-                                        {{text.text}}
-                                        <div class="d-flex">
-                                            <small class="ms-auto comment-info text-muted">
-                                                {% comment %} add author {% endcomment %}
-                                                <span class="comment-author">{{text.author.first_name}} - </span>
-                                                {% comment %} add date {% endcomment %}
-                                                <span class="comment-date">{{text.created_at}}</span>
-                                                {% comment %} if file, add filesize {% endcomment %}
-                                                {% comment %} {% if comment.comment_file %}
-                                                    <span class="comment-filesize">({{comment.get_filesize}})</span>
-                                                {% endif %} {% endcomment %}
-                                            </small>
-                                        </div>
-                                    </div>
-                                    {% endfor%}
-                                    {% for file in version.versionpdf_set.all %}
-                                    <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
-                                        <a name="version_comment_{{forloop.counter}}-file" class="comment-file" id="version-{{ forloop.counter }}-file" href="{{file.pdf.url}}" target="_blank">
-                                            {{ file.get_filename }}
-                                        </a>
-                                        <div class="d-flex">
-                                            <small class="ms-auto comment-info text-muted">
-                                                {% comment %} add author {% endcomment %}
-                                                <span class="comment-author">{{file.author.first_name}} - </span>
-                                                {% comment %} add date {% endcomment %}
-                                                <span class="comment-date">{{file.created_at}}</span>
-                                                {% comment %} if file, add filesize {% endcomment %}
-                                                <span class="comment-filesize">({{file.get_filesize}})</span>
-                                            </small>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                {% endif %}
+                            
+                            {% for text in submission.version.versiontext_set.all %}
+                            <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
+                                {{text.text}}
+                                <div class="d-flex">
+                                    <small class="ms-auto comment-info text-muted">
+                                        {% comment %} add author {% endcomment %}
+                                        <span class="comment-author">{{text.author.first_name}} - </span>
+                                        {% comment %} add date {% endcomment %}
+                                        <span class="comment-date">{{text.created_at}}</span>
+                                        
+                                    </small>
+                                </div>
+                            </div>
+                            {% endfor%}
+                            {% for file in submission.version.versionfile_set.all %}
+                            <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
+                                <a name="version_comment_{{forloop.counter}}-file" class="comment-file" id="version-{{ forloop.counter }}-file" href="{{file.version_file.url}}" target="_blank">
+                                    {{ file.get_filename }}
+                                </a>
+                                <div class="d-flex">
+                                    <small class="ms-auto comment-info text-muted">
+                                        {% comment %} add author {% endcomment %}
+                                        <span class="comment-author">{{file.author.first_name}} - </span>
+                                        {% comment %} add date {% endcomment %}
+                                        <span class="comment-date">{{file.created_at}}</span>
+                                        {% comment %} if file, add filesize {% endcomment %}
+                                        <span class="comment-filesize">({{file.get_filesize}})</span>
+                                    </small>
+                                </div>
+                            </div>
                             {% endfor %}
+                                
                     </div>
                     {% endif %}
 

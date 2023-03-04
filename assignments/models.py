@@ -370,16 +370,17 @@ class Assignment(models.Model):
 
             # get the version comments for this submission
             # if something goes wrong, we continue to the next submission
-            try:
-                submission_version_string = submission.version
-                submission_version = self.version_set.all().get(name=submission_version_string)
-            except Exception as e:
+                
+            submission_version = submission.version
+            if not submission_version:
                 print(f"Coud not find submission version for {canvas_submission.user['name']}")
                 continue
+    
+                
             version_text_comments = submission_version.versiontext_set.filter(
                 author=request_user,
             )
-            version_file_comments = submission_version.versionpdf_set.filter(
+            version_file_comments = submission_version.versionfile_set.filter(
                 author=request_user,
             )
             for comment in version_text_comments:
@@ -389,7 +390,7 @@ class Assignment(models.Model):
                     },
                 )
             for comment in version_file_comments:
-                print(f'Comment file: {comment.pdf}')
+                print(f'Comment file: {comment.version_file}')
                 new_file_name = comment.get_filename()
                 tmp_folder_path = os.path.join(settings.BASE_DIR, "tmp")
                 if not os.path.exists(tmp_folder_path):
@@ -411,21 +412,23 @@ class Version(models.Model):
     name = models.CharField(max_length=255)
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     # add a field to store the image to determine the version
-    versionImage = models.ImageField(upload_to='assignments/versions/', null=True, blank=True)
+    version_image = models.ImageField(upload_to='assignments/versions/', null=True, blank=True)
 
 class VersionFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    v_file = models.FileField(upload_to='assignments/versions/', null=True, blank=True)
+    version_file = models.FileField(upload_to='assignments/versions/', null=True, blank=True)
     version = models.ForeignKey(Version, on_delete=models.CASCADE)
     author = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     def get_filename(self):
-        return os.path.basename(self.v_file.name)
+        return os.path.basename(self.version_file.name)
     
     def get_filesize(self):
-        size = os.path.getsize(self.v_file.path)
+        size = os.path.getsize(self.version_file.path)
         if size < 1024:
             return f"{size} B"
         elif size < 1024**2:
@@ -441,6 +444,7 @@ class VersionText(models.Model):
     version = models.ForeignKey(Version, on_delete=models.CASCADE)
     author = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
             
 

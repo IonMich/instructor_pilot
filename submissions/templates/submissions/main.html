@@ -105,13 +105,22 @@
 
                   <!-- Makes changes here to show clustering-->
 
-                  <p class="card-text">
+                  {% comment %} <p class="card-text">
                     <small class="text-muted">
                       
                       {% if obj.version != None %}
                         Version: <i>{{obj.version}}</i>
                       {% endif %}
                       </small>
+                    </p> {% endcomment %}
+                    <p class="card-text">
+                      {% if obj.version %}
+                        <span class="badge rounded-pill bg-success" title="Version {{obj.version.name}}">V{{obj.version.name}}</span> 
+                      {% else %}
+                        {% if obj.assignment.versioned %}
+                          <span class="badge rounded-pill bg-danger" title="Outlier">V0</span> 
+                        {% endif %}
+                  {% endif %}
                     </p>
 
                   <!-- Changes end here-->

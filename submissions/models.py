@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 
-from assignments.models import Assignment
+from assignments.models import Assignment, Version
 from students.models import Student
 from submissions.digits_classify import (classify, import_students_from_db,
                                          import_tf_model)
@@ -196,7 +196,14 @@ class PaperSubmission(Submission):
         default="M")
 
     # add a field for clustering with charfield
-    version = models.CharField(max_length=100, null=True, blank=True)
+    # version = models.CharField(max_length=100, null=True, blank=True)
+    version = models.ForeignKey(
+        Version,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="%(app_label)s_%(class)s_version",
+    )
     # finished changes here
 
     def __str__(self):
