@@ -1345,6 +1345,9 @@ if(updateVersion) {
                 clusterMessage.className = 'alert alert-danger';
                 clusterMessage.innerHTML = 'Solutions for versions uploaded unsuccessfully.';
             }
+        })
+        .catch(error => {
+            console.log(error);
         });
 
     });

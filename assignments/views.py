@@ -219,29 +219,25 @@ def version_view(request, course_pk, assignment_pk):
         finally:
             assignment.versioned = False
 
+        outlier_label = -1
+        cluster_types = set(cluster_labels) - {outlier_label,}
+        len_cluster_types = len(set(cluster_labels))
         # create the versions
-        for label in set(cluster_labels):
-            # create a new version for each cluster
-            if label == -1:
-                continue
+        
+        for label in cluster_types:
             Version.objects.create(
                 name = label + 1,
                 assignment=assignment
             )
-
-        # get the images for each cluster
-        cluster_types = len(set(cluster_labels))
-        # separate out the outliers
-        if 0 in cluster_labels:
-            cluster_types -= 1
-        cluster_images = [""]*cluster_types
+        
+        
+        cluster_images = [""] * len_cluster_types
         # add the cluster labels to the database
         for i, submission in enumerate(submissions):
-            cluster_labels[i] += 1
             # get the version with the corresponding cluster label
-            if cluster_labels[i] == 0:
+            if cluster_labels[i] not in cluster_types:
                 continue
-            version = Version.objects.get(assignment=assignment, name=cluster_labels[i])
+            version = Version.objects.get(assignment=assignment, name=cluster_labels[i] + 1)
             submission.version = version
             # check if version already has an image
             if version.version_image == "":
@@ -257,18 +253,19 @@ def version_view(request, course_pk, assignment_pk):
         submissions = PaperSubmission.objects.filter(assignment=assignment)
         # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
 
-        # set the assignment versioned field to true
+        # count number of 0 in cluster_labels
+        outliers = np.count_nonzero(cluster_labels == outlier_label)
+
+        # set the versioned to True
         assignment.versioned = True
         assignment.save()
-
-        # count number of 0 in cluster_labels
-        outliers = np.count_nonzero(cluster_labels == 0)
+        
+        # Serialize the data
         assignment = model_to_dict(assignment)
-
         submissions = serializers.serialize('json', submissions)
         # context
         context = {'assignment': assignment,
-        'cluster_types' : cluster_types,
+        'cluster_types' : len_cluster_types,
         'outliers': outliers,
         'submissions': submissions, 
         # 'cluster_labels': cluster_labels, 
