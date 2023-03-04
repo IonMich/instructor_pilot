@@ -397,7 +397,7 @@ class Assignment(models.Model):
                     os.makedirs(tmp_folder_path)
                 with tempfile.TemporaryDirectory(dir=tmp_folder_path) as tmp_dir:
                     tmp_file_path = os.path.join(tmp_dir, new_file_name)
-                    shutil.copyfile(comment.pdf.path, tmp_file_path)
+                    shutil.copyfile(comment.version_file.path, tmp_file_path)
 
                     uploaded = canvas_submission.upload_comment(
                         file=tmp_file_path,
