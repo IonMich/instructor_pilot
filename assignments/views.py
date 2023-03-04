@@ -22,6 +22,8 @@ from django.core import serializers
 import numpy as np
 import json
 from django.core.files.uploadedfile import InMemoryUploadedFile
+
+from .utils import delete_versions
 # Create your views here.
 
 @login_required
@@ -210,14 +212,8 @@ def version_view(request, course_pk, assignment_pk):
         print("clustering images")
         dbscan, cluster_labels = perform_dbscan_clustering(X)
 
-        # delete the old versions if any
-        try:
-            assignment.version_set.all().delete()
-        except Exception as e:
-            print("No versions to delete")
-            pass
-        finally:
-            assignment.versioned = False
+        # delete the versions if already exist
+        delete_versions(assignment)
 
         outlier_label = -1
         cluster_types = set(cluster_labels) - {outlier_label,}
@@ -350,23 +346,8 @@ def version_reset(request, course_pk, assignment_pk):
     if request.method == 'POST':
         # get the assignment
         assignment = get_object_or_404(Assignment, pk=assignment_pk)
-        # for each submission, set the version to 0
-        # set the assignment versioned field to false
-        assignment.versioned = False
-        assignment.save()
-        # delete all the versions for this assignment
-        versions = Version.objects.filter(assignment=assignment)
-        # delete all the version texts for this assignment
-        version_texts = VersionText.objects.filter(version__in=versions)
-        version_texts.delete()
-        # delete all the version pdfs for this assignment
-        version_files = VersionFile.objects.filter(version__in=versions)
-        # delete all the associated files
-        for version_file in version_files:
-            os.remove(os.path.join(settings.MEDIA_ROOT, version_file.version_file.name))
-        version_files.delete()
-        # delete all the versions for this assignment
-        versions.delete()
+        # get all the versions for this assignment and delete them
+        delete_versions(assignment)
         # send a JsonResponse to the frontend with the context
 
         return JsonResponse({'message': 'success'})
