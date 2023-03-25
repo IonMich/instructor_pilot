@@ -92,11 +92,11 @@
             <div class="pt-3 ps-3 pb-1 assignments-header">
                 <h3>Assignments</h3>
                 {% comment %} create one tab for each assignment group {% endcomment %}
-                <div>
-                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <div class="ms-3 me-3">
+                    <ul class="nav nav-pills" id="myTab" role="tablist">
                         {% for group in course.get_all_assignment_groups %}
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link {% if forloop.first %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#assignment_group_{{forloop.counter}}" type="button" role="tab">{{group}}</button>
+                                <button class="nav-link {% if forloop.first %}active{% endif %}" data-bs-toggle="pill" data-bs-target="#assignment_group_{{forloop.counter}}" type="button" role="pill">{{group}}</button>
                             </li>
                         {% endfor %}
                     </ul>
