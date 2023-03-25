@@ -4,11 +4,6 @@
     display: grid;
     grid-template-columns: 1fr 2fr;
     grid-template-rows: minmax(150px,300px) minmax(150px,300px) minmax(150px,400px) minmax(150px,200px);
-    grid-template-areas: 
-        "sections assignments"
-        "sections assignments"
-        "announcements announcements"
-        "messages messages";
     border-radius: 15px;
   }
 
@@ -71,4 +66,27 @@
 
 .expander.expanded .expander-content {
   visibility: visible;
+}
+
+@media (width > 992px) {
+  .wrapper{
+    grid-template-areas: 
+        "sections assignments"
+        "sections assignments"
+        "announcements announcements"
+        "messages messages";
+    
+  }
+}
+
+@media (width < 992px) {
+  .wrapper{
+    grid-template-areas: 
+        "assignments assignments"
+        "assignments assignments"
+        "sections sections"
+        "sections sections"
+        "announcements announcements"
+        "messages messages";
+   }
 }
