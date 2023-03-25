@@ -54,8 +54,6 @@
 
 </form>
 
-{% comment %} Create 2x2 CSS div grid for sections, assignments, announcements, messages {% endcomment %}
-
 <div class="wrapper mt-5">
     <div class="sections">
         {% if course.sections.all %}
@@ -100,17 +98,6 @@
                             </li>
                         {% endfor %}
                     </ul>
-                    {% comment %} 
-                    <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                            Sort
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                            <li><a class="dropdown-item" href="#">Due Date</a></li>
-                            <li><a class="dropdown-item" href="#">Name</a></li>
-                        </ul>
-                    </div> 
-                    {% endcomment %}
                 </div>
                 
             </div>
