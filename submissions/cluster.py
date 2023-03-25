@@ -3,7 +3,6 @@ import cv2
 import pytesseract
 import multiprocessing
 import numpy as np
-import matplotlib.pyplot as plt
 # from pdf2image import convert_from_path
 from sklearn.cluster import KMeans
 from sklearn.cluster import DBSCAN
@@ -128,6 +127,7 @@ def plot_clusters_dbscan(X, cluster_labels, dbscan):
         X: vectorized texts
         cluster_labels: labels of the clusters
     """
+    import matplotlib.pyplot as plt
     # Reduce the dimensionality of the data using PCA
     pca = PCA(n_components=2)
     X_reduced = pca.fit_transform(X.toarray())
@@ -178,6 +178,7 @@ def plot_clusters(X, cluster_labels, num_of_clusters, quiz_num, kmeans):
         cluster_labels: labels of the clusters
         num_of_clusters: number of clusters
     """
+    import matplotlib.pyplot as plt
     # Reduce the dimensionality of the data using PCA
     pca = PCA(n_components=2).fit(X.toarray())
     datapoint = pca.transform(X.toarray())
