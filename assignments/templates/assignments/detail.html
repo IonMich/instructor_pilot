@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <script src="https://d3js.org/d3.v7.min.js" defer></script>
     {{ assignment.get_all_grades|json_script:"all_grades"}}
-    
+    {{ assignment.max_score|json_script:"max_score"}}    
     <script src="{% static 'assignments/detail.js' %}" defer></script>
 {% endblock scripts %}
 
@@ -321,12 +321,9 @@
         </div>
         
         <div class="col-md-6 d-flex justify-content-center">
-            {% comment %} {% crispy search_form %} {% endcomment %}
             <div class="w-100">
                 <canvas id="myChart"></canvas>
-              </div>
-              
-              
+            </div>
         </div>
         
         {% if message %}

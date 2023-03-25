@@ -690,13 +690,14 @@ function deleteAllSubs(event) {
 var chart = document.getElementById('myChart')
 if (chart) {
     var ctx = chart.getContext('2d');
-
+    // await the maxScore from the server
+    const maxScore = JSON.parse(document.getElementById('max_score').textContent);
     const all_grades = JSON.parse(document.getElementById('all_grades').textContent);
     // find the min and max of the grades from all_grades
     const values = Object.values(all_grades);
-    // get the min and max of the grades
-    const minm = Math.min(...values);
-    const maxm = Math.max(...values);
+    // set the min value of the x-axis to 0 and the max value to the max possible grade of the assignment
+    const minm = 0;
+    const maxm = maxScore;
     var histGenerator = d3.bin()
     .domain([minm,maxm])    // TODO: get the min and max of the grades
     .thresholds(39);  // number of thresholds; this will create 19+1 bins
@@ -720,7 +721,7 @@ if (chart) {
             borderColor: [
                 'rgba(255, 99, 132, 1)'
             ],
-            borderWidth: 1
+            borderWidth: 1,
         }]
     };
 
@@ -737,10 +738,11 @@ if (chart) {
                     }
                 },
                 x: {
-                    beginAtZero: true,
                     ticks: {
-                        autoSkip: true,
-                        maxTicksLimit: 8
+                        min: 0,
+                        max: maxScore,
+                        stepSize: 1,
+                        maxTicksLimit: 10,
                     }
                 }
             },
