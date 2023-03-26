@@ -321,6 +321,15 @@ function syncSubsFromCanvas(event) {
         btnFetch.disabled = false;
         // append success message in form
         appendSuccessMsg(form, syncedCount, notSyncedCount);
+        // delay by 2 seconds and then reload the page
+        setTimeout(() => {
+            if ( window.history.replaceState ) {
+                window.history.replaceState( null, null, window.location.href );
+            }
+            window.location = window.location.href;
+        }
+        , 2000);
+
     })
     .catch(error => {
         console.log("caught JS error", error);
@@ -339,6 +348,8 @@ function appendSuccessMsg(form, syncedCount, notSyncedCount) {
     } else {
         msg = `${syncedCount} submissions are now synced from Canvas. ${notSyncedCount} submissions were not synced from Canvas.`;
     }
+    // append "Reloading page..." to msg
+    msg += ` Reloading page...`;
     alertHtml = `<div class="alert alert-success alert-dismissible fade show mt-1" role="alert">
                 ${msg}
                 ${closeBtn}
