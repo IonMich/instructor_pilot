@@ -30,7 +30,7 @@ def course_detail_view(request, pk):
     # print(df_sections)
     return render(
         request, 
-        'courses/detail copy.html', 
+        'courses/detail.html', 
         {'course': course, })
 
 @login_required
