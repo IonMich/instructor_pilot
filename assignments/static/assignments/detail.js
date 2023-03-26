@@ -310,17 +310,15 @@ function syncSubsFromCanvas(event) {
             }
             // update the card and append success message
             //  append success message in form. Mention also the number of submissions that are and are not synced
-            // get the counts:
-            var syncedCount = data.submissions.filter(sub => sub.canvas_url).length;
-            var notSyncedCount = data.submissions.length - syncedCount;
+            // get the counts. If undefined, set to 0
             updateCard(card, sub);
         }
 
         // remove spinner and enable button
-        btnFetch.textContent = `Sync`;
+        btnFetch.textContent = `Reloading...`;
         btnFetch.disabled = false;
         // append success message in form
-        appendSuccessMsg(form, syncedCount, notSyncedCount);
+        appendSuccessMsg(form, data.submissions);
         // delay by 2 seconds and then reload the page
         setTimeout(() => {
             if ( window.history.replaceState ) {
@@ -340,17 +338,31 @@ function syncSubsFromCanvas(event) {
     );
 };
 
-function appendSuccessMsg(form, syncedCount, notSyncedCount) {
-
+function appendSuccessMsg(form, subs) {
+    // get the number of submissions that are synced and not synced
+    let syncedCount = 0;
+    let notSyncedCount = 0;
+    for (const sub of subs) {
+        if (sub.canvas_url) {
+            syncedCount++;
+        } else {
+            notSyncedCount++;
+        }
+    }
     closeBtn = `<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
     if (notSyncedCount === 0) {
         msg = `All ${syncedCount} submissions have been synced from Canvas!`;
-    } else {
+        msgType = "success";
+    } else if (syncedCount !== 0) {
         msg = `${syncedCount} submissions are now synced from Canvas. ${notSyncedCount} submissions were not synced from Canvas.`;
+        msgType = "warning";
+    } else {
+        msg = `No submissions were synced from Canvas. ${notSyncedCount} submissions were not synced from Canvas.`;
+        msgType = "danger";
     }
     // append "Reloading page..." to msg
     msg += ` Reloading page...`;
-    alertHtml = `<div class="alert alert-success alert-dismissible fade show mt-1" role="alert">
+    alertHtml = `<div class="alert alert-${msgType} alert-dismissible fade show mt-1" role="alert">
                 ${msg}
                 ${closeBtn}
             </div>`;
