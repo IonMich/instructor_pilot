@@ -49,9 +49,12 @@ def get_canvas_course(course_code=None, term_name=None, canvas_id=None):
     # TODO: much more info is available in the Canvas API
     # so we can add some more columns to the database
     for canvas_course in canvas_courses:
-        if (canvas_course.course_code == course_code 
-                and canvas_course.term["name"] == term_name):
-            return canvas_course
+        try:
+            if (canvas_course.course_code == course_code 
+                    and canvas_course.term["name"] == term_name):
+                return canvas_course
+        except:
+            pass
     return None
     
 
