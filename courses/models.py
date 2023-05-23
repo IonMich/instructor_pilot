@@ -214,25 +214,32 @@ class Course(models.Model):
 
         # now update the sections
         from sections.models import Section
+
+        add_from_resources = True if len(self.course_code.split(" ")) == 1 else False
+
         print(canvas_course.sections)
-        # if all the sections have the same name as the course name, then
+        
+        # if all enrolled sections for user have the same name as the course name, then
         # we can assume that the course designers did not add the TAs to their
         # individual sections, but rather to the course itself. In this case,
         # use other methods to get the sections for this TA.
-        if all([section["name"] == canvas_course.name for section in canvas_course.sections]):
+        all_canvas_sections = canvas_course.get_sections(include=["students","avatar_url","enrollments"])
+        enrolled_canvas_sections = canvas_course.sections
+        if any([section["name"] == canvas_course.name for section in canvas_course.sections]):
             print("No section enrollments found in the course for this user. "
                 "Will try to find sections for this user.")
-            # get all the sections in canvas 
-            canvas_sections = canvas_course.get_sections(include=["students","avatar_url","enrollments"])
             only_enrolled_sections = False
         else:
-            canvas_sections = canvas_course.sections
             only_enrolled_sections = True
-        sections = Section.update_from_canvas(
+
+        
+        Section.update_from_canvas(
             requester=requester,
             course=self, 
-            canvas_sections=canvas_sections,
-            only_enrolled_sections=only_enrolled_sections)
+            all_canvas_sections=all_canvas_sections,
+            enrolled_canvas_sections=enrolled_canvas_sections,
+            only_enrolled_sections=only_enrolled_sections,
+            add_from_resources=add_from_resources)
         
         # now update the assignments
         self.update_assignments_from_canvas(canvas_course)

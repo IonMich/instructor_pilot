@@ -80,8 +80,27 @@ class Section(models.Model):
     def get_absolute_url(self):
         return reverse('sections:detail', kwargs={'pk': self.pk})
 
+    def recreate_meetings(self, meetings):
+        self.meetings.remove()
+
+        for ufsoc_meeting in meetings:
+            start_time = datetime.strptime(
+                ufsoc_meeting['meetTimeBegin'], 
+                "%I:%M %p")
+            end_time = datetime.strptime(
+                ufsoc_meeting['meetTimeEnd'], 
+                "%I:%M %p")
+            meeting, _ = Meeting.objects.get_or_create(
+                day="".join(ufsoc_meeting['meetDays']),
+                start_time=start_time,
+                end_time=end_time,
+                location=f"{ufsoc_meeting['meetBuilding']} {ufsoc_meeting['meetRoom']}",)
+            self.meetings.add(meeting)
+        
+        self.save()
+
     @classmethod
-    def update_from_ufsoc(cls, requester, course):
+    def get_from_ufsoc(cls, requester, course):
         user = User.objects.get(username=requester)
         if not user.last_name:
             raise ValueError("User does not have a last name. Cannot search UF SOC. Please update your profile.")
@@ -121,59 +140,56 @@ class Section(models.Model):
             return []
         else:
             print(f"Found {len(ufsoc_sections)} sections in UF SOC.")
+        sections_to_return = []
         for ufsoc_section in ufsoc_sections:
             assert len(str(ufsoc_section['classNumber'])) == 5
-            section = cls.objects.filter(name__contains=f"({ufsoc_section['classNumber']})").first()
 
-            if section:
-                print(f"UF SOC section {ufsoc_section['classNumber']} matches course section {section.name}. Updating ...")
-                section.course = course
-                section.class_number = ufsoc_section['classNumber']
-            else:
-                print(f"Could not find UF SOC section {ufsoc_section['classNumber']} in course sections. Creating.")
-                section = cls.objects.create(
-                    name=f"{ufsoc_section['display']} ({ufsoc_section['classNumber']})",
-                    course=course,
-                    teaching_assistant=user,
-                    class_number=ufsoc_section['classNumber'],
-                )
-                
-            section.meetings.remove()
-            for ufsoc_meeting in ufsoc_section['meetTimes']:
-                start_time = datetime.strptime(
-                    ufsoc_meeting['meetTimeBegin'], 
-                    "%I:%M %p")
-                end_time = datetime.strptime(
-                    ufsoc_meeting['meetTimeEnd'], 
-                    "%I:%M %p")
-                meeting, _ = Meeting.objects.get_or_create(
-                    day="".join(ufsoc_meeting['meetDays']),
-                    start_time=start_time,
-                    end_time=end_time,
-                    location=f"{ufsoc_meeting['meetBuilding']} {ufsoc_meeting['meetRoom']}",)
-                section.meetings.add(meeting)
-            
-            section.save()
+            sections_to_return.append(
+                {
+                    "name": f"{ufsoc_section['display']} ({ufsoc_section['classNumber']})",
+                    "class_number": ufsoc_section['classNumber'],
+                    "meetings": ufsoc_section['meetTimes'],
+                }
+            )
 
-        return
+        return sections_to_return
 
     
     @classmethod
-    def update_from_canvas(cls, requester, course, canvas_sections, only_enrolled_sections=True):
+    def update_from_canvas(
+        cls, 
+        requester, 
+        course, 
+        all_canvas_sections, 
+        enrolled_canvas_sections,
+        only_enrolled_sections=True,
+        add_from_resources=True,
+        ):
         user = User.objects.get(username=requester)
-        cls.update_from_ufsoc(requester, course)
-        for canvas_section in canvas_sections:
+        resource_sections = []
+        if add_from_resources:
+            if course.university.university_code == "ufl":
+                resource_sections = cls.get_from_ufsoc(requester, course)
+        has_resources = len(resource_sections) > 0
+        resource_class_numbers = [section['class_number'] for section in resource_sections]
+        enrolled_canvas_section_names = [section['name'] for section in enrolled_canvas_sections]
+        for canvas_section in all_canvas_sections:
             try:
                 canvas_section_id = canvas_section['id']
                 canvas_section_name = canvas_section['name']
             except:
                 canvas_section_id = canvas_section.id
                 canvas_section_name = canvas_section.name
-                
+
+            # Skip the default course section 
             if canvas_section_name == course.name:
-                # Skip the default course section
                 print(f"Skipping default course section {canvas_section_name}")
                 continue
+            # Skip the any section that has no students enrolled
+            if canvas_section.__dict__.get("students") is None:
+                print(f"Skipping section {canvas_section_name} because it has no students enrolled.")
+                continue
+
             section = cls.objects.filter(
                 Q(canvas_id=canvas_section_id)
                 | Q(name=canvas_section_name)
@@ -181,22 +197,42 @@ class Section(models.Model):
                 ).first()
 
             if section:
+                # update
                 print(f"Found db section {section.name} with canvas_id: {section.canvas_id} on Canvas. Updating from Canvas")
                 section.name = canvas_section_name
-                section.course = course
-                section.canvas_id = canvas_section_id
             else:
-                if not only_enrolled_sections:
-                    # More than the explicitly enrolled sections are included in the canvas_sections list
-                    # Don't create sections that are not explicitly enrolled, so skip to avoid clutter
+                # create
+                if (canvas_section_name not in enrolled_canvas_section_names) and only_enrolled_sections:
+                    print(f"Could not find section {canvas_section_name} in the list of enrolled sections. Skipping ...")
                     continue
-                print(f"Could not find section {canvas_section_name}. Creating new ...")
+                # check if section is in the intersection of canvas sections and sections found in the extra resource
+                # if it is not, then skip it. Matching by class number.
+                numbers_in_section_name = re.findall(r'\d+', canvas_section_name)
+                matching_resource_idx = None
+                for resource_idx, classNumber in enumerate(resource_class_numbers):
+                    if str(classNumber) in numbers_in_section_name:
+                        matching_resource_idx = resource_idx
+                        break
+                if has_resources:
+                    if matching_resource_idx is None:
+                        print(f"Could not match canvas section {canvas_section_name} in extra resource sections. Skipping ...")
+                        continue
+                    resource = resource_sections[matching_resource_idx]
+                    classNumber = resource_class_numbers[matching_resource_idx]
+                else:
+                    classNumber = numbers_in_section_name[-1]
+
+                print(f"Could not find section {canvas_section_name} in database. Creating new ...")
                 section = cls.objects.create(
                     name=canvas_section_name,
-                    canvas_id=canvas_section_id,
-                    course=course)
+                    class_number=classNumber,)
+                
+                if has_resources:
+                    section.recreate_meetings(resource['meetings'])
 
 
+            section.course = course
+            section.canvas_id = canvas_section_id
             section.teaching_assistant = user
             
             section.save()
