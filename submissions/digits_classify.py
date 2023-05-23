@@ -482,6 +482,7 @@ def get_all_ufids(digit_imgs, df_ids, model, len_subs):
             # print(f"{submission_idx},{page_idx}\t Got {predicted_ufid}: {max_probability} {predicted_student}", end="\r")
             if max_probability >= detection_cutoff:
                 if submission_idx in docs_classified.keys():
+                    # docs_classified is used to check that there are no conflicting predictions
                     assert docs_classified[submission_idx] == (predicted_ufid, predicted_student)
                 else:
                     docs_classified[submission_idx] = (predicted_ufid, predicted_student)

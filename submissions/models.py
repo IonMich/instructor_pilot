@@ -388,6 +388,7 @@ class PaperSubmission(Submission):
             df_ids, 
             all_imgs,
             dpi=dpi,
+            pages_to_skip=skip_pages,
             )
 
         df_digits_detections = (
