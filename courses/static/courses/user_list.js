@@ -197,18 +197,32 @@ const syncSwitch = document.querySelector('#sync');
 if (syncSwitch) {
     // get the one with child .expander-content
     const expanders = document.querySelectorAll('.expander');
+    const nonSyncInputs = document.querySelector('#nonSyncInputsBlock');
+    const helperText = document.querySelector('#termHelpBlock');
+    var expanded_at_sync_div;
+    var not_expanded_at_sync_div;
+    console.log(expanders);
+    // not expanded at sync div is the one that has child with id nonSyncInputsBlock
+    // expanded at sync div is the one that has child with id termHelpBlock
     for (var i = 0; i < expanders.length; i++) {
-        if (expanders[i].querySelector('.expander-content')) {
-            var expander = expanders[i];
-            break;
+        if (expanders[i].querySelector('#nonSyncInputsBlock')) {
+            not_expanded_at_sync_div = expanders[i];
+            console.log('found nonSyncInputsBlock');
+        } else if (expanders[i].querySelector('#termHelpBlock')) {
+            expanded_at_sync_div = expanders[i];
+            console.log('found termHelpBlock');
+        } else {
+            console.log('no div found');
         }
     }
     syncSwitch.addEventListener('change', function(event) {
         console.log('checkbox changed');
         if (syncSwitch.checked) {
-            expander.classList.remove('expanded');
+            not_expanded_at_sync_div.classList.remove('expanded');
+            expanded_at_sync_div.classList.add('expanded');
         } else {
-            expander.classList.add('expanded');
+            expanded_at_sync_div.classList.remove('expanded');
+            not_expanded_at_sync_div.classList.add('expanded');
         }
     });
 }

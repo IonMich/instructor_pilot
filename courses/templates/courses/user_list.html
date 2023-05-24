@@ -117,11 +117,18 @@
                     <div class="mb-3 has-validation">
                         <label for="term" class="form-label" for="term">Term</label>
                         <input type="text" class="form-control" id="term" name="term" aria-describedby="course_code_feedback" placeholder="e.g. Spring 2023">
+                        <div class="expander expanded">
+                            <div class="expander-content" id="termHelpBlock">
+                                <div class="form-text">
+                                    You can find verify the course code and term name on the Settings page of your Canvas course. 
+                                </div>
+                            </div>
+                        </div>
                         <div class="invalid-feedback" id="course_code_feedback">
                         </div>
                     </div>
                     <div class="expander">
-                        <div class="expander-content">
+                        <div class="expander-content" id="nonSyncInputsBlock">
                             <div class="mb-3">
                                 <label for="description" class="form-label">Description</label>
                                 <textarea class="form-control" id="description" name="description" rows="3"></textarea>
