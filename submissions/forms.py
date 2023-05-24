@@ -188,10 +188,6 @@ class SubmissionFilesUploadForm(forms.Form):
         required=True,
         initial=2,
         )
-    image_dpi = forms.IntegerField(
-        required=True,
-        initial=150,
-        )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -202,26 +198,17 @@ class SubmissionFilesUploadForm(forms.Form):
         student = self.cleaned_data['student']
         files = request.FILES.getlist('file_field')
         num_pages_per_submission = self.cleaned_data['pages_per_submission']
-        image_dpi = self.cleaned_data['image_dpi']
-
+        image_dpi = 150
+        print(student, type(student))
         print(len(files))
         print(type(files[0]))
-        if not student:
-            uploaded_submission_pks = PaperSubmission.add_papersubmissions_to_db(
-                assignment_target=assignment,
-                uploaded_files=files,
-                num_pages_per_submission=num_pages_per_submission,
-                dpi=image_dpi,
-                student=None,
-                )
-        else:
-            uploaded_submission_pks = PaperSubmission.add_papersubmissions_to_db(
-                assignment_target=assignment,
-                uploaded_files=files,
-                num_pages_per_submission=num_pages_per_submission,
-                dpi=image_dpi,
-                student=student,
-                )
+        uploaded_submission_pks = PaperSubmission.add_papersubmissions_to_db(
+            assignment_target=assignment,
+            uploaded_files=files,
+            num_pages_per_submission=num_pages_per_submission,
+            dpi=image_dpi,
+            student=student,
+            )
             
         return uploaded_submission_pks
 
@@ -236,18 +223,33 @@ class StudentClassifyForm(forms.Form):
     assignment = forms.ModelChoiceField(
         queryset=Assignment.objects.all(),
         )
+    # save the page numbers to use for the classification in a list
+    pages_selected = forms.JSONField(
+        required=False,
+        )
 
     def clean(self):
         cleaned_data = super().clean()
         return cleaned_data
 
     def save(self):
-    
         assignment = self.cleaned_data['assignment']
-        print("assignment: ", assignment)
+        # print("1-indexed pages_selected: ", self.cleaned_data['pages_selected'])
+        do_not_skip = self.cleaned_data['pages_selected']
+        # convert to ints. If empty, set to empty tuple
+        try:
+            do_not_skip = tuple(int(i) for i in do_not_skip)
+        except:
+            do_not_skip = ()
+        max_page_num = PaperSubmissionImage.get_max_page_number(assignment)
+        # now convert from 1-indexed do_not_skip to 0-indexed pages_to_skip
+        pages_to_skip = tuple(i for i in range(max_page_num) if i+1 not in do_not_skip)
+        print("0-indexed pages_to_skip: ", pages_to_skip)
+        
 
         classified_submission_pks, not_classified_submission_pks = PaperSubmission.classify(
                 assignment,
+                skip_pages=pages_to_skip,
                 )
         return classified_submission_pks, not_classified_submission_pks
 

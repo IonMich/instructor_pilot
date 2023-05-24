@@ -301,6 +301,8 @@ def resize_keep_aspect(img, size):
     else: # square image
         new_h, new_w = sh, sw
 
+    new_h = max(new_h, 1)
+    new_w = max(new_w, 1)
     # scale
     scaled_img = cv2.resize(img, (new_w, new_h), interpolation=interp)
 

@@ -111,12 +111,10 @@
                 <form method="POST" id="addCourseForm" class="needs-validation" novalidate>
                     {% csrf_token %}
                     <div class="mb-3">
-                        {% comment %} add a placeholder: "e.g. PHY2048" {% endcomment %}
                         <label for="course_code" class="form-label">Course Code</label>
                         <input type="text" class="form-control" id="course_code" name="course_code" placeholder="e.g. PHY2048">
                     </div>
                     <div class="mb-3 has-validation">
-                        {% comment %} add a placeholder: "e.g. Spring 2023" {% endcomment %}
                         <label for="term" class="form-label" for="term">Term</label>
                         <input type="text" class="form-control" id="term" name="term" aria-describedby="course_code_feedback" placeholder="e.g. Spring 2023">
                         <div class="invalid-feedback" id="course_code_feedback">

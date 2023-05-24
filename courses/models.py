@@ -167,7 +167,7 @@ class Course(models.Model):
                     self.end_date = d_end.strftime(new_format)
                 except Exception as e:
                     now = datetime.datetime.now()
-                    # add 4 months
+                    # add 3 months
                     end_date = now + datetime.timedelta(days=90)
                     self.end_date = end_date.strftime("%Y-%m-%d")
 

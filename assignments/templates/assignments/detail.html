@@ -11,7 +11,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <script src="https://d3js.org/d3.v7.min.js" defer></script>
     {{ assignment.get_all_grades|json_script:"all_grades"}}
-    {{ assignment.max_score|json_script:"max_score"}}    
+    {{ assignment.max_score|json_script:"max_score"}}
+    {{ request.user.profile.preferences.identify_pages|json_script:"pages-to-check"}}     
     <script src="{% static 'assignments/detail.js' %}" defer></script>
 {% endblock scripts %}
 
@@ -66,11 +67,45 @@
         <div class="col-md-6 border-end mb-5">
             <div class="row">
                 <div class="col-md-6">
-                    <p class="mt-3"> Identify students based on their ID</p>
+                    <p class="mt-3">Identify students based on 
+                        <span style="white-space: nowrap;">
+                            their ID 
+                        {% with page_UIDs=request.user.profile.preferences.identify_pages %}
+                            {{page_UIDs}}
+                        {% endwith %}
+                        {% comment %} add small edit pencil button that un-hides input for pages to search for ID{% endcomment %}
+                        <button 
+                            type="button" class="btn btn-link btn-sm" 
+                            title="Select Pages to Search for ID"
+                            id="btn-edit-identify"
+                            >
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        </span>
+                    </p>
                     <form class="needs-validation" action="" method="POST" id="identifyStudentsForm" novalidate>
                         {% csrf_token %}
+                        <div class="collapsible-input" id="collapsible-identify">
+                            <div class="form-group">
+                                <p class="mb-1">Select page(s) to search for ID:</p>
+                                <div class="ms-1">
+                                {% with ''|center:assignment.get_max_page_number as range %}
+                                {% for _ in range %}
+                                    <input 
+                                    type="checkbox" class="btn-check" 
+                                    id="btn-pageSelect-{{forloop.counter}}" 
+                                    autocomplete="off"
+                                    name="page-selected-{{forloop.counter}}"
+                                    value="1"
+                                    {% if forloop.counter in page_UIDs %}checked{% endif %}>
+                                    <label class="btn btn-outline-success mb-3" for="btn-pageSelect-{{forloop.counter}}">{{forloop.counter}}</label>
+                                {% endfor %}
+                                {% endwith %}
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="input-group mb-3">
-                            
                             {% if assignment.count_submissions_no_students > 0 %}
                                 <button type="submit" name="submit-classify" class="btn btn-primary">
                                     Identify
@@ -88,14 +123,13 @@
                                     <i class="bi bi-person-check-fill"></i>
                                 </span>
                             {% endif %}
-                            
                         </div>
                     </form>
                 </div>
 
                 <!-- This is where I'm putting the new button.-->
                 <div class="col-md-6">
-                    <p class="mt-3"> Cluster Submissions based on what quiz version they belong to. </p>
+                    <p class="mt-3">Cluster Submissions based on what quiz version they belong to</p>
                     <div class="form-group d-none">
                         <input type="hidden" name="assignment" value="{{ assignment.pk }}" id="assignment_num">
                     </div>

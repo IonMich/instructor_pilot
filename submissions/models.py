@@ -3,6 +3,7 @@ import random
 import string
 import uuid
 
+from django.db.models import Max
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -250,6 +251,10 @@ class PaperSubmission(Submission):
             images.append(convert_pdf_to_images(submission.pdf, dpi, top_percent, left_percent, crop_box, skip_pages))
             image_sub_pks.append([submission.pk for i in range(len(images[-1]))])
         return images, image_sub_pks
+    
+    def get_num_pages(self):
+        return PaperSubmissionImage.objects.filter(submission=self).count()
+
 
     @classmethod
     def add_papersubmissions_to_db(cls,
@@ -382,7 +387,8 @@ class PaperSubmission(Submission):
         model =  import_tf_model(model_path_h5)
 
         print("dpi is:", dpi)
-
+        # we could skip specifing pages_to_skip here because
+        # we already replaced them with None in get_images_for_classify
         df_digits = classify(
             model, 
             df_ids, 
@@ -489,9 +495,15 @@ class PaperSubmissionImage(models.Model):
         return self.submission.assignment
     
     @classmethod
+    def get_max_page_number(cls, assignment):
+        return cls.objects.filter(submission__assignment=assignment).aggregate(Max('page'))['page__max']
+
+    @classmethod
     def get_all_assignment_imgs(cls, assignment):
         """
         Get all the images for an assignment.
+        Note: Assumes that all submissions have the same number of images.
+        Appears to be unused?
         """
         # get number of images per submission
         first_submission = PaperSubmission.objects.filter(assignment=assignment).first()

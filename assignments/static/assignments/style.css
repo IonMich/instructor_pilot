@@ -41,3 +41,17 @@
 .labels {
     font-weight: bold;
 }
+
+.collapsible-input {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s;
+}
+
+.collapsible-input > div {
+    overflow: hidden;
+}
+
+label.btn-outline-success:hover {
+    background-color: rgb(174, 214, 188);
+}

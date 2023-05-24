@@ -67,8 +67,6 @@ def canvas_users_df(canvas_course):
         add_first_name=True, 
         groups=["teacher", "ta"])
 
-    # file_name = "sections_phy2048_spring2022.csv"
-    # file_path = os.path.join(INPUT_DIR, file_name)
     df_students, df_sections = ac.course_info.get_students_from_sections(
                                     canvas_course, add_TA_info=False)
     return df_TAs, df_teachers, df_students, df_sections

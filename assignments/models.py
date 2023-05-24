@@ -84,6 +84,13 @@ class Assignment(models.Model):
 
     def get_all_submissions(self):
         return self.submissions_papersubmission_related.all()
+    
+    def get_max_page_number(self):
+        subs = self.get_all_submissions()
+        page_nums = [s.get_num_pages() for s in subs]
+        if len(page_nums) == 0:
+            return 0
+        return max(page_nums)
 
     def count_submissions_no_students(self):
         return self.get_all_submissions().filter(student__isnull=True).count()

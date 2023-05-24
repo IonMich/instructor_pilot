@@ -92,6 +92,64 @@ function uploadPDFs (event, form) {
 
 }
 
+const checked_pages = JSON.parse(
+    document.querySelector("#pages-to-check").textContent
+    );
+
+const buttonToggleIdentifyInput = document.getElementById('btn-edit-identify');
+if (buttonToggleIdentifyInput) {
+    // initialize the checked pages
+    initializeCheckedPages();
+    buttonToggleIdentifyInput.addEventListener('click', function(event) {
+        const collapsibleDiv = document.getElementById('collapsible-identify');
+        // set toggle grid-template-rows between 0fr (hidden) and 1fr (shown)
+        const gridTemplateRows = collapsibleDiv.style.gridTemplateRows;
+        console.log("gridTemplateRows", gridTemplateRows);
+        if (gridTemplateRows !== '1fr') {
+            collapsibleDiv.style.gridTemplateRows = '1fr';
+        } else {
+            collapsibleDiv.style.gridTemplateRows = '0fr';
+        }
+    });
+}
+
+
+// function to set grade inputs step size from checked_pages
+function initializeCheckedPages() {
+    let checkedPages;
+    let default_type;
+    if (checked_pages && checked_pages[course_id] && checked_pages[course_id][assignment_id]) {
+        checkedPages = checked_pages[course_id][assignment_id];
+        default_type = null;
+    } else {
+        if (checked_pages && checked_pages[course_id] && checked_pages[course_id]["default"]) {
+            checkedPages = checked_pages[course_id]["default"];
+            default_type = "course";
+        } else if (checked_pages && checked_pages["default"]) {
+            checkedPages = checked_pages["default"];
+            default_type = "user";
+        } else {
+            checkedPages = [1,];
+            default_type = "global";
+        }
+        // the checkedPages is set here to a default set of checked pages
+    }
+    console.log("Pages to check:", checkedPages, "default_type:", default_type);
+    // select inputs whose name starts with "page-selected-"
+    const pageCheckInputs = document.querySelectorAll('input[name^="page-selected-"]');
+    pageCheckInputs.forEach(input => {
+        // get the page number from the input name
+        let pageNumber = input.name.split('-')[2];
+        pageNumber = parseInt(pageNumber);
+        console.log(pageNumber);
+        // if the page number is in checkedPages, set the input to checked
+        if (checkedPages.includes(pageNumber)) {
+            input.checked = true;
+            console.log("checked");
+        }
+    });
+}
+
 const identifyStudentsForm = document.getElementById('identifyStudentsForm');
 
 if (identifyStudentsForm) {
@@ -114,6 +172,21 @@ function identifyStudents (event, form) {
 	const formData = new FormData(form);
 	// append the button name to the form data
     formData.append(buttonName, 'Classify');
+    // convert entries that start with page-selected-{page_number} to a single entry pages_selected with a list of page numbers
+    // For example, if the form data contains the following entries:
+    // page-selected-2: 1
+    // page-selected-4: 1
+    // then convert this to a single entry:
+    // pages_selected: [2, 4]
+    const numbers_selected = Array.from(formData.keys()).filter(key => key.startsWith('page-selected-')).map(key => key.split('-')[2]);
+    console.log("numbers_selected", numbers_selected);
+    formData.delete('pages_selected');
+    // append the JSON-stringified list of page numbers to the form data
+    formData.append('pages_selected', JSON.stringify(numbers_selected));
+    // delete all entries that start with page-selected-
+    Array.from(formData.keys()).filter(key => key.startsWith('page-selected-')).forEach(key => formData.delete(key));
+
+
 	// ADAPT url if the fetch request is submitted at a different url than the current page.
 	const url = window.location.href
 	fetch(url, {

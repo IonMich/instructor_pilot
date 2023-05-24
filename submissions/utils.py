@@ -86,7 +86,7 @@ def convert_pdf_to_images(filepath, dpi, top_percent=0.25, left_percent=0.5, cro
     images = []
     doc = fitz.open(filepath)
     for page in doc:
-        if page.number % 4 in skip_pages:
+        if page.number in skip_pages:
             images.append(None)
             continue
         print(page.number, end="\r")
