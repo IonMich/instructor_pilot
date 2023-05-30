@@ -108,6 +108,14 @@ animation-fill-mode: forwards;
     visibility: hidden;
 }
 
+#newCommentPreview {
+    white-space: pre-line;
+}
+
+.old-comment > p {
+    white-space: pre-line;
+}
+
 .expander {
     display: grid;
     grid-template-rows: 0fr;

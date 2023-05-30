@@ -874,10 +874,10 @@ savedCommentsSelect.addEventListener("change", (event) => {
         // get the comment data-subtext attribute of the selected comment
         const commentText = selectedComments[i].getAttribute("data-subtext");
         // add the comment text to the textarea
-        text_area.value += commentText + "\n";
+        text_area.value += commentText + "\n\n";
         
         // add the comment text to the preview comment div
-        previewCommentArea.value += commentText + "\n";
+        previewCommentArea.value += commentText + "\n\n";
 
         // if the value of the textarea does not fit in the textarea, increase the height of the textarea
         // this is done by setting the height of the textarea to the scrollHeight
@@ -896,6 +896,9 @@ savedCommentsSelect.addEventListener("change", (event) => {
         }
 
     }
+    // strip all trailing newlines from the textarea and the preview comment div
+    text_area.value = text_area.value.replace(/\n+$/, "");
+    previewCommentArea.value = previewCommentArea.value.replace(/\n+$/, "");
 }
 );
 

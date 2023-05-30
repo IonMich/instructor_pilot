@@ -216,7 +216,7 @@
                             
                             {% for text in submission.version.versiontext_set.all %}
                             <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
-                                {{text.text}}
+                                <p>{{text.text}}<p>
                                 <div class="d-flex">
                                     <small class="ms-auto comment-info text-muted">
                                         {% comment %} add author {% endcomment %}
