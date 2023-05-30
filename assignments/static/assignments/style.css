@@ -52,7 +52,7 @@
     overflow: hidden;
 }
 
-label.btn-outline-success:hover {
+.btn-check:not(:checked)+.btn:hover {
     background-color: rgb(174, 214, 188);
 }
 

@@ -634,12 +634,12 @@ function syncCarouselSlide(event) {
     const bsCarouselTargeted = bootstrap.Carousel.getInstance(carousel);
     // get the index of the current slide
     console.log(bsCarouselTargeted);
-    // bsCarousel._items is an array of all the slides in the carousel. Find index of the active slide
-    const index = bsCarouselTargeted._items.findIndex(x => x.classList.contains('active'));
+    // bsCarousel._getItems() returns an array of all the slides in the carousel. Find index of the active slide
+    const index = bsCarouselTargeted._getItems().findIndex(x => x.classList.contains('active'));
     // this is the index of the slide that was clicked. If previous button was clicked, subtract 1 (modulo the length of the array)
     // if next button was clicked, add 1 (modulo the length of the array)
     console.log(event.target);
-    const newIndex = event.target.classList.contains('carousel-control-prev-icon') ? (index - 1 + bsCarouselTargeted._items.length) % bsCarouselTargeted._items.length : (index + 1) % bsCarouselTargeted._items.length;
+    const newIndex = event.target.classList.contains('carousel-control-prev-icon') ? (index - 1 + bsCarouselTargeted._getItems().length) % bsCarouselTargeted._getItems().length : (index + 1) % bsCarouselTargeted._getItems().length;
     console.log("new",newIndex);
     // get all the carousels
     // for each carousel, get the carousel instance and slide to the new index
@@ -684,7 +684,7 @@ const loadImage = src =>
         const img = new Image();
         img.onload = () => {
             resolve(img);
-            console.log("img loaded");
+            // console.log("img loaded");
         };
         img.onerror = reject;
         img.src = src;
@@ -695,22 +695,20 @@ const imgs = document.querySelectorAll(".sub-img");
 // get image urls via map
 const imageUrls = Array.from(imgs).map(img => img.src);
 // console.log(imageUrls);
-for (const imgURL of imageUrls) {
-    // for each image, load it
-    console.log(imgURL);
-}
+// for (const imgURL of imageUrls) {
+//     // for each image, load it
+//     console.log(imgURL);
+// }
 
 Promise.all(imageUrls.map(loadImage)).then(images => {
-    images.forEach((image, i) => {
-        console.log(image, `\nloaded? ${image.complete}`);
-    });
+    // images.forEach((image, i) => {
+    //     console.log(image, `\nloaded? ${image.complete}`);
+    // });
     // get the height of the tallest image
     const heights = images.map(img => img.naturalHeight);
-    for (const height of heights) {
-        console.log(height);
-    }
     const maxHeight = Math.max(...heights);
-    console.log(maxHeight);
+    const minHeight = Math.min(...heights);
+    console.log(minHeight, maxHeight);
     // we want to keep the top 20% of the original image. We can use clip-path to do this.
     // clip-path: polygon(0 0, 100% 0, 100% 20%, 0 20%);
     // set the height of all images to 20% of the height of the tallest image

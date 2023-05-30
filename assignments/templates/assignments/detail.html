@@ -95,7 +95,7 @@
                     <form class="needs-validation" action="" method="POST" id="identifyStudentsForm" novalidate>
                         {% csrf_token %}
                         <div class="collapsible-input" id="collapsible-identify">
-                            <div class="form-group">
+                            <div>
                                 <p class="mb-1">Select page(s) to search for ID:</p>
                                 <div class="ms-1">
                                 {% with ''|center:assignment.get_max_page_number as range %}

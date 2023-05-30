@@ -20,6 +20,33 @@
         })
 })()
 
+function createToastElement (message, message_type) {
+    const toast = document.createElement('div');
+    toast.classList.add('toast', 'fade', 'border-0');
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('data-bs-autohide', 'false');
+    if (message_type === "success") {
+        toast.classList.add('bg-success', 'text-white');
+    } else if (message_type === "warning") {
+        toast.classList.add('bg-warning', 'text-dark');
+    } else if (message_type === "danger") {
+        toast.classList.add('bg-danger', 'text-white');
+    } else if (message_type === "info") {
+        toast.classList.add('bg-primary', 'text-white');
+    }
+    toast.innerHTML = `
+    <div class="d-flex">
+        <div class="toast-body">
+            ${message}
+        </div>
+        <button 
+            type="button" class="btn-close btn-close-white me-2 m-auto" 
+            data-bs-dismiss="toast" aria-label="Close">
+        </button>
+    </div>`;
+    return toast;
+}
+
 const syncCourseForm = document.getElementById('syncCourseForm');
 
 syncCourseForm.addEventListener("submit", (event) => {
@@ -35,6 +62,8 @@ syncCourseForm.addEventListener("submit", (event) => {
     // disable the add course button
     syncCourseButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Syncing...';
     syncCourseButton.disabled = true;
+
+    const reloadPrompt = '<a href="/courses/' + courseId + '/" style="color: #fff; text-decoration: underline;">Reload</a> to see the changes.';
 
     if (!syncCourseForm.checkValidity()) {
         console.log("form is not valid");
@@ -75,76 +104,42 @@ syncCourseForm.addEventListener("submit", (event) => {
             if (data.success) {
                 // show the success message
                 console.log("success");
-                // show the success message as a toast
-                const toast = document.getElementById('liveToastSync');
-                // remove bg-primary class and add bg-success class
-                toast.classList.remove('bg-primary');
-                toast.classList.remove('bg-danger');
-                toast.classList.remove('bg-warning');
-                toast.classList.remove('bg-info');
-                toast.classList.add('bg-success');
-                const toastBody = toast.querySelector('.toast-body');
-                const reloadPrompt = '<a href="/courses/' + courseId + '/" style="color: #fff; text-decoration: underline;">Reload</a> to see the changes.';
-                toastBody.innerHTML = data.message + ' ' + reloadPrompt;
-
-                var bootstrapToast = new bootstrap.Toast(toast,
-                    {
-                        animation: true,
-                        autohide: false,
-                    }
-                );
-
-                bootstrapToast.show()
+                const full_message = data.message + ' ' + reloadPrompt;
+                const toast = createToastElement (full_message, "success")
+                const toastContainer = document.querySelector('#toast-container');
+                toastContainer.appendChild(toast);
+                console.log("toast", toast);
+                var toastElement = new bootstrap.Toast(toast,
+                    {delay: 10000, autohide: false});
+                toastElement.show();
             }
             else {
                 // show the error message
                 console.log("error");
-                // show the error message as a toast
-                const toast = document.getElementById('liveToastSync');
-                // remove bg-primary class and add bg-danger class
-                toast.classList.remove('bg-primary');
-                toast.classList.remove('bg-success');
-                toast.classList.remove('bg-warning');
-                toast.classList.remove('bg-info');
-                toast.classList.add('bg-danger');
-                const toastBody = toast.querySelector('.toast-body');
-                toastBody.innerHTML = data.message;
-
-                var bootstrapToast = new bootstrap.Toast(toast,
-                    {
-                        animation: true,
-                        autohide: false,
-                    }
-                );
-
-                bootstrapToast.show()
+                const full_message = data.message + ' ' + reloadPrompt;
+                const toast = createToastElement (full_message, "danger")
+                const toastContainer = document.querySelector('#toast-container');
+                toastContainer.appendChild(toast);
+                console.log("toast", toast);
+                var toastElement = new bootstrap.Toast(toast,
+                    {delay: 10000, autohide: false});
+                toastElement.show();
         }
         })
         .catch((error) => {
-            console.log('There has been a problem with your fetch operation:', error);
-            // enable the add course button
             syncCourseButton.innerHTML = buttonText;
             syncCourseButton.disabled = false;
+            const error_message = 'There has been a problem with your fetch operation: ' + error;
+            console.log(error_message);
             // show the error message
-            const toast = document.getElementById('liveToastSync');
-            // remove bg-primary class and add bg-danger class
-            toast.classList.remove('bg-primary');
-            toast.classList.remove('bg-success');
-            toast.classList.remove('bg-warning');
-            toast.classList.remove('bg-info');
-            toast.classList.add('bg-danger');
-            const toastBody = toast.querySelector('.toast-body');
-            toastBody.innerHTML = error;
-
-            var bootstrapToast = new bootstrap.Toast(toast,
-                {
-                    animation: true,
-                    autohide: false,
-                }
-            );
-
-            bootstrapToast.show()
-
+            const full_message = error_message + ' ' + reloadPrompt;
+            const toast = createToastElement (full_message, "danger")
+            const toastContainer = document.querySelector('#toast-container');
+            toastContainer.appendChild(toast);
+            console.log("toast", toast);
+            var toastElement = new bootstrap.Toast(toast,
+                {delay: 10000, autohide: false});
+            toastElement.show();
         }
         );
 });
@@ -179,7 +174,3 @@ if (assignmentCanvasBtns) {
         });
     });
 }
-
-
-
-
