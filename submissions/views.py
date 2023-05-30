@@ -195,6 +195,7 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
                 request, 
                 'submissions/detail.html', 
                 {'submission': submission , 
+                'saved_comments': submission.assignment.get_all_saved_comments(requester=request.user),
                 'grading_form': grading_form,
                 'grades_zipped': grades_zipped,})
         else:
