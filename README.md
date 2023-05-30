@@ -11,8 +11,8 @@ It depends on the [canvasapi](https://github.com/ucfopen/canvasapi) library and 
 
 ## Installation
 
-- Install [conda](https://docs.anaconda.com/anaconda/install/windows/) via the official instructions for your OS. If you would like a more lightweight installation, you can use alternatively [miniconda](https://docs.conda.io/en/latest/miniconda.html).
-- Clone this repository at your desired location by running:
+- Install [conda](https://docs.anaconda.com/anaconda/install/windows/) via the official instructions for your OS. If you would like a more lightweight installation, you can use alternatively [miniconda](https://docs.conda.io/en/latest/miniconda.html). You will also need to have Git installed on your system. If you are on Windows, you can install Git from [here](https://git-scm.com/download/win). Administrator privileges are not required for the installation.
+- Clone this repository at your desired location by running the following commands in your terminal. If you are in Windows run them in the Anaconda Prompt.
 
    ```shell
    git clone https://github.com/IonMich/instructor_pilot.git
@@ -38,7 +38,7 @@ It depends on the [canvasapi](https://github.com/ucfopen/canvasapi) library and 
   - `DJANGO_SECRET_KEY` : This is a secret key used by Django to encrypt data. You can generate one by running the following command in your terminal:
 
     ```shell
-    python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+    python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
     ```
 
   - `ENV_TYPE` : This should be set to `"dev"`. No need to change it.
