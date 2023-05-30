@@ -288,3 +288,8 @@ animation-fill-mode: forwards;
     opacity: 1;                             
 }
 
+.btn-canvas:hover, .btn-canvas:focus, .btn-canvas:active {
+    border-color: black;
+    background-color: rgb(255, 255, 255);
+}
+

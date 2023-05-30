@@ -9,7 +9,7 @@ from django.db import models
 from django.urls import reverse
 
 from courses.models import Course
-from courses.utils import get_canvas_course, get_canvas_object
+from courses.utils import get_canvas_course, get_canvas_object, API_URL
 from courses.views import course_detail_view
 from submissions.utils import CommaSeparatedFloatField
 
@@ -75,6 +75,13 @@ class Assignment(models.Model):
             kwargs={
                 "course_pk": self.course.pk,
                 "assignment_pk": self.pk})
+
+    def get_canvas_url(self):
+        if self.canvas_id is None:
+            return None
+        # strip trailing slash from canvas_url, if it exists
+        canvas_url = API_URL.rstrip("/")
+        return f"{canvas_url}/courses/{self.course.canvas_id}/assignments/{self.canvas_id}"
 
     def save(self, *args, **kwargs):
         q_max_grades = self.get_max_question_scores()

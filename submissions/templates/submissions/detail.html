@@ -53,7 +53,15 @@
         </a></li>
         {% if submission.student %}
             <li class="breadcrumb-item active" aria-current="page">{{submission.student.first_name}} {{submission.student.last_name}}</li>
-            <img src="{{submission.student.profile.avatar.url}}" class="rounded-circle ms-3" width="30" height="30" alt="">       
+            <a>
+            <img src="{{submission.student.profile.avatar.url}}" class="rounded-circle ms-3" style="width: 24px; height: 24px;" alt="">
+            </a>  
+            {% if submission.canvas_url %}
+                <a href="{{submission.canvas_url}}" target="_blank" class="ms-3" title="View on Canvas" style="background-color: #fff; border-color: #fff;">
+                <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" 
+                style="width: 16px; height: 16px;filter: grayscale(100%);">
+              </a>
+            {% endif %}     
         {% else %}
             <li class="breadcrumb-item active" aria-current="page">{{submission.short_name}}</li>
         {% endif %}

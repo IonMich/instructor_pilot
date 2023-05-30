@@ -149,6 +149,37 @@ syncCourseForm.addEventListener("submit", (event) => {
         );
 });
 
+// get all buttons with class="assignment-canvas-btn"
+// and add an event listener to the mouseover event
+// the button is contained in an anchor tag with href attribute. Change the href attribute
+// to the assignment canvas url. The anchor tag is not the direct parent of the button
+// When the mouse leaves the button, change the href attribute back to the assignment detail url
+
+const assignmentCanvasBtns = document.querySelectorAll('.assignment-canvas-btn');
+
+if (assignmentCanvasBtns) {
+    assignmentCanvasBtns.forEach((btn) => {
+        const btnDiv = btn.parentElement;
+        const assignmentCanvasAnchor = btn.parentElement.parentElement.parentElement;
+        const assignmentDetailUrl = assignmentCanvasAnchor.href;
+        const assignmentCanvasUrl = btn.dataset.assignmentCanvasUrl;
+        btnDiv.addEventListener('mouseover', (event) => {
+            // change the href attribute of the anchor tag
+            assignmentCanvasAnchor.href = assignmentCanvasUrl;
+            // make the anchor tag open in a new tab
+            assignmentCanvasAnchor.target = "_blank";
+            console.log(assignmentCanvasAnchor.href);
+        });
+        btnDiv.addEventListener('mouseout', (event) => {
+            // change the href attribute of the anchor tag
+            assignmentCanvasAnchor.href = assignmentDetailUrl;
+            // make the anchor tag open in the same tab
+            assignmentCanvasAnchor.target = "_self";
+            console.log(assignmentCanvasAnchor.href);
+        });
+    });
+}
+
 
 
 

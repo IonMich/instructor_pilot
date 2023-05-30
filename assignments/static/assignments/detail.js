@@ -602,8 +602,7 @@ function updateCard(card, sub) {
         btnCanvas.classList.add('btn', 'btn-sm', 'btn-outline-primary', 'btn-canvas');
         btnCanvas.href = sub.canvas_url;
         btnCanvas.target = '_blank';
-        btnCanvas.innerHTML = `<i class="fas fa-external-link-alt"></i> Canvas`;
-        btnCanvas.innerHTML = `<img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" style="width: 16px; height: 16px">`;
+        btnCanvas.innerHTML = `<img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" style="width: 16px; height: 16px; filter: grayscale(100%);">`;
         // prepend the button to the div containing the tools
         divTools.prepend(btnCanvas);
     }

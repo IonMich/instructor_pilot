@@ -68,6 +68,11 @@
   visibility: visible;
 }
 
+.assignment-canvas-btn:hover, .assignment-canvas-btn:focus, .assignment-canvas-btn:active {
+  border-color: black;
+  background-color: rgb(255, 255, 255);
+}
+
 @media (width > 992px) {
   .wrapper{
     grid-template-areas: 

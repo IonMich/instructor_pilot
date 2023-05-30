@@ -55,3 +55,8 @@
 label.btn-outline-success:hover {
     background-color: rgb(174, 214, 188);
 }
+
+.assignment-canvas-btn:hover, .assignment-canvas-btn:focus, .assignment-canvas-btn:active {
+    border-color: black;
+    background-color: rgb(255, 255, 255);
+  }

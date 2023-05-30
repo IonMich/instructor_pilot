@@ -47,6 +47,15 @@
         title="Percentage of Submissions Graded">
             {{ assignment.get_grading_progress }} %
         </span>
+        {% if assignment.get_canvas_url %}
+            <button class="btn btn-outline-light btn-sm assignment-canvas-btn" 
+                data-assignment-canvas-url="{{assignment.get_canvas_url}}"
+                title="Open assignment in Canvas"
+                onclick="window.open(this.dataset.assignmentCanvasUrl, '_blank');">
+                <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" 
+                style="width: 16px; height: 16px; filter: grayscale(100%);">
+            </button>
+        {% endif %}
     </h1>
 
 {% if assignment.description %}

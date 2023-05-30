@@ -130,8 +130,8 @@
 
                   <div class="position-absolute top-0 end-0 div-card-tools d-none" style="z-index: 20;">
                     {% if obj.canvas_id %}
-                      <a href="{{obj.canvas_url}}" class="btn btn-sm btn-outline-primary btn-canvas" style="z-index: 1;">
-                        <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" style="width: 16px; height: 16px">
+                      <a href="{{obj.canvas_url}}" class="btn btn-sm btn-outline-secondary btn-canvas" style="z-index: 1;">
+                        <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" style="width: 16px; height: 16px;filter: grayscale(100%);"/>
                       </a>
                     {% endif %}
                     <button class="btn btn-sm btn-outline-danger btn-delete-sub" data-pk="{{ obj.pk }}" style="z-index: 20;">

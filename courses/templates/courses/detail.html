@@ -113,16 +113,19 @@
                                             <h5 class="mb-1">{{assignment.name}}
                                                 
                                             </h5>
-                                            <span class="badge bg-primary rounded-pill">
+                                            <span class="badge bg-primary rounded-pill me-1">
                                                 <i class="bi bi-file-earmark-text-fill"></i>
                                                 {{assignment.submissions_papersubmission_related.count}}
                                             </span>
                                         </div>
                                         {% comment %} for each tab create a div with the assignments in that group {% endcomment %}
-                                        <div class="li-body">
+                                        <div class="li-body d-flex align-items-center">
+                                            <div>
                                             <span class="badge bg-light text-dark">
                                                 Graded {{assignment.get_grading_progress}}%
                                             </span>
+                                            </div>
+                                            <div>
                                             <span class="badge bg-light text-dark">
                                                 Average
                                                 {% if assignment.get_grading_progress != 0 %}
@@ -132,6 +135,15 @@
                                                 {% endif %}
                                                  / {{assignment.max_score}}
                                             </span>
+                                            </div>
+                                            {% if assignment.get_canvas_url %}
+                                            <div class="ms-auto me-1">
+                                                <button class="btn btn-outline-light btn-sm assignment-canvas-btn" data-assignment-canvas-url="{{assignment.get_canvas_url}}">
+                                                    <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" 
+                                                    style="width: 16px; height: 16px; filter: grayscale(100%);">
+                                                </button>
+                                            </div>
+                                            {% endif %}
                                         </div>
                                     </a>
                                 {% endif %}
