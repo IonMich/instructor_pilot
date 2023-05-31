@@ -164,6 +164,11 @@ class SubmissionFilesUploadForm(forms.Form):
         from django.forms.widgets import HiddenInput
         assignment_targeted = kwargs.pop('assignment', None)
         super().__init__(*args,**kwargs)
+        self.fields['pages_per_submission'].help_text = (
+            "A page corresponds to one side of a sheet of paper. "
+            "If you have a double-sided scan, then each sheet is two pages."
+            )
+        self.helper = FormHelper(self)
         if assignment_targeted is not None:
             self.fields['assignment'].widget = HiddenInput()
             self.fields['assignment'].initial = assignment_targeted
@@ -187,6 +192,7 @@ class SubmissionFilesUploadForm(forms.Form):
     pages_per_submission = forms.IntegerField(
         required=True,
         initial=2,
+        widget=forms.NumberInput(attrs={'min': 1,}),
         )
 
     def clean(self):
