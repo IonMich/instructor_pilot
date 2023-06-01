@@ -97,4 +97,4 @@ To update the app, navigate to your `instructor_pilot` directory do the followin
    python manage.py migrate
    ```
 
-- *Important*: Restart the app the development server, open the app in your browser and empty the cache. Different browsers and operating systems have different keyboard shortcuts for that. For example, in Chrome on Windows or Linux, you can press `Ctrl + Shift + R` to do this (`Cmd + Shift + R` on Mac), while other browsers may require you to press `Ctrl + F5`.
+- *Important*: Restart the server, open the app in your browser and empty the cache. Different browsers and operating systems have different keyboard shortcuts for that. For example, in Chrome on Windows or Linux, you can press `Ctrl + Shift + R` to do this (`Cmd + Shift + R` on Mac), while other browsers may require you to press `Ctrl + F5`.
