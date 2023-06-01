@@ -72,3 +72,29 @@ The instructions above need to be followed only once. After that, you can run th
    conda activate django-ta
    python manage.py runserver
    ```
+
+# Updating the source code
+
+To update the app, navigate to your `instructor_pilot` directory do the following:
+
+- First, download the latest version of the app with Git:
+
+   ```shell
+   git pull
+   ```
+
+- Update the app dependencies in the conda environment:
+
+   ```shell
+   conda env update --file environment.yml --name <name-of-your-conda-env> --prune
+   ```
+
+   This might take a few minutes and the dependencies change rarely, so in most cases you can skip this step.
+- Update the database structure and existing data:
+
+   ```shell
+   python manage.py makemigrations
+   python manage.py migrate
+   ```
+
+- *Important*: Restart the app the development server and empty the cache by navigating to the homepage. Different browsers and operating systems have different ways of doing this. For example, in Chrome on Windows or Linux, you can press `Ctrl + Shift + R` to do this, while other browsers may require you to press `Ctrl + F5`.
