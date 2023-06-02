@@ -24,6 +24,10 @@ function navigatorHandler (event) {
     if (element_focused.tagName === "TEXTAREA" && element_focused.value !== "") {
         return;
     }
+    // if the offcanvas is open, do not navigate
+    if (offcanvas.classList.contains("show")) {
+        return;
+    }
     switch(event.key) {
         case "ArrowLeft":
             if (pk === firstPk) {
