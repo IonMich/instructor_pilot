@@ -17,6 +17,11 @@
     {{ submission.assignment.submissions_papersubmission_related.first.pk|json_script:"first-sub-pk" }}
     {{ submission.assignment.submissions_papersubmission_related.last.pk|json_script:"last-sub-pk" }}
     <script src="{% static 'submissions/detail.js' %}" defer></script>
+   
+    {% comment %} Importing PDF.js {% endcomment %}
+    <script src=" https://cdn.jsdelivr.net/npm/pdfjs-dist@3.7.107/build/pdf.min.js "></script>
+    <link href=" https://cdn.jsdelivr.net/npm/pdfjs-dist@3.7.107/web/pdf_viewer.min.css " rel="stylesheet">
+    
 {% endblock scripts %}
 
 {% block title %}
