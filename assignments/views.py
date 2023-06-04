@@ -115,28 +115,28 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 
         elif "submit-sync-from" in request.POST:
             # Handle ajax request and return json response with the submissions that were synced
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                print("ajax request")
-                sync_from_form = SyncFromForm(no_assignment=False, data=request.POST)
-                if sync_from_form.is_valid():
-                    print("form is valid")
-                    sync_from_form.save()
-                    message = 'Sync from canvas successful'
-                    message_type = 'success'
-                    # return submissions that were synced as json
-                    submissions = PaperSubmission.objects.filter(assignment=assignment)
-                    submissions = submissions.order_by('created')
-                    submissions = submissions.values('pk', 'canvas_id', 'canvas_url')
-                    submissions = list(submissions)
-                    
-                    return JsonResponse({'submissions': submissions})
-                else:
-                    print(sync_from_form.errors)
-                    return JsonResponse({'error': 'form is not valid'})
-            else:
+            if request.headers.get('x-requested-with') != 'XMLHttpRequest':
                 print("not ajax request")
                 return JsonResponse({'error': 'not ajax request'})
-
+            
+            print("ajax request")
+            sync_from_form = SyncFromForm(no_assignment=False, data=request.POST)
+            if not sync_from_form.is_valid():
+                print(sync_from_form.errors)
+                return JsonResponse({'error': 'form is not valid'})
+            
+            print("form is valid")
+            sync_from_form.save()
+            message = 'Sync from canvas successful'
+            message_type = 'success'
+            # return submissions that were synced as json
+            submissions = (PaperSubmission.objects.filter(assignment=assignment)
+                           .order_by('created')
+                           .values('pk', 'canvas_id', 'canvas_url'))
+            submissions = list(submissions)
+            
+            return JsonResponse({'submissions': submissions})
+        
         elif "submit-sync-to" in request.POST:
             print("request was POST:sync-to")
             sync_to_form = SyncToForm(
@@ -166,7 +166,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 "message_type": message_type,
             })
         else:
-            print("request was POST but not any of the above")
+            print("request was POST but not a recognized action")
             print(request.POST)
             return JsonResponse({'error': 'request was POST but not any recognized action'})
     return render(

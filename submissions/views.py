@@ -135,8 +135,11 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         # if the submission student is not the same as the request.POST['student'],
         # then the student was changed manually at this stage,
         # so we need to update the classification type to 'M' for manual
+        # and remove the canvas_id from the submission
         if (not submission.student) or str(submission.student.id) != request.POST['student']:
             submission.classification_type = 'M'
+            submission.canvas_id = ''
+            submission.canvas_url = ''
             
         q_grades = [ str(request.POST.get(f"grade_{i+1}")) 
             for i in range(n_q)]

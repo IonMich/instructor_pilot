@@ -423,7 +423,15 @@ class PaperSubmission(Submission):
 
         print(df_digits_detections)
         for row in df_digits_detections.itertuples():
-            PaperSubmission.objects.filter(id=row.submission_pk).update(
+            sub_to_update = PaperSubmission.objects.filter(id=row.submission_pk)
+            if sub_to_update.first().student and sub_to_update.first().student != row.student:
+                # replacing student, so reset canvas_id and canvas_url
+                print(f"Warning: replacing student {sub_to_update.first().student} with {row.student} \nResetting canvas_id and canvas_url")
+                sub_to_update.update(
+                    canvas_id="",
+                    canvas_url="",
+                )
+            sub_to_update.update(
                 student=row.student,
                 classification_type="D",
             )
