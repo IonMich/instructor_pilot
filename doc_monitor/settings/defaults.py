@@ -64,6 +64,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# allows PDFs to be served easily using django templates
+# see: https://docs.djangoproject.com/en/4.1/ref/clickjacking/
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
 ROOT_URLCONF = 'doc_monitor.urls'
 
 TEMPLATES = [

@@ -248,7 +248,7 @@ class PaperSubmission(Submission):
         images = []
         image_sub_pks = []
         for submission in submissions:
-            images.append(convert_pdf_to_images(submission.pdf, dpi, top_percent, left_percent, crop_box, skip_pages))
+            images.append(convert_pdf_to_images(submission.pdf.path, dpi, top_percent, left_percent, crop_box, skip_pages))
             image_sub_pks.append([submission.pk for i in range(len(images[-1]))])
         return images, image_sub_pks
     
@@ -271,12 +271,14 @@ class PaperSubmission(Submission):
         by splitting the original pdf(s) into individual submissions.
         """
         print("assignment is:", assignment_target)
-        new_pdf_dir = os.path.join(
-            settings.MEDIA_ROOT, 
+        new_pdf_rel_dir = os.path.join(
             "submissions", 
             f"course_{assignment_target.course.pk}", 
             f"assignment_{assignment_target.pk}",
             "pdf")
+        new_pdf_dir = os.path.join(
+            settings.MEDIA_ROOT, 
+            new_pdf_rel_dir)
         img_rel_dir = os.path.join(
             "submissions", 
             f"course_{assignment_target.course.pk}", 
@@ -331,13 +333,14 @@ class PaperSubmission(Submission):
                 random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
                 pdf_filename = f'submission_batch_{file_idx}_{start_page}-{end_page}_{random_string}.pdf'
                 new_pdf_fpath = os.path.join(new_pdf_dir, pdf_filename)
+                new_pdf_rel_fpath = os.path.join(new_pdf_rel_dir, pdf_filename)
                 doc_new = fitz.open()
                 doc_new.insert_pdf(doc, from_page=start_page, to_page=end_page)
                 doc_new.save(new_pdf_fpath)
 
                 paper_submission = PaperSubmission.objects.create(
                     assignment=assignment_target,
-                    pdf=new_pdf_fpath,
+                    pdf=new_pdf_rel_fpath,
                     grader_comments="")
                 # if student is provided, we want to associate the submission
                 # with the student
