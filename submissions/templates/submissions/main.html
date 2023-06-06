@@ -53,7 +53,12 @@
                 {% for img in obj.submissions_papersubmissionimage_related.all%}
                 <div 
                   class="carousel-item{% if forloop.first %} active{% endif %}">
-                      <img src="{{img.image.url}}" class="card-img-top sub-img" alt="{{img.name}}">
+                      <img 
+                      src="{{img.image.url}}" 
+                      class="card-img-top sub-img" 
+                      alt="{{img.name}}"
+                      loading="lazy"
+                      >
                 </div>
                 {% endfor %}
               </div>

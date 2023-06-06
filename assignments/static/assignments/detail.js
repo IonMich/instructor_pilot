@@ -679,47 +679,50 @@ for (const btn of btnCarouselNext) {
 // and crop all images to 20% of the height of the tallest image
 // and set the width of all images to auto.
 
-const loadImage = src =>
-    new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-            resolve(img);
-            // console.log("img loaded");
-        };
-        img.onerror = reject;
-        img.src = src;
-    });
+// #################################
+// NOTE: Uncomment the following code to force all images to load
+// #################################
+// const loadImage = src =>
+//     new Promise((resolve, reject) => {
+//         const img = new Image();
+//         img.onload = () => {
+//             resolve(img);
+//             // console.log("img loaded");
+//         };
+//         img.onerror = reject;
+//         img.src = src;
+//     });
     
-// get all image tags in the div
-const imgs = document.querySelectorAll(".sub-img");
-// get image urls via map
-const imageUrls = Array.from(imgs).map(img => img.src);
-// console.log(imageUrls);
-// for (const imgURL of imageUrls) {
-//     // for each image, load it
-//     console.log(imgURL);
-// }
+// // get all image tags in the div
+// const imgs = document.querySelectorAll(".sub-img");
+// // get image urls via map
+// const imageUrls = Array.from(imgs).map(img => img.src);
+// // console.log(imageUrls);
+// // for (const imgURL of imageUrls) {
+// //     // for each image, load it
+// //     console.log(imgURL);
+// // }
 
-Promise.all(imageUrls.map(loadImage)).then(images => {
-    // images.forEach((image, i) => {
-    //     console.log(image, `\nloaded? ${image.complete}`);
-    // });
-    // get the height of the tallest image
-    const heights = images.map(img => img.naturalHeight);
-    const maxHeight = Math.max(...heights);
-    const minHeight = Math.min(...heights);
-    console.log(minHeight, maxHeight);
-    // we want to keep the top 20% of the original image. We can use clip-path to do this.
-    // clip-path: polygon(0 0, 100% 0, 100% 20%, 0 20%);
-    // set the height of all images to 20% of the height of the tallest image
-    // set the width of all images to auto
+// Promise.all(imageUrls.map(loadImage)).then(images => {
+//     // images.forEach((image, i) => {
+//     //     console.log(image, `\nloaded? ${image.complete}`);
+//     // });
+//     // get the height of the tallest image
+//     const heights = images.map(img => img.naturalHeight);
+//     const maxHeight = Math.max(...heights);
+//     const minHeight = Math.min(...heights);
+//     console.log(minHeight, maxHeight);
+//     // we want to keep the top 20% of the original image. We can use clip-path to do this.
+//     // clip-path: polygon(0 0, 100% 0, 100% 20%, 0 20%);
+//     // set the height of all images to 20% of the height of the tallest image
+//     // set the width of all images to auto
     
-    // // set parent div height to 20% of the height of the tallest image
-    // const divs = document.querySelectorAll(".carousel-item");
-    // for (const img of imgs) {
-    //     img.style.clipPath = `polygon(0 0, 100% 0, 100% 20%, 0 20%)`;
-    // }
-});
+//     // // set parent div height to 20% of the height of the tallest image
+//     // const divs = document.querySelectorAll(".carousel-item");
+//     // for (const img of imgs) {
+//     //     img.style.clipPath = `polygon(0 0, 100% 0, 100% 20%, 0 20%)`;
+//     // }
+// });
 
 // handle modal close
 // when the modal is closed, resume the carousel of all cards
