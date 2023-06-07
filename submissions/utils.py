@@ -17,7 +17,33 @@ class CommaSeparatedFloatField(models.CharField):
     default_validators = [validate_comma_separated_float_list]
     description = _("Comma-separated floats")
 
+def open_UploadedFile_as_PDF(uploaded_file):
+    """
+    Return a PyMuPDF Document object from the uploaded file.
+    """
+    return fitz.open(stream=uploaded_file.read(), filetype="pdf")
 
+def submission_upload_to(instance, filename):
+    """
+    Return the relative path where the submission file should be saved.
+    """
+    return os.path.join(
+        "submissions",
+        f"course_{instance.assignment.course.pk}",
+        f"assignment_{instance.assignment.pk}",
+        "pdf",
+        filename)
+
+def submission_image_upload_to(instance, filename):
+    """
+    Return the relative path where the submission image should be saved.
+    """
+    return os.path.join(
+        "submissions",
+        f"course_{instance.submission.assignment.course.pk}",
+        f"assignment_{instance.submission.assignment.pk}",
+        "img",
+        filename)
 
 def get_quiz_pdf_path(
     quiz_number,

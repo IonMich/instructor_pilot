@@ -3,6 +3,7 @@ import random
 import string
 import uuid
 
+from django.core.files.base import ContentFile
 from django.db.models import Max
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -16,8 +17,14 @@ from assignments.models import Assignment, Version
 from students.models import Student
 from submissions.digits_classify import (classify, import_students_from_db,
                                          import_tf_model)
-from submissions.utils import (CommaSeparatedFloatField, convert_pdf_to_images,
-                               get_quiz_pdf_path)
+from submissions.utils import (
+    CommaSeparatedFloatField, 
+    convert_pdf_to_images,
+    get_quiz_pdf_path, 
+    open_UploadedFile_as_PDF, 
+    submission_upload_to,
+    submission_image_upload_to,
+    )
 
 # Create your models here.
 
@@ -187,7 +194,7 @@ class PaperSubmission(Submission):
     
 
     pdf = models.FileField(
-        upload_to="submissions/pdf/",
+        upload_to=submission_upload_to,
         null=True,
         blank=True)
 
@@ -271,27 +278,7 @@ class PaperSubmission(Submission):
         by splitting the original pdf(s) into individual submissions.
         """
         print("assignment is:", assignment_target)
-        new_pdf_rel_dir = os.path.join(
-            "submissions", 
-            f"course_{assignment_target.course.pk}", 
-            f"assignment_{assignment_target.pk}",
-            "pdf")
-        new_pdf_dir = os.path.join(
-            settings.MEDIA_ROOT, 
-            new_pdf_rel_dir)
-        img_rel_dir = os.path.join(
-            "submissions", 
-            f"course_{assignment_target.course.pk}", 
-            f"assignment_{assignment_target.pk}",
-            "img")
-        img_dir = os.path.join(
-            settings.MEDIA_ROOT, 
-            img_rel_dir)
 
-        if not os.path.exists(new_pdf_dir):
-            os.makedirs(new_pdf_dir)
-        if not os.path.exists(img_dir):
-            os.makedirs(img_dir)
         # if student is provided, make sure that there is only one uploaded file
         if student and len(uploaded_files) > 1:
             raise ValueError("Can only upload one file per student.")
@@ -299,19 +286,11 @@ class PaperSubmission(Submission):
         import fitz
         created_submission_pks = []
         for file_idx, uploaded_file in enumerate(uploaded_files):
+            print(f"File {file_idx+1}/{len(uploaded_files)}: {uploaded_file} as {type(uploaded_file)}")
             if uploaded_file:
-                try:
-                    pdf_path = uploaded_file.temporary_file_path()
-                    doc = fitz.open(pdf_path)
-                except AttributeError as e:
-                    # print("Error:", e)
-                    # print("Reading from bytes")
-                    # this actually not a pdf path but a File bytes object
-                    pdf_path = uploaded_file.file
-                    doc = fitz.open("pdf", pdf_path)
+                doc = open_UploadedFile_as_PDF(uploaded_file)
             else:
-                pdf_path = get_quiz_pdf_path(quiz_number, quiz_dir_path)
-                doc = fitz.open(pdf_path)
+                doc = fitz.open(get_quiz_pdf_path(quiz_number, quiz_dir_path))
             
             n_pages = doc.page_count
             if student and n_pages != num_pages_per_submission:
@@ -322,7 +301,7 @@ class PaperSubmission(Submission):
                 raise ValueError("The number of pages in the pdf is not a multiple of num_pages_per_submission.")
             
             n_submissions = n_pages // num_pages_per_submission
-            print(f"New: {pdf_path}\n")
+            print(f"File metadata: {doc.metadata}")
             for i in range(n_submissions):
                 # print on the same line the progress of the loop
                 print(f"Submission {i+1}/{n_submissions}", end="\r")
@@ -332,16 +311,13 @@ class PaperSubmission(Submission):
                 # to append to the filename
                 random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
                 pdf_filename = f'submission_batch_{file_idx}_{start_page}-{end_page}_{random_string}.pdf'
-                new_pdf_fpath = os.path.join(new_pdf_dir, pdf_filename)
-                new_pdf_rel_fpath = os.path.join(new_pdf_rel_dir, pdf_filename)
                 doc_new = fitz.open()
                 doc_new.insert_pdf(doc, from_page=start_page, to_page=end_page)
-                doc_new.save(new_pdf_fpath)
-
+                doc_bytes = doc_new.tobytes()
+                django_pdf_file = ContentFile(doc_bytes, name=pdf_filename)
                 paper_submission = PaperSubmission.objects.create(
                     assignment=assignment_target,
-                    pdf=new_pdf_rel_fpath,
-                    grader_comments="")
+                    pdf=django_pdf_file,)
                 # if student is provided, we want to associate the submission
                 # with the student
                 if student:
@@ -351,14 +327,14 @@ class PaperSubmission(Submission):
                 for j in range(num_pages_per_submission):
                     page = doc.load_page(start_page + j)
                     img_filename = f'submission-{i}-batch-{file_idx}-page-{j+1}-{random_string}.png'
-                    img_full_path = os.path.join(img_dir, img_filename)
-                    img_rel_path = os.path.join(img_rel_dir, img_filename)
                     pix = page.get_pixmap(dpi=dpi)
-                    pix.save(img_full_path)
+                    pix_bytes = pix.tobytes()
+                    django_img_file = ContentFile(pix_bytes, name=img_filename)
                     PaperSubmissionImage.objects.create(
                         submission=paper_submission,
-                        image=img_rel_path,
+                        image=django_img_file,
                         page=j+1)
+        print(f"\nCreated {len(created_submission_pks)} submissions.")
 
         return created_submission_pks
 
@@ -482,7 +458,7 @@ class PaperSubmissionImage(models.Model):
         default=uuid.uuid4, 
         editable=False)
 
-    image = models.ImageField(upload_to="submissions/images/")
+    image = models.ImageField(upload_to=submission_image_upload_to)
     submission = models.ForeignKey(
         PaperSubmission,
         on_delete=models.CASCADE,

@@ -207,7 +207,6 @@ class SubmissionFilesUploadForm(forms.Form):
         image_dpi = 150
         print(student, type(student))
         print(len(files))
-        print(type(files[0]))
         uploaded_submission_pks = PaperSubmission.add_papersubmissions_to_db(
             assignment_target=assignment,
             uploaded_files=files,

@@ -72,7 +72,6 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                 print("form is valid")
                 uploaded_submission_pks = upload_form.save(request)
                 qs = PaperSubmission.objects.filter(pk__in=uploaded_submission_pks)
-                print(len(qs))
                 
                 if len(qs) > 0:
                     message = f"{len(qs)} files uploaded!"
@@ -191,6 +190,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
 def version_view(request, course_pk, assignment_pk):
     # if the request is POST, then cluster the submissions
     if request.method == 'POST':
+        page = 3
         assignment = get_object_or_404(Assignment, pk=assignment_pk)
         # select submissions to cluster from model submissions.PaperSubmission
         # get the submissions from the database
@@ -199,7 +199,7 @@ def version_view(request, course_pk, assignment_pk):
         # get the items in the field
         images = []
         for submission in submissions:
-            submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=3)
+            submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=page)
             images.append(submission_image[0].image.url)
 
         # use the crop_images_to_text function to get the text from the images
@@ -237,8 +237,7 @@ def version_view(request, course_pk, assignment_pk):
             submission.version = version
             # check if version already has an image
             if version.version_image == "":
-                # get the image url from the submission's associated PaperSubmissionImage with page=3
-                submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=3)
+                submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=page)
                 cluster_images[int(version.name)-1] = submission_image[0].image.url
                 # url.replace("/media", "")
                 version.version_image = cluster_images[int(version.name)-1].replace("/media", "")
@@ -247,7 +246,7 @@ def version_view(request, course_pk, assignment_pk):
             submission.save()
         # renew the submissions_image queryset after the above changes
         submissions = PaperSubmission.objects.filter(assignment=assignment)
-        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
+        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=page)
 
         # count number of 0 in cluster_labels
         outliers = np.count_nonzero(cluster_labels == outlier_label)
@@ -321,7 +320,7 @@ def version_submission(request, course_pk, assignment_pk):
                     if isinstance(file, InMemoryUploadedFile):
                         # save the file to the file system
                         file_name = FileSystemStorage(location=new_comment_file_dir).save(file.name, file)
-                            # copy file to new location, while keeping the original name
+                        # copy file to new location, while keeping the original name
                         new_file_path_in_media = os.path.join(
                             new_comment_file_dir_in_media,
                             file_name,
