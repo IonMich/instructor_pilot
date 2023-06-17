@@ -1,0 +1,29 @@
+header {
+    margin: 1em;
+    width: 100%;
+    padding: 0 2.5em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: calc(2*0.3rem + 3px + 1.8em);
+    z-index: 10;
+    padding: 0.5em 1em;
+    box-shadow: 0 0 0.3rem rgba(24, 13, 182, 0.1);
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 0.5em;
+  }
+
+.submission-counter {
+  /* badge next to the title */
+  /* bg-secondary */
+  margin-inline: 0.2em;
+  position: relative;
+  top: -0.2em;
+  padding: 0.1em 0.5em;
+  border-radius: 0.5em;
+  color: #fff;
+  background-color: #6c757d;
+  font-size: 0.6em;
+}

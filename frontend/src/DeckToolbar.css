@@ -1,0 +1,44 @@
+.header-buttons {
+    display: flex;
+    gap: 0.2em;
+}
+
+.header-button {
+    /* bs-outline */
+    border: 1px solid #6c757d;
+    border-radius: 0.5em;
+    padding: 0.55em 0.7em;
+    color: #6c757d;
+    background-color: transparent;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.header-button:hover {
+    color: #fff;
+    background-color: #6c757d;
+}
+
+.header-button.add-subs {
+    /* bs-outline-success */
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.header-button.add-subs:hover {
+    color: #fff;
+    background-color: #28a745;
+}
+
+.header-button.delete-subs {
+    /* bs-outline-danger */
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.header-button.delete-subs:hover {
+    color: #fff;
+    background-color: #dc3545;
+}

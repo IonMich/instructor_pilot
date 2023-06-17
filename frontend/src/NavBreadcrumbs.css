@@ -1,0 +1,51 @@
+.crumb{
+    display: inline-block;
+    margin: 0 0.5em;
+    padding: 0.5em;
+    border-radius: 0.5em;
+    background-color: #eee;
+    color: #333;
+    font-size: 0.8em;
+    font-weight: bold;
+    transition: all 0.3s ease-in-out;
+    border: 1px solid;
+    box-sizing: border-box;
+}
+.crumb a.active {
+    /* plain link */
+    color: #333;
+    text-decoration: none;
+    pointer-events: none;
+}
+
+.crumb:has(a.active) {
+    border: 1px solid whitesmoke;
+}
+
+.crumb a:not(.active) {
+    /* plain link */
+    color: #333;
+}
+
+.crumb:hover:has(a:not(.active)) {
+    border: 1px solid rgb(2, 77, 9);
+}
+
+ol.breadcrumbs {
+    padding: 0.3rem;
+    list-style: none;
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-radius: 0.5em;
+    background-color: #fbfbfb;
+    z-index: 10;
+    flex-direction: row;
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    border: 1px solid #eee;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
