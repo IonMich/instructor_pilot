@@ -1,5 +1,4 @@
 import './AssignmentSummaryStats.css'
-import React from 'react'
 import { useMemo } from 'react';
 // import chartJS Bar
 import {
@@ -23,6 +22,9 @@ import { Chart } from 'react-chartjs-2'
   )
 
   function getSubmissionGrades(subs) {
+    if (!subs) {
+        return [];
+    }
     return subs.map((sub) => sub.grade);
 }
 

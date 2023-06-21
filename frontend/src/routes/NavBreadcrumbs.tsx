@@ -8,7 +8,7 @@ function NavBreadcrumbs() {
     .filter((match) => Boolean(match.handle?.crumb))
     // now map them into an array of elements, passing the loader
     // data to each one
-    .map((match) => match.handle.crumb(match.data));
+    .map((match) => match.handle.crumb(match));
 
   return (
     <ol className="breadcrumbs">

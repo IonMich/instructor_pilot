@@ -1,5 +1,4 @@
 import './AssignmentQuickActions.css'
-import React from 'react'
 
 const AssignmentQuickActions = () => {
   return (

@@ -1,13 +1,12 @@
 import './SubmissionCard.css';
 import CardToolbar from './CardToolbar';
-import React from 'react'
 import { BsFileEarmarkPlus } from 'react-icons/bs';
 import { Link } from 'react-router-dom';
 
 const SubmissionCard = ({sub, maxGrade, handleNavToCanvasSub, handleDeletion}) => {
   return (
     <div className="submission-card">
-        <Link to={`submission/${sub.id}`}
+        <Link to={`submissions/${sub.id}`}
             className="submission-card-link">
         </Link>
         <div className="submission-card-img">

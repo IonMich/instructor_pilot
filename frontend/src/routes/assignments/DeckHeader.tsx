@@ -1,11 +1,21 @@
+import { useParams } from 'react-router-dom';
+
+import { 
+  useQueryClient,
+} from '@tanstack/react-query';
+
 import './DeckHeader.css'
 import DeckToolbar from './DeckToolbar'
-import React from 'react'
 
 const DeckHeader = (props) => {
+  const params = useParams() as any
+  const assignmentId = params.assignmentId
+  const queryClient = useQueryClient()
 
-  function handleDeleteAll() {
-    props.setSubs([]);
+  async function handleDeleteAll() {
+    console.log('handleDeleteAll')
+    await props.setSubs([], assignmentId)
+    queryClient.invalidateQueries(['submissions', 'list', assignmentId])
   }
 
   return (
@@ -19,11 +29,6 @@ const DeckHeader = (props) => {
         <DeckToolbar handleAddNew={props.handleAddNew} handleDeleteAll={handleDeleteAll} />
     </header>
   )
-}
-
-DeckHeader.defaultProps = {
-    title: "Submissions",
-    subs: [],
 }
 
 export default DeckHeader

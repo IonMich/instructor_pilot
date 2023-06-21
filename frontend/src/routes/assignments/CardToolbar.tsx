@@ -1,6 +1,5 @@
 import './CardToolbar.css'
 import { FaTrashAlt } from 'react-icons/fa';
-import React from 'react'
 
 const CardToolbar = ({sub, handleNavToCanvasSub, handleDeletion}) => {
   return (
