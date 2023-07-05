@@ -4,16 +4,21 @@
 }
 
 .header-button {
-    /* bs-outline */
+    /* bs-outline more or less */
+    display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    user-select: none;
     border: 1px solid #6c757d;
-    border-radius: 0.5em;
-    padding: 0.55em 0.7em;
-    color: #6c757d;
-    background-color: transparent;
+    padding: 0.375rem 0.75rem;
     font-size: 1rem;
-    font-weight: 500;
+    line-height: 1.5;
+    border-radius: 0.25rem;
+    background-color: #fff;
     cursor: pointer;
-    transition: all 0.2s ease-in-out;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
 
 .header-button:hover {

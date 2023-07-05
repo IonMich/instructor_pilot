@@ -12,8 +12,8 @@ const SubmissionCard = ({sub, maxGrade, handleNavToCanvasSub, handleDeletion}) =
         <div className="submission-card-img">
             {/* I should place the carousel in here */}
         </div>
-        <h2>{sub.studentName ? sub.studentName : <i style={{color: "grey"}}>No student</i>}</h2>
-        <p>Grade {sub.grade}/{maxGrade}</p>
+        <h2>{sub.name ? sub.name : <i style={{color: "grey"}}>No student</i>}</h2>
+        <p>Grade {sub.totalGrade}/{maxGrade}</p>
         <p>{sub.canvasId}</p>
         <CardToolbar 
             sub={sub}

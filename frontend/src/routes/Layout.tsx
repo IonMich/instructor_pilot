@@ -3,11 +3,15 @@ import {
   useNavigation,
 } from 'react-router-dom'
 
+import { useState } from 'react'
+
 import NavBreadcrumbs from './NavBreadcrumbs'
 
 export default function Layout() {
   
   const navigation = useNavigation()
+
+  const [filters, setFilters] = useState([])
 
   return (
     <>
@@ -17,7 +21,7 @@ export default function Layout() {
         id="detail"
         className={navigation.state === 'loading' ? 'loading' : ''}
       >
-        <Outlet/>
+        <Outlet context={[ filters, setFilters ]} />
       </div>
     </>
   )

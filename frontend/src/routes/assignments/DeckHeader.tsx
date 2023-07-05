@@ -23,10 +23,13 @@ const DeckHeader = (props) => {
         <h1>
             {props.title}
             <span className="submission-counter">
-              {props.subs.length}
+              {(props.filters.length == 0) ? 
+                `${props.subs.length}` :
+                `${props.filteredSubmissionsLength} of ${props.subs.length}`
+              }
             </span>
         </h1>
-        <DeckToolbar handleAddNew={props.handleAddNew} handleDeleteAll={handleDeleteAll} />
+        <DeckToolbar filters={props.filters} setFilters={props.setFilters} handleAddNew={props.handleAddNew} handleDeleteAll={handleDeleteAll} />
     </header>
   )
 }

@@ -21,7 +21,7 @@ import { action as courseDestroyAction } from './routes/courses/Destroy'
 import Assignment, { loader as assignmentLoader } from './routes/assignments/Assignment'
 
 import Submission, { loader as submissionLoader } from './routes/submissions/Submission'
-
+import { action as submissionEditAction } from './routes/submissions/Edit'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -47,8 +47,7 @@ function Crumb (match) {
   const isHome = match.id === '0'
   const hasName = (match.data && match.data.name)
   const linkDisplay = isHome ? 'Home' : hasName ? match.data.name : '---'
-
-
+  
   return (
     <div>
       <NavLink 
@@ -71,7 +70,7 @@ const submissionRoutes = [
   },
   {
     path: submissionPath,
-    // loader: submissionLoader(queryClient),
+    loader: submissionLoader(queryClient),
     handle: { crumb: Crumb },
     children: [
       {
@@ -80,8 +79,7 @@ const submissionRoutes = [
       },
       {
         path: editSubmissionPath,
-        element: <div>Edit Submission</div>,
-        handle: { crumb: Crumb },
+        action: submissionEditAction(queryClient),
       },
       {
         path: destroySubmissionPath,

@@ -1,16 +1,19 @@
 import './DeckToolbar.css'
-import React from 'react'
 import { BsFileEarmarkPlus } from 'react-icons/bs';
 import { FaTrashAlt } from 'react-icons/fa';
+import FilterSelect from './FilterSelect';
 
-const DeckToolbar = ({handleAddNew, handleDeleteAll}) => {
+const DeckToolbar = ({ filters, setFilters, handleAddNew, handleDeleteAll }) => {
+  // allow user to filter by section, version and graded/ungarded
   return (
     <div className="header-buttons">
         <button className="header-button search-subs">
           Search        
         </button>
         <button className="header-button">Sort</button>
-        <button className="header-button">Filter</button>
+        <div className="filter-subs">
+          <FilterSelect filters={filters} setFilters={setFilters} />
+        </div>
         <button className="header-button add-subs" onClick={handleAddNew} title="Add New Submissions">
             <BsFileEarmarkPlus />     
         </button>
