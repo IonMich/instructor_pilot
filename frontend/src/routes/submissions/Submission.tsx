@@ -1,8 +1,13 @@
+import './Submission.css'
 import { useParams, useFetcher, useOutletContext, Link } from 'react-router-dom'
 import { 
     useQuery,
 } from '@tanstack/react-query';
-import { assignmentSubmissionsListQuery, courseStudentsListQuery, apply_filters } from '../assignments/Assignment'
+import { 
+    assignmentSubmissionsListQuery, 
+    courseStudentsListQuery, 
+    apply_filters 
+} from '../assignments/Assignment'
 
 import { Fragment } from 'react'
 
@@ -194,61 +199,79 @@ export default function Submission() {
         }, 10)
     }
   return (
-    <>
-        <h1>Submission Detail</h1>
-        <p>Sub Name: {submission.name}</p>
-        <p>Sub ID: {submission.id}</p>
-        <p>Student ID: {submission.studentId}</p>
-        <p>Student Name: {student?.name}</p>
-        <p>Student Section: {student?.section.name}</p>
-        <fetcher.Form action="edit" method="post" ref={identifyFormRef}>
-            <StudentSelect students={students} studentIdOfSubmission={studentIdOfSubmission} handleStudentChange={handleStudentChange} subId={submission.id} />
-        </fetcher.Form>
-        
-
-        <h2 style={{marginTop: "2em"}}>Filters</h2>
-        <>
-            { filters.map((filter) =>
-                <p key={filter.label}>
-                    {filter.label}
-                </p>
-            )}
-        </>
-        
-        <h2 style={{marginTop: "2em"}}>Grades</h2>
-        <p>Grade: {submission.totalGrade}</p>
-        <fetcher.Form action="edit" method="post">
-            {gradesSorted.map((grade, i) =>
-
-                <Fragment key={grade.questionPosition}>
-                    <p>{grade.questionName} (Position {grade.questionPosition})</p>
-                    <input
-                        type="text" 
-                        name={`grades[${i}].grade`}
-                        defaultValue={grade.grade}
-                        key={`sub${submission.id}grade${grade.questionPosition}`}
-                    />
-                </Fragment>
-            )}
-        <button type="submit">
-            Update
-        </button>
-        </fetcher.Form>
-
-        {/* previous next button group. If there is no previous or next submission, the button is disabled */}
-        <div style={{marginTop: "2em"}}>
-            <Link to={`/courses/${params.courseId}/assignments/${params.assignmentId}/submissions/${filteredSubmissionPrev?.id}`}>
-                <button disabled={filteredSubmissionPrev === null}>
-                    Previous
-                </button>
-            </Link>
-
-            <Link to={`/courses/${params.courseId}/assignments/${params.assignmentId}/submissions/${filteredSubmissionNext?.id}`}>
-                <button disabled={filteredSubmissionNext === null}>
-                    Next
-                </button>
-            </Link>
+    <div className="submission-detail">
+        <div>
+            <h3>Submission Detail</h3>
+            <p>Sub Name: {submission.name}</p>
+            <p>Sub ID: {submission.id}</p>
+            <p>Student ID: {submission.studentId}</p>
+            <p>Student Name: {student?.name}</p>
+            <p>Student Section: {student?.section.name}</p>
+            {/* previous next button group. If there is no previous or next submission, the button is disabled */}
+            
         </div>
-    </>
+        
+        <div className="submission-center">
+            <div className="submission-imgs">
+                <div className="submission-page">
+                </div>
+                <div className="submission-page">
+                </div>
+                <div className="submission-page">
+                </div>
+                <div className="submission-page">
+                </div>
+            </div>
+        </div>
+        <div>
+            <fetcher.Form action="edit" method="post" ref={identifyFormRef}>
+                <StudentSelect students={students} studentIdOfSubmission={studentIdOfSubmission} handleStudentChange={handleStudentChange} subId={submission.id} />
+            </fetcher.Form>
+        
+            <h2 style={{marginTop: "1em"}}>
+                Grade
+                <span className="total-grade">
+                    {submission.totalGrade} / total
+                </span>
+            </h2>
+            <p>Grade: {submission.totalGrade}</p>
+            <fetcher.Form action="edit" method="post">
+                {gradesSorted.map((grade, i) =>
+
+                    <Fragment key={grade.questionPosition}>
+                        <p>{grade.questionName} (Position {grade.questionPosition})</p>
+                        <input
+                            type="text" 
+                            name={`grades[${i}].grade`}
+                            defaultValue={grade.grade}
+                            key={`sub${submission.id}grade${grade.questionPosition}`}
+                        />
+                    </Fragment>
+                )}
+            <button type="submit">
+                Update
+            </button>
+            </fetcher.Form>
+            <div style={{marginTop: "2em", display: "flex", flexDirection: "row"}}>
+                <Link to={`/courses/${params.courseId}/assignments/${params.assignmentId}/submissions/${filteredSubmissionPrev?.id}`}>
+                    <button disabled={filteredSubmissionPrev === null}>
+                        Previous
+                    </button>
+                </Link>
+                <div>
+                {filters.map((filter) =>
+                    <span key={filter.label}>
+                        {filter.label}
+                    </span>
+                )}
+                </div>
+                <Link to={`/courses/${params.courseId}/assignments/${params.assignmentId}/submissions/${filteredSubmissionNext?.id}`}>
+                    <button disabled={filteredSubmissionNext === null}>
+                        Next
+                    </button>
+                </Link>
+            </div>
+        </div>
+    </div>
   )
 }

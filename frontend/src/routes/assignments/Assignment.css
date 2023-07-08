@@ -3,16 +3,18 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  /* height: calc(100vh - 3px); */
   max-width: 1200px;
   margin: 0.5rem auto 3rem;
   box-shadow: 0 0 1rem rgba(0, 0, 0, 0.1);
 }
 
 .assignment-main {
-  margin: 3rem 4rem;
-  padding: 1rem;
-  width: 100%;
+  padding: 2rem;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  grid-template-columns: repeat(
+    auto-fit, 
+    minmax(25em, 1fr)
+    );
+  gap: 1rem;
 }

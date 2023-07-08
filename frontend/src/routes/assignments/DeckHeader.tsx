@@ -19,7 +19,7 @@ const DeckHeader = (props) => {
   }
 
   return (
-    <header>
+    <header className="deck-header">
         <h1>
             {props.title}
             <span className="submission-counter">

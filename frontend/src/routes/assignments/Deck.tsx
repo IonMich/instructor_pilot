@@ -1,32 +1,35 @@
-import { useParams } from 'react-router-dom';
-import { 
-  useQuery, 
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 import './Deck.css'
 import { SubmissionCard, SubmissionCardAdd } from './SubmissionCard'
 
-const Deck = ({assignment, subs, setSubs, maxGrade, handleAddNew}) => {
+const Deck = ({assignment, subs, maxGrade, handleAddNew, handleDeletion}) => {
     const assignmentId = assignment.id
+    const navigate = useNavigate()
     console.log("assignmentId", assignmentId)
-
-    const queryClient = useQueryClient()
-    
-
-    async function handleDeletion(sub) {
-        console.log("handleDeletion")
-        const updated_submissions = await setSubs(subs.filter((s) => s.id !== sub.id), assignmentId)
-        console.log("updated_submissions", updated_submissions)
-        queryClient.invalidateQueries(['submissions', 'list', assignmentId])
-    }
 
     function handleNavToCanvasSub(sub) {
         window.open(`https://elearning.ufl.edu/courses/${course.canvasId}/assignments/${assignment.canvasId}/submissions/${sub.canvasId}`, '_blank')
     }
 
+    function navigateTransition() {
+        if (!document.startViewTransition) {
+            console.log("no transition")
+            navigate(`/courses/${course.id}/assignments/${assignment.id}/submissions/${subs[0].id}`);
+            return;
+        } else {
+            console.log("transition")
+        }
+        document.startViewTransition(() => 
+            navigate(`submissions/${subs[0].id}`)
+        )
+    }
+
     return (
         <main>
+            <button onClick={navigateTransition} type="button">
+                Start grading
+            </button>
             {(subs.length !== 0) ? (
                 <div className="submission-card-deck">
                     {subs.map((sub) => (

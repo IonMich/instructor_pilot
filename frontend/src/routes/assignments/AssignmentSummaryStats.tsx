@@ -95,7 +95,7 @@ function createChartData(subs, filteredSubmissions, filters, maxGrade) {
     if (filters.length > 0) {
         const labelName = filters.map((filter) => filter.label).join(', ');
         datasets.push({
-            label: `Filtered Submissions (${labelName})`,
+            label: `Filtered (${labelName})`,
             data: filterCounts,
             backgroundColor: 'rgba(54, 162, 235, 0.2)',
             borderColor: 'rgb(54, 162, 235)',

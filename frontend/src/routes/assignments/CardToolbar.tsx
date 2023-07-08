@@ -3,7 +3,7 @@ import { FaTrashAlt } from 'react-icons/fa';
 
 const CardToolbar = ({sub, handleNavToCanvasSub, handleDeletion}) => {
   return (
-    <div className="submission-card-buttons">
+    <header className="submission-card-buttons">
         <button 
             className="canvas-sub-button"
             onClick={() => handleNavToCanvasSub(sub)}>
@@ -16,7 +16,7 @@ const CardToolbar = ({sub, handleNavToCanvasSub, handleDeletion}) => {
             onClick={() => handleDeletion(sub)}>
             <FaTrashAlt />
         </button>
-    </div>
+    </header>
   )
 }
 

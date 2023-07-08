@@ -60,6 +60,11 @@ export async function getStudentsOfCourse(courseId, query) {
   return students
 }
 
+export async function getSectionsOfCourse(courseId) {
+    await fakeNetwork(`sections:${courseId}`)
+    return sectionChoices
+}
+
 function createRandomStudent(courseId) {
     const id = Math.random().toString(36).substring(2, 9)
     const firstName = firstNameChoices[Math.floor(Math.random() * firstNameChoices.length)]

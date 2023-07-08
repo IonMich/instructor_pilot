@@ -1,7 +1,5 @@
 import './Assignment.css';
 
-import { useState } from 'react';
-
 import { useParams, useOutletContext } from 'react-router-dom';
 import { 
   useQuery, 
@@ -58,6 +56,42 @@ export const assignmentSubmissionsListQuery = (assignmentId : string) => ({
       })
     }
     return submissions
+  },
+  placeholderData: () => {
+    return []
+  }
+})
+
+export const assignmentVersionsListQuery = (assignmentId : string) => ({
+  queryKey: ['versions', 'list', assignmentId],
+  queryFn: async () => {
+    const versions = await getVersionsOfAssignment(assignmentId)
+    console.log('version list query Fn happened', versions)
+    if (!versions) {
+      throw new Response('', {
+        status: 404,
+        statusText: 'Versions not found',
+      })
+    }
+    return versions
+  },
+  placeholderData: () => {
+    return []
+  }
+})
+
+export const courseSectionsListQuery = (courseId : string) => ({
+  queryKey: ['sections', 'list', courseId],
+  queryFn: async () => {
+    const sections = await getSectionsOfCourse(courseId)
+    console.log('section list query Fn happened', sections)
+    if (!sections) {
+      throw new Response('', {
+        status: 404,
+        statusText: 'Sections not found',
+      })
+    }
+    return sections
   },
   placeholderData: () => {
     return []
@@ -151,8 +185,8 @@ export function apply_filters(submissions, filters, students) {
 }
 
 export default function Assignment() {
-  const [filters, setFilters] = useOutletContext();
-  const params = useParams() as any
+  const [filters, setFilters] = useOutletContext() as any;
+  const params = useParams() as any;
   const queryClient = useQueryClient()
   console.log("params", params)
   const { data: assignment } = useQuery(assignmentDetailQuery(params.assignmentId, params.courseId))
@@ -174,6 +208,14 @@ export default function Assignment() {
     const updated_submissions = await setSubmissionsOfAssignment([...submissions, newSubmission], assignmentId)
     console.log("updated_submissions", updated_submissions)
     queryClient.invalidateQueries(['submissions', 'list', assignmentId])
+  }
+    
+
+  async function handleDeletion(sub) {
+      console.log("handleDeletion")
+      const updated_submissions = await setSubmissionsOfAssignment(submissions.filter((s) => s.id !== sub.id), assignmentId)
+      console.log("updated_submissions", updated_submissions)
+      queryClient.invalidateQueries(['submissions', 'list', assignmentId])
   }
 
   return (
@@ -198,9 +240,10 @@ export default function Assignment() {
       <Deck 
         assignment={assignment} 
         subs={filteredSubmissions} 
-        setSubs={setSubmissionsOfAssignment} 
         maxGrade={maxGrade} 
-        handleAddNew={handleAddNew} />
+        handleAddNew={handleAddNew} 
+        handleDeletion={handleDeletion}
+        />
     </div>
   );
 }

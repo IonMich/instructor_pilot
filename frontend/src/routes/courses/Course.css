@@ -1,10 +1,49 @@
 .Course {
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
     min-height: calc(80vh);
     max-width: 1200px;
     margin: 0.5rem auto 3rem;
     box-shadow: 0 0 1rem rgba(0, 0, 0, 0.1);
+  }
+
+  .course-image-sm-container img {
+    border-radius: 50%;
+    width: 150px;
+    margin: 0.5rem;
+  }
+
+  .course-items {
+    display: grid;
+    grid-template-areas: 
+      "sections assignments"
+      "sections assignments"
+      "announcements announcements";
+    grid-template-columns: 1fr 2fr;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 2rem;
+    padding-inline: 5rem;
+  }
+
+  .course-items > * {
+    margin: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid rgb(33, 28, 33);
+    border-radius: 1rem;
+    background-color: #fff;
+    box-shadow: 0.1rem 0.1rem 0.5rem rgba(0, 0, 0, 0.1);
+  }
+
+  .course-sections {
+    grid-area: sections;
+  }
+
+  .course-assignments {
+    grid-area: assignments;
+  }
+
+  .course-announcements {
+    grid-area: announcements;
   }

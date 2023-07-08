@@ -1,4 +1,5 @@
 import * as React from 'react'
+import './Course.css'
 import { Form, useFetcher, useParams, Link } from 'react-router-dom'
 import { getCourse, updateCourse } from './courses-api'
 import { getAssignmentsOfCourse } from '../assignments/assignments-api'
@@ -75,7 +76,7 @@ export default function Course() {
 
   return (
     <div id="course" className="Course">
-      <div>
+      <div className='course-image-sm-container'>
         <img key={course.imageUrl} src={course.imageUrl || null} />
       </div>
 
@@ -111,16 +112,40 @@ export default function Course() {
           </Form>
         </div>
       </div>
-      <div>
-        <h2>Assignments</h2>
-        <div>
-            {Object.values(assignments).map((assignment) => (
-                <div key={assignment.id}>
-                    <Link to={`assignments/${assignment.id}`}>
-                        {assignment.name}
-                    </Link>
-                </div>
+      <div className="course-items">
+        <div className="course-assignments">
+          <h2>Assignments</h2>
+          <div>
+              {Object.values(assignments)?.map((assignment) => (
+                  <div key={assignment.id}>
+                      <Link to={`assignments/${assignment.id}`}>
+                          {assignment.name}
+                      </Link>
+                  </div>
+              ))}
+          </div>
+        </div>
+        <div className="course-sections">
+          <h2>Sections</h2>
+          <div>
+            {course.sections?.map((section) => (
+              <div key={section.id}>
+                <Link to={`sections/${section.id}`}>{section.name}</Link>
+              </div>
             ))}
+          </div>
+        </div>
+        <div className="course-announcements">
+          <h2>Announcements</h2>
+          <div>
+            {course.announcements?.map((announcement) => (
+              <div key={announcement.id}>
+                <Link to={`announcements/${announcement.id}`}>
+                  {announcement.title}
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -135,14 +160,16 @@ function Favorite({ course }) {
   }
 
   return (
-    <fetcher.Form method="post" action="">
-      <button
-        name="favorite"
-        value={favorite ? 'false' : 'true'}
-        aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
-      >
-        {favorite ? '★' : '☆'}
-      </button>
-    </fetcher.Form>
+    <div style={{ display: 'inline-block' }}>
+      <fetcher.Form method="post" action="">
+        <button
+          name="favorite"
+          value={favorite ? 'false' : 'true'}
+          aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          {favorite ? '★' : '☆'}
+        </button>
+      </fetcher.Form>
+    </div>
   )
 }

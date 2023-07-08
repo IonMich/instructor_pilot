@@ -1,0 +1,41 @@
+.submission-detail {
+    margin-top: 1em;
+    display: grid;
+    grid-template-columns: 1fr 3fr 1fr;
+    gap: 1em;
+}
+
+.total-grade {
+    margin-inline: 0.2em;
+    position: relative;
+    top: -0.2em;
+    padding: 0.1em 0.5em;
+    border-radius: 0.5em;
+    color: #fff;
+    background-color: #6c757d;
+    font-size: 0.6em;
+    white-space: nowrap;
+}
+
+.submission-center {
+    height: 85vh;
+    background-image: linear-gradient(30deg, rgba(255, 0, 21, 0.2), rgba(76, 0, 255, 0.195));
+}
+
+.submission-imgs {
+    max-height: 75vh;
+    border-radius: 0.3rem;
+    overflow-y: scroll;
+}
+
+.submission-page {
+    display: block;
+    aspect-ratio: 8.5 / 11;
+    width: 100%;
+    background-image: linear-gradient(30deg, rgba(30,100,100,0.2), rgba(0,255,0,0.2));
+    transition: all 0.2s ease-in-out;
+}
+
+.submission-page:first {
+    view-transition-name: submission-image;
+}
