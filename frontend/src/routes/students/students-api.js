@@ -1,6 +1,8 @@
 import localforage from 'localforage'
 import { matchSorter } from 'match-sorter'
 
+import { getSectionsOfCourse } from '../sections/sections-api.js'
+
 const firstNameChoices = [
     "John", "Jane", "Joe", "Jill", "Jack", 
     "Keegan", "Katie", "Karl", "Kathy", "Kurt",
@@ -15,33 +17,16 @@ const lastNameChoices = [
     "Martin", "Thompson", "Garcia", "Martinez", "Robinson",
 ]
 
-const sectionChoices = [
-    {
-        id: '1',
-        name: 'Section 1',
-        classNumber: '12345',
-    },
-    {
-        id: '2',
-        name: 'Section 2',
-        classNumber: '54321',
-    },
-    {
-        id: '3',
-        name: 'Section 3',
-        classNumber: '67890',
-    },
-]
-
 const seed = async () => {
     const courseId = 'usupkc1'
+    const sections = await getSectionsOfCourse(courseId)
     const students = await localforage.getItem(`students_${courseId}`)
     if (!students) {
         const seedLength = 100
         const initialData = []
         for (let i = 0; i < seedLength; i++) {
             initialData.push(
-                createRandomStudent(courseId)
+                createRandomStudent(courseId, sections)
             )
         }
         set(initialData, courseId)
@@ -51,7 +36,7 @@ const seed = async () => {
 await seed()
 
 export async function getStudentsOfCourse(courseId, query) {
-    await fakeNetwork(`students:${courseId}`)
+  await fakeNetwork(`students:${courseId}`)
   let students = await localforage.getItem(`students_${courseId}`)
   if (!students) students = []
   if (query) {
@@ -60,25 +45,21 @@ export async function getStudentsOfCourse(courseId, query) {
   return students
 }
 
-export async function getSectionsOfCourse(courseId) {
-    await fakeNetwork(`sections:${courseId}`)
-    return sectionChoices
-}
-
-function createRandomStudent(courseId) {
+function createRandomStudent(courseId, sections) {
     const id = Math.random().toString(36).substring(2, 9)
     const firstName = firstNameChoices[Math.floor(Math.random() * firstNameChoices.length)]
     const lastName = lastNameChoices[Math.floor(Math.random() * lastNameChoices.length)]
     const name = firstName + ' ' + lastName
     const uniId = Math.floor(Math.random() * (100000000 - 10000000) + 10000000)
-    const section = sectionChoices[Math.floor(Math.random() * sectionChoices.length)]
+    const section = sections[Math.floor(Math.random() * sections.length)]
     const student = { id, createdAt: Date.now(), name, firstName, lastName, uniId, section: section }
   return student
 }
 
 export async function createStudent(courseId) {
     await fakeNetwork()
-    const student = createRandomStudent(courseId)
+    const sections = await getSectionsOfCourse(courseId)
+    const student = createRandomStudent(courseId, sections)
     const students = await getStudentsOfCourse(courseId)
     students.unshift(student)
     await set(students, courseId)

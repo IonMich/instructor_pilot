@@ -29,7 +29,7 @@ const DeckHeader = (props) => {
               }
             </span>
         </h1>
-        <DeckToolbar filters={props.filters} setFilters={props.setFilters} handleAddNew={props.handleAddNew} handleDeleteAll={handleDeleteAll} />
+        <DeckToolbar filters={props.filters} setFilters={props.setFilters} handleAddNew={props.handleAddNew} handleDeleteAll={handleDeleteAll} versions={props.versions} />
     </header>
   )
 }

@@ -86,7 +86,7 @@ function createChartData(subs, filteredSubmissions, filters, maxGrade) {
 
     const datasets = [];
     datasets.push({
-        label: 'All Submissions',
+        label: 'All Graded Submissions',
         data: allCounts,
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
         borderColor: 'rgb(255, 99, 132)',

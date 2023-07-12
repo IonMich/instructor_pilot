@@ -11,6 +11,13 @@
     transition: all 0.2s ease-in-out;
 }
 
+.submission-card:focus-within {
+    /* bg-light */
+    outline: 1px dashed #0066ff;
+    transition: none;
+}
+
+
 /* smake link clickable for the whole card */
 .submission-card > a::before {
     content: "";

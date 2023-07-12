@@ -6,131 +6,26 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
-import { getStudentsOfCourse } from '../students/students-api';
-
-import { getAssignmentOfCourse } from './assignments-api';
-
 import { 
   setSubmissionsOfAssignment, 
-  getSubmissionsOfAssignment, 
-  createSubmissionOfAssignment, 
+  createSubmissionOfAssignment,
+  // getGradesOfAssignment,
 } from '../submissions/submissions-api';
+
+import {
+  assignmentDetailQuery,
+  assignmentSubmissionsListQuery,
+  assignmentVersionsListQuery,
+  courseStudentsListQuery,
+  assignmentQuestionsListQuery,
+} from './queries';
 
 import AssignmentHeader from './AssignmentHeader';
 import AssignmentQuickActions from './AssignmentQuickActions';
 import AssignmentSummaryStats from './AssignmentSummaryStats';
+import AssignmentFreshStart from './AssignmentFreshStart';
 import DeckHeader from './DeckHeader';
 import Deck from './Deck';
-
-const assignmentDetailQuery = (assignmentId: string, courseId: string) => ({
-  queryKey: ['assignments', 'detail', assignmentId],
-  queryFn: async () => {
-    const assignment = await getAssignmentOfCourse(assignmentId, courseId)
-    console.log('assignment detail query Fn happened', assignment)
-    if (!assignment) {
-      throw new Response('', {
-        status: 404,
-        statusText: 'Not Found',
-      })
-    }
-    return assignment
-  },
-  placeholderData: () => {
-    return {
-      id: assignmentId,
-      name: <span style={{ color: 'grey', fontStyle: 'italic' }}>Loading...</span>,
-      maxGrade: "??",
-    }
-  }
-})
-
-export const assignmentSubmissionsListQuery = (assignmentId : string) => ({
-  queryKey: ['submissions', 'list', assignmentId],
-  queryFn: async () => {
-    const submissions = await getSubmissionsOfAssignment(assignmentId)
-    console.log('submission list query Fn happened', submissions)
-    if (!submissions) {
-      throw new Response('', {
-        status: 404,
-        statusText: 'Submissions not found',
-      })
-    }
-    return submissions
-  },
-  placeholderData: () => {
-    return []
-  }
-})
-
-export const assignmentVersionsListQuery = (assignmentId : string) => ({
-  queryKey: ['versions', 'list', assignmentId],
-  queryFn: async () => {
-    const versions = await getVersionsOfAssignment(assignmentId)
-    console.log('version list query Fn happened', versions)
-    if (!versions) {
-      throw new Response('', {
-        status: 404,
-        statusText: 'Versions not found',
-      })
-    }
-    return versions
-  },
-  placeholderData: () => {
-    return []
-  }
-})
-
-export const courseSectionsListQuery = (courseId : string) => ({
-  queryKey: ['sections', 'list', courseId],
-  queryFn: async () => {
-    const sections = await getSectionsOfCourse(courseId)
-    console.log('section list query Fn happened', sections)
-    if (!sections) {
-      throw new Response('', {
-        status: 404,
-        statusText: 'Sections not found',
-      })
-    }
-    return sections
-  },
-  placeholderData: () => {
-    return []
-  }
-})
-
-export const courseStudentsListQuery = (courseId : string) => ({
-  queryKey: ['students', 'list', courseId],
-  queryFn: async () => {
-    const students = await getStudentsOfCourse(courseId)
-    console.log('student list query Fn happened', students)
-    if (!students) {
-      throw new Response('', {
-        status: 404,
-        statusText: 'Students not found',
-      })
-    }
-    return students
-  },
-})
-
-export const loader =
-  (queryClient) =>
-  async ({ params }) => {
-    console.log('loader', params)
-    const assignmentQuery = assignmentDetailQuery(params.assignmentId, params.courseId)
-    const submissionsQuery = assignmentSubmissionsListQuery(params.assignmentId)
-    const studentsQuery = courseStudentsListQuery(params.courseId)
-    console.log('loader', assignmentQuery, submissionsQuery)
-    const promise = await Promise.all([
-      queryClient.getQueryData(assignmentQuery.queryKey) ??
-        (await queryClient.fetchQuery(assignmentQuery)),
-      queryClient.getQueryData(submissionsQuery.queryKey) ??
-        (await queryClient.fetchQuery(submissionsQuery)),
-      queryClient.getQueryData(studentsQuery.queryKey) ??
-        (await queryClient.fetchQuery(studentsQuery)),
-    ])
-    return { ...promise[0], assignments: promise[1], students: promise[2] }
-}
 
 export function apply_filters(submissions, filters, students) {
   let filteredSubmissions = [...submissions]
@@ -155,8 +50,11 @@ export function apply_filters(submissions, filters, students) {
     if (filter.version !== undefined) {
       console.log("filtering by version", filter.version)
       const filterFunc = (submission) => {
-        const version = submission.versionId
-        return (filter.version === version)
+        if (filter.version === "no-version") {
+          return (submission.versionId === null || submission.versionId === undefined)
+        } else {
+          return (filter.version === submission.versionId)
+        }
       }
       filteredSubmissions = [...filteredSubmissions.filter(filterFunc)]
     }
@@ -192,10 +90,18 @@ export default function Assignment() {
   const { data: assignment } = useQuery(assignmentDetailQuery(params.assignmentId, params.courseId))
   const { data: submissions } = useQuery(assignmentSubmissionsListQuery(params.assignmentId))
   const { data: students } = useQuery(courseStudentsListQuery(params.courseId))
+  const { data: versions } = useQuery(assignmentVersionsListQuery(params.assignmentId))
+  for (const version of versions) {
+    console.log("version", version)
+  }
+  const numVersions = versions?.length
+
   const maxGrade = assignment?.maxGrade
   const assignmentName = assignment?.name
   const assignmentId = assignment?.id
   const courseId = params.courseId
+
+  const hasAllSameNumQs =  versions?.every((version) => version.questions.length === versions[0].questions.length)
 
   const filteredSubmissions = apply_filters(submissions, filters, students)
 
@@ -221,13 +127,52 @@ export default function Assignment() {
   return (
     <div className="Assignment">
       <AssignmentHeader assignmentName={assignmentName} assignmentId={assignmentId} />
+      <div className="assignment-version-info">
+        <p>{numVersions} versions</p>
+        {versions?.map((version) => (
+          version.questions.map((question) => (
+            <p key={question.position}>
+              {question.name} with max grade {question.maxGrade} for version {version.name}
+            </p>
+          ))
+        ))}
+        <p>Do all versions have the same number of questions?</p>
+        <p> 
+          Answer: {hasAllSameNumQs ? "Yes" : "No"}
+          <br />
+          All versions have {versions[0]?.questions.length} questions.
+        </p>
+        {hasAllSameNumQs ? (
+          versions[0]?.questions.map((question) => (
+            <div key={question.position}>
+              <p>Do all version have the same max grade for question in position {question.position}?</p>
+              <p>
+                Answer: {versions?.every((version) => version.questions.find((q) => q.position === question.position).maxGrade === question.maxGrade) ? "Yes" : "No"}
+                <br />
+                All versions have max grade {question.maxGrade} for question {question.name}.
+              </p>
+            </div>
+          ))
+        ) : (
+          <p>Not all versions have the same number of questions.</p>
+        )}
+      </div>
+
       <div className="assignment-main">
-        <AssignmentQuickActions />
-        <AssignmentSummaryStats 
-          subs={submissions} 
-          filteredSubmissions={filteredSubmissions}
-          filters={filters}
-          maxGrade={maxGrade} />
+        {(submissions.length !== 0) ? (
+          <>
+            <AssignmentQuickActions />
+            <AssignmentSummaryStats 
+              subs={submissions} 
+              filteredSubmissions={filteredSubmissions}
+              filters={filters}
+              maxGrade={maxGrade} />
+          </>
+        ) : (
+          <>
+            <AssignmentFreshStart />
+          </>
+        )}
       </div>
       <DeckHeader 
         title="Submissions" 
@@ -235,6 +180,7 @@ export default function Assignment() {
         setSubs={setSubmissionsOfAssignment} 
         filters={filters} 
         setFilters={setFilters} 
+        versions={versions}
         filteredSubmissionsLength={filteredSubmissions.length}
         handleAddNew={handleAddNew} />
       <Deck 

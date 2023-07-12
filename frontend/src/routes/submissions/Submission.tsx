@@ -6,8 +6,10 @@ import {
 import { 
     assignmentSubmissionsListQuery, 
     courseStudentsListQuery, 
-    apply_filters 
-} from '../assignments/Assignment'
+    assignmentDetailQuery,
+} from '../assignments/queries'
+
+import { apply_filters } from '../assignments/Assignment'
 
 import { Fragment } from 'react'
 
@@ -142,31 +144,13 @@ export function StudentSelect ( { students, studentIdOfSubmission, handleStudent
 //     },
 // })
 
-export const loader =
-    (queryClient) =>
-    async ({ params }) => {
-    console.log('submission loader called')
-    const submissionsQuery = assignmentSubmissionsListQuery(params.assignmentId)
-    const studentsQuery = courseStudentsListQuery(params.courseId)
-    const promise = await Promise.all([
-        queryClient.getQueryData(submissionsQuery.queryKey) ??
-        (await queryClient.fetchQuery(submissionsQuery)),
-        queryClient.getQueryData(studentsQuery.queryKey) ??
-        (await queryClient.fetchQuery(studentsQuery)),
-    ])
-
-    const submission = promise[0].find((submission) => submission.id === params.submissionId)
-
-    return { ...submission, submissions: promise[0], students: promise[1] }
-    }
-
-    
 
 export default function Submission() {
     const [filters, setFilters] = useOutletContext();
     const fetcher = useFetcher()
     const identifyFormRef = useRef(null)
     const params = useParams()
+    const { data: assignment } = useQuery(assignmentDetailQuery(params.assignmentId, params.courseId))
     const { data: submissions } = useQuery(assignmentSubmissionsListQuery(params.assignmentId))
     const { data: students } = useQuery(courseStudentsListQuery(params.courseId))
     const submission = submissions.find((submission) => submission.id === params.submissionId)
@@ -207,6 +191,11 @@ export default function Submission() {
             <p>Student ID: {submission.studentId}</p>
             <p>Student Name: {student?.name}</p>
             <p>Student Section: {student?.section.name}</p>
+            {/* assignment details */}
+            <p>Assignment ID: {assignment.id}</p>
+            <p>Assignment Name: {assignment.name}</p>
+            {/* max score */}
+            <p>Max Score: {assignment.maxGrade}</p>
             {/* previous next button group. If there is no previous or next submission, the button is disabled */}
             
         </div>
@@ -231,7 +220,7 @@ export default function Submission() {
             <h2 style={{marginTop: "1em"}}>
                 Grade
                 <span className="total-grade">
-                    {submission.totalGrade} / total
+                    {submission.totalGrade} / {assignment.maxGrade}
                 </span>
             </h2>
             <p>Grade: {submission.totalGrade}</p>

@@ -1,24 +1,15 @@
 import { CSSProperties } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
-  useQuery, 
-  useQueryClient,
+  useQuery,
 } from '@tanstack/react-query';
 
 import Select from 'react-select';
 
 import {
-  getSectionsOfCourse,
-} from '../students/students-api';
-
-import {
-  getVersionsOfAssignment,
-} from '../submissions/submissions-api';
-
-import {
   courseSectionsListQuery,
   assignmentVersionsListQuery,
-} from '../assignments/Assignment';
+} from './queries';
 
 
 interface SectionOption {
@@ -50,40 +41,9 @@ interface GroupedOption {
   options: Array<SectionOption | VersionOption | GradeStatusOption | IdentityStatusOption>;
 }
 
-// const groupedOptions: GroupedOption[] = [
-//   {
-//     label: 'Section',
-//     options: [
-//       { label: 'Section 1', value: 'section1', section: '1' },
-//       { label: 'Section 2', value: 'section2', section: '2' },
-//       { label: 'Section 3', value: 'section3', section: '3' },
-//     ],
-//   },
-//   {
-//     label: 'Version',
-//     options: [
-//       { label: 'Version 1', value: 'version1', version: '1' },
-//       { label: 'Version 2', value: 'version2', version: '2' },
-//       { label: 'Version 3', value: 'version3', version: '3' },
-//     ],
-//   },
-//   {
-//     label: 'Grade Status',
-//     options: [
-//       { label: 'Graded', value: 'graded', isGraded: true },
-//       { label: 'Ungraded', value: 'ungraded', isGraded: false },
-//     ],
-//   },
-//   {
-//     label: 'Identity Status',
-//     options: [
-//       { label: 'Identified', value: 'identified', isIdentified: true },
-//       { label: 'Unidentified', value: 'unidentified', isIdentified: false },
-//     ],
-//   },
-// ];
-
 const constructGroupedOptions = (sections, versions) => {
+  console.log("sections", sections);
+  console.log("versions", versions);
   const groupedOptions: GroupedOption[] = [
     {
       label: 'Section',
@@ -111,6 +71,7 @@ const constructGroupedOptions = (sections, versions) => {
 
   for (let i = 0; i < sections.length; i++) {
     const section = sections[i];
+    console.log("section", section);
     groupedOptions[0].options.push({
       label: section.name,
       value: section.id,
@@ -126,6 +87,13 @@ const constructGroupedOptions = (sections, versions) => {
       version: version.id,
     });
   }
+  // add also a "no version" option
+  groupedOptions[1].options.push({
+    label: "No Version",
+    value: "no-version",
+    version: "no-version",
+  });
+
 
   return groupedOptions;
 }
@@ -158,20 +126,21 @@ const formatGroupLabel = (data: GroupedOption) => (
   </div>
 );
 
-export default function FilterSelect ( {filters, setFilters} ) {
+export default function FilterSelect ( {filters, setFilters, versions} ) {
   const params = useParams() as any
 
-  const sections = useQuery(courseSectionsListQuery(params.courseId))
-  const versions = useQuery(assignmentVersionsListQuery(params.assignmentId))
+  const {data: sections} = useQuery(courseSectionsListQuery(params.courseId))
+  // const {data: versions} = useQuery(assignmentVersionsListQuery(params.assignmentId))
 
   const groupedOptions = constructGroupedOptions(sections, versions);
+  console.log("groupedOptions", groupedOptions);
 
   function changeFilters( e ) {
     console.log(e);
     setFilters(e);
   }
 
-  return <Select<SectionOption | VersionOption, false, GroupedOption>
+  return <Select
     options={groupedOptions}
     styles={{
       container: (base) => ({
@@ -195,6 +164,10 @@ export default function FilterSelect ( {filters, setFilters} ) {
       menu: (base) => ({
         ...base,
         minWidth: "200px",
+      }),
+      menuList: (base) => ({
+        ...base,
+        scrollBehavior: "smooth",
       }),
       multiValueRemove: (base) => ({
         ...base,

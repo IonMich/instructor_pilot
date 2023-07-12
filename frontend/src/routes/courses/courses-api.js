@@ -2,6 +2,7 @@ import localforage from 'localforage'
 import { matchSorter } from 'match-sorter'
 
 const seed = async () => {
+  console.log('Maybe Seeding courses')
   const initialData = [
     {
       imageUrl: 'https://avatars.githubusercontent.com/u/5580297?v=4',
@@ -26,11 +27,17 @@ const seed = async () => {
   ]
   const courses = await localforage.getItem('courses')
   if (!courses) {
-    set(initialData)
+    console.log('Seeding courses')
+    await set(initialData)
+    // get the courses again to make sure they were saved
+    const courses = await localforage.getItem('courses')
+    console.log('Seeded courses', courses)
+  } else {
+    console.log('Courses already seeded')
   }
 }
 
-seed()
+await seed()
 
 export async function getCourses(query) {
   await fakeNetwork(`getCourses:${query}`)
@@ -80,8 +87,8 @@ export async function deleteCourse(id) {
   return false
 }
 
-function set(courses) {
-  return localforage.setItem('courses', courses)
+async function set(courses) {
+  return await localforage.setItem('courses', courses)
 }
 
 async function fakeNetwork() {

@@ -12,9 +12,27 @@
   padding: 2rem;
   display: grid;
   width: 100%;
+  grid-template-areas:
+    "quick-actions summary-stats";
   grid-template-columns: repeat(
     auto-fit, 
     minmax(25em, 1fr)
     );
   gap: 1rem;
+}
+
+.assignment-main .quick-actions {
+  grid-area: quick-actions;
+}
+
+.assignment-main .summary-stats {
+  grid-area: summary-stats;
+}
+
+.assignment-main .grading-scheme {
+  grid-column: 1 / -1;
+}
+
+.assignment-main .upload-subs {
+  grid-column: 1 / -1;
 }

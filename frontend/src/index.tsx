@@ -1,4 +1,4 @@
-import * as React from 'react'
+import React from 'react'
 import * as ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, NavLink, } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -6,22 +6,24 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
 import './index.css'
 
-import ErrorPage from './ErrorPage'
+import { loader as dashboardLoader, action as dashboardAction } from './routes/Dashboard'
 
-import Dashboard, { loader as dashboardLoader, action as dashboardAction } from './routes/Dashboard'
-import Layout from './routes/Layout'
 
-import Course, {
-  loader as courseLoader,
-  action as courseAction,
-} from './routes/courses/Course'
-import EditCourse, { action as courseEditAction } from './routes/courses/Edit'
+import { action as courseEditAction } from './routes/courses/Edit'
 import { action as courseDestroyAction } from './routes/courses/Destroy'
 
-import Assignment, { loader as assignmentLoader } from './routes/assignments/Assignment'
+import { lazy } from 'react';
 
-import Submission, { loader as submissionLoader } from './routes/submissions/Submission'
-import { action as submissionEditAction } from './routes/submissions/Edit'
+import ErrorPage from './ErrorPage';
+
+const Submission = lazy(() => import('./routes/submissions/Submission'));
+const Assignment = lazy(() => import('./routes/assignments/Assignment'));
+const Course = lazy(() => import('./routes/courses/Course'));
+const EditCourse = lazy(() => import('./routes/courses/Edit'));
+const Dashboard = lazy(() => import('./routes/Dashboard'));
+const Layout = lazy(() => import('./routes/Layout'));
+
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -47,6 +49,7 @@ function Crumb (match) {
   const isHome = match.id === '0'
   const hasName = (match.data && match.data.name)
   const linkDisplay = isHome ? 'Home' : hasName ? match.data.name : '---'
+  console.log("match", match)
   
   return (
     <div>
@@ -70,7 +73,13 @@ const submissionRoutes = [
   },
   {
     path: submissionPath,
-    loader: submissionLoader(queryClient),
+    // loader: submissionLoader(queryClient),
+    async loader({ params }) {
+      const { loader } = await import("./routes/submissions/loaders");
+      const toLoad = loader(queryClient);
+      console.log("toLoad", toLoad);
+      return toLoad({ params })
+    },
     handle: { crumb: Crumb },
     children: [
       {
@@ -79,7 +88,12 @@ const submissionRoutes = [
       },
       {
         path: editSubmissionPath,
-        action: submissionEditAction(queryClient),
+        async action({ request, params }) {
+          const { action } = await import("./routes/submissions/Edit");
+          const toLoad =  action(queryClient);
+          console.log("toLoad", toLoad);
+          return toLoad({ request, params })
+        },
       },
       {
         path: destroySubmissionPath,
@@ -98,7 +112,12 @@ const assignmentRoutes = [
   },
   {
     path: assignmentPath,
-    loader: assignmentLoader(queryClient),
+    async loader({ params }) {
+      const { loader } = await import("./routes/assignments/loaders");
+      const toLoad = loader(queryClient);
+      console.log("toLoad", toLoad);
+      return toLoad({ params })
+    },
     handle: { crumb: Crumb },
     children: [
       {
@@ -123,18 +142,27 @@ const assignmentRoutes = [
 const courseRoutes = [
   {
     path: coursePath,
-    loader: courseLoader(queryClient),
     handle: { crumb: Crumb },
+    async loader({ params }) {
+      const { loader } = await import("./routes/courses/loaders");
+      const toLoad = loader(queryClient);
+      console.log("toLoad", toLoad);
+      return toLoad({ params })
+    },
     children: [
       {
         index: true,
         element: <Course />,
-        action: courseAction(queryClient),
       },
       {
         path: editCoursePath,
         element: <EditCourse />,
-        loader: courseLoader(queryClient),
+        async loader({ params }) {
+          const { loader } = await import("./routes/courses/loaders");
+          const toLoad = loader(queryClient);
+          console.log("toLoad", toLoad);
+          return toLoad({ params })
+        },
         action: courseEditAction(queryClient),
         handle: { crumb: Crumb },
       },

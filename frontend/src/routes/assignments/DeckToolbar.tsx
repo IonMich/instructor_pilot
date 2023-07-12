@@ -3,7 +3,7 @@ import { BsFileEarmarkPlus } from 'react-icons/bs';
 import { FaTrashAlt } from 'react-icons/fa';
 import FilterSelect from './FilterSelect';
 
-const DeckToolbar = ({ filters, setFilters, handleAddNew, handleDeleteAll }) => {
+const DeckToolbar = ({ filters, setFilters, versions, handleAddNew, handleDeleteAll }) => {
   // allow user to filter by section, version and graded/ungarded
   return (
     <div className="header-buttons">
@@ -12,7 +12,7 @@ const DeckToolbar = ({ filters, setFilters, handleAddNew, handleDeleteAll }) => 
         </button>
         <button className="header-button">Sort</button>
         <div className="filter-subs">
-          <FilterSelect filters={filters} setFilters={setFilters} />
+          <FilterSelect filters={filters} setFilters={setFilters} versions={versions} />
         </div>
         <button className="header-button add-subs" onClick={handleAddNew} title="Add New Submissions">
             <BsFileEarmarkPlus />     

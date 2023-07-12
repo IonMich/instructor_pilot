@@ -1,71 +1,31 @@
-import * as React from 'react'
 import './Course.css'
-import { Form, useFetcher, useParams, Link } from 'react-router-dom'
-import { getCourse, updateCourse } from './courses-api'
-import { getAssignmentsOfCourse } from '../assignments/assignments-api'
+import { useLoaderData, Form, useFetcher, useParams, Link } from 'react-router-dom'
+
+
 import { useQuery } from '@tanstack/react-query'
+// suspense the image loading
 
-const courseDetailQuery = (id) => ({
-  queryKey: ['courses', 'detail', id],
-  queryFn: async () => {
-    const course = await getCourse(id)
-    console.log('query Fn happened', course)
-    if (!course) {
-      throw new Response('', {
-        status: 404,
-        statusText: 'Not Found',
-      })
-    }
-    return course
-  },
-})
+import { Suspense } from 'react'
 
-const courseAssignmentsListQuery = (id) => ({
-  queryKey: ['assignments', 'list', id],
-  queryFn: async () => {
-    const assignments = await getAssignmentsOfCourse(id)
-    console.log('assignment query Fn happened', assignments)
-    if (!assignments) {
-      throw new Response('', {
-        status: 404,
-        statusText: 'Not Found',
-      })
-    }
-    return assignments
-  },
-})
 
-export const loader =
-  (queryClient) =>
-  async ({ params }) => {
-    console.log('loader', params)
-    const query = courseDetailQuery(params.courseId)
-    const assignmentsQuery = courseAssignmentsListQuery(params.courseId)
-    console.log('loader', query, assignmentsQuery)
-    const promise = await Promise.all([
-      queryClient.getQueryData(query.queryKey) ??
-        (await queryClient.fetchQuery(query)),
-      queryClient.getQueryData(assignmentsQuery.queryKey) ??
-        (await queryClient.fetchQuery(assignmentsQuery)),
-    ])
-    return { ...promise[0], assignments: promise[1] }
-  }
+import {
+  courseAssignmentsListQuery,
+  courseDetailQuery,
+} from './queries'
 
-export const action =
-  (queryClient) =>
-  async ({ request, params }) => {
-    let formData = await request.formData()
-    const course = await updateCourse(params.courseId, {
-      favorite: formData.get('favorite') === 'true',
-    })
-    await queryClient.invalidateQueries({ queryKey: ['courses'] })
-    return course
-  }
+import {
+  courseSectionsListQuery,
+} from '../assignments/queries'
+
 
 export default function Course() {
+  const data = useLoaderData()
   const params = useParams()
-  const { data: course } = useQuery(courseDetailQuery(params.courseId))
-  const { data: assignments } = useQuery(courseAssignmentsListQuery(params.courseId))
+  console.log('params', params)
+  console.log('data', data)
+  const { data : course } = useQuery(courseDetailQuery(params.courseId))
+  const { data : assignments } = useQuery(courseAssignmentsListQuery(params.courseId))
+  const { data : sections } = useQuery(courseSectionsListQuery(params.courseId))
   // NOTE: useLoaderData() would not fetch again if the data is already in the cache
   // so we use useQuery() instead, which refetches on rerender if the data becomes 
   // inactive or invalidated.
@@ -73,11 +33,17 @@ export default function Course() {
   // when the component mounts, so that some data is available before 
   // the useQuery is called.
   // const course = useLoaderData()
+  console.log('course', course)
+  console.log('assignments', assignments)
 
   return (
     <div id="course" className="Course">
       <div className='course-image-sm-container'>
-        <img key={course.imageUrl} src={course.imageUrl || null} />
+          <img
+            className='course-image'
+            src={course.imageUrl}
+            alt={`The course ${course.name}`}
+          />
       </div>
 
       <div>
@@ -128,7 +94,7 @@ export default function Course() {
         <div className="course-sections">
           <h2>Sections</h2>
           <div>
-            {course.sections?.map((section) => (
+            {sections?.map((section) => (
               <div key={section.id}>
                 <Link to={`sections/${section.id}`}>{section.name}</Link>
               </div>
@@ -173,3 +139,9 @@ function Favorite({ course }) {
     </div>
   )
 }
+// border-radius: 50%;
+// width: 150px;
+// margin: 0.5rem;
+const FallbackImageDiv = (
+  <div style={{ width: '150px', height: '150px', margin: '0.5rem', backgroundColor: 'grey', borderRadius: '50%' }} />
+)

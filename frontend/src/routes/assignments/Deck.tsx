@@ -27,25 +27,27 @@ const Deck = ({assignment, subs, maxGrade, handleAddNew, handleDeletion}) => {
 
     return (
         <main>
-            <button onClick={navigateTransition} type="button">
-                Start grading
-            </button>
             {(subs.length !== 0) ? (
-                <div className="submission-card-deck">
-                    {subs.map((sub) => (
-                        <SubmissionCard
-                            key={sub.id}
-                            sub={sub}
-                            maxGrade={maxGrade}
-                            handleNavToCanvasSub={handleNavToCanvasSub}
-                            handleDeletion={handleDeletion}
-                        />
-                    ))}
-                    {/* create submission button */}
-                    <SubmissionCardAdd handleAddNew={handleAddNew}/>     
-                </div>
+                <>
+                    <button onClick={navigateTransition} type="button">
+                        Start grading
+                    </button>
+                    <div className="submission-card-deck">
+                        {subs.map((sub) => (
+                            <SubmissionCard
+                                key={sub.id}
+                                sub={sub}
+                                maxGrade={maxGrade}
+                                handleNavToCanvasSub={handleNavToCanvasSub}
+                                handleDeletion={handleDeletion}
+                            />
+                        ))}
+                        {/* create submission button */}
+                        <SubmissionCardAdd handleAddNew={handleAddNew}/>     
+                    </div>
+                </>
             ) : (
-                <p style={{color: "grey"}}>
+                <p style={{color: "grey", fontStyle: "italic"}}>
                     No submissions
                 </p>
             )

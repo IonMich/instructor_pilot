@@ -1,28 +1,12 @@
 import { getStudentsOfCourse } from '../students/students-api.js'
+import { getVersionsOfAssignment } from '../assignments/assignments-api.js'
 
-
-export async function getVersionsOfAssignment(assignmentId) {
-    await fakeNetwork(`getVersions_${assignmentId}`)
-    let versions = await localforage.getItem(`versions_${assignmentId}`)
-    console.log("getVersionsOfAssignment: got localforage",`versions_${assignmentId}`, versions)
-    if (!versions) versions = []
-    return versions
-}
-
-function createInitialVersions (assignmentId) {
-    let initVersions = [];
-    for (let i = 0; i < 5; i++) {
-      const newVersionId = i + 1;
-      const newVersion = {
-        id: newVersionId.toString(),
-        name: `Version ${newVersionId}`,
-        assignmentId: assignmentId,
-        createdAt: Date.now(),
-      };
-      initVersions.push(newVersion);
-    }
-    console.log(initVersions);
-    return initVersions;
+export async function getAnswersOfAssignment(assignmentId) {
+  await fakeNetwork(`getAnswers_${assignmentId}`)
+  let answers = await localforage.getItem(`answers_${assignmentId}`)
+  console.log("getAnswersOfAssignment: got localforage",`answers_${assignmentId}`, answers)
+  if (!answers) answers = []
+  return answers
 }
 
 export async function createInitialSubs (maxGrade, assignmentId, courseId) {
@@ -84,12 +68,7 @@ import { matchSorter } from 'match-sorter'
 
 const seed = async () => {
     const courseId = 'usupkc1';
-    const assignmentId = 'usajkc1'
-    const versions = await getVersionsOfAssignment(assignmentId)
-    if (versions.length === 0) {
-        console.log("versions not found, seeding", versions) 
-        await localforage.setItem(`versions_${assignmentId}`, createInitialVersions(assignmentId))
-    }
+    const assignmentId = 'usajkc1';
 
     const initialData = await createInitialSubs(10, assignmentId, courseId)
     console.log('seeding maybe')
