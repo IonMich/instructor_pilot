@@ -153,10 +153,11 @@ export default function Submission() {
     const { data: assignment } = useQuery(assignmentDetailQuery(params.assignmentId, params.courseId))
     const { data: submissions } = useQuery(assignmentSubmissionsListQuery(params.assignmentId))
     const { data: students } = useQuery(courseStudentsListQuery(params.courseId))
+    const { data: answers } = useQuery(assignmentSubmissionsListQuery(params.assignmentId))
     const submission = submissions.find((submission) => submission.id === params.submissionId)
     const student = (students) ? students.find((student) => student.id === submission.studentId) : null
     console.log('submission', submission)
-    const filteredSubmissions = apply_filters(submissions, filters, students)
+    const filteredSubmissions = apply_filters(submissions, filters, students, answers)
     const filteredSubmissionIndex = filteredSubmissions.findIndex((submission) => submission.id === params.submissionId)
     // current sub could be filtered out
     // so I should have a sortedSubmissions array

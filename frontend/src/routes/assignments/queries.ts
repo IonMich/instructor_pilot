@@ -8,7 +8,7 @@ import {
 
 import { 
   getSubmissionsOfAssignment, 
-  // getGradesOfAssignment,
+  getAnswersOfAssignment,
 } from '../submissions/submissions-api';
 
 import { getSectionsOfCourse } from '../sections/sections-api';
@@ -64,44 +64,64 @@ export const assignmentDetailQuery = (assignmentId: string, courseId: string) =>
           statusText: 'Versions not found',
         })
       }
-      const questions = await getQuestionsOfAssignment(assignmentId)
-      console.log('question list query Fn happened', questions)
-      if (!questions) {
+      return versions
+    },
+    placeholderData: () => {
+      return []
+    }
+  })
+
+export const assignmentQuestionsListQuery = (assignmentId : string) => ({
+  queryKey: ['questions', 'list', assignmentId],
+  queryFn: async () => {
+    const questions = await getQuestionsOfAssignment(assignmentId)
+    console.log('question list query Fn happened', questions)
+    if (!questions) {
         throw new Response('', {
           status: 404,
           statusText: 'Questions not found',
         })
       }
-      return versions.map((version) => {
-        const questionsOfVersion = questions.filter((question) => question.versionId === version.id)
-        return {
-          ...version,
-          questions: questionsOfVersion,
-        }
-      })
-    },
-    placeholderData: () => {
-      return []
-    }
-  })
-  
-  export const courseSectionsListQuery = (courseId : string) => ({
-    queryKey: ['sections', 'list', courseId],
-    queryFn: async () => {
-      const sections = await getSectionsOfCourse(courseId)
-      console.log('section list query Fn happened', sections)
-      if (!sections) {
+    return questions
+  },
+  placeholderData: () => {
+    return []
+  }
+})
+
+export const assignmentAnswersListQuery = (assignmentId : string) => ({
+  queryKey: ['answers', 'list', assignmentId],
+  queryFn: async () => {
+    const answers = await getAnswersOfAssignment(assignmentId)
+    console.log('answer list query Fn happened', answers)
+    if (!answers) {
         throw new Response('', {
           status: 404,
-          statusText: 'Sections not found',
+          statusText: 'Answers not found',
         })
       }
-      return sections
-    },
-    placeholderData: () => {
-      return []
+    return answers
+  },
+})
+
+
+export const courseSectionsListQuery = (courseId : string) => ({
+  queryKey: ['sections', 'list', courseId],
+  queryFn: async () => {
+    const sections = await getSectionsOfCourse(courseId)
+    console.log('section list query Fn happened', sections)
+    if (!sections) {
+      throw new Response('', {
+        status: 404,
+        statusText: 'Sections not found',
+      })
     }
-  })
+    return sections
+  },
+  placeholderData: () => {
+    return []
+  }
+})
   
   export const courseStudentsListQuery = (courseId : string) => ({
     queryKey: ['students', 'list', courseId],

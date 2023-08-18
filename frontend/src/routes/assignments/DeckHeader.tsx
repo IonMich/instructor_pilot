@@ -15,7 +15,9 @@ const DeckHeader = (props) => {
   async function handleDeleteAll() {
     console.log('handleDeleteAll')
     await props.setSubs([], assignmentId)
+    await props.setAnswers([], assignmentId)
     queryClient.invalidateQueries(['submissions', 'list', assignmentId])
+    queryClient.invalidateQueries(['answers', 'list', assignmentId])
   }
 
   return (

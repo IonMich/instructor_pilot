@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Deck.css'
 import { SubmissionCard, SubmissionCardAdd } from './SubmissionCard'
 
-const Deck = ({assignment, subs, maxGrade, handleAddNew, handleDeletion}) => {
+const Deck = ({assignment, subs, answers, questions, maxGrade, handleAddNew, handleDeletion}) => {
     const assignmentId = assignment.id
     const navigate = useNavigate()
     console.log("assignmentId", assignmentId)
@@ -33,15 +33,24 @@ const Deck = ({assignment, subs, maxGrade, handleAddNew, handleDeletion}) => {
                         Start grading
                     </button>
                     <div className="submission-card-deck">
-                        {subs.map((sub) => (
-                            <SubmissionCard
+                        {subs.map((sub) => {
+                            const subAnswers = answers.filter((a) => a.submissionId === sub.id)
+                            
+                            const subQuestions = questions.filter((q) => {
+                                if (sub.versionId === null) {
+                                    return q.versionId === null
+                                }
+                                return q.versionId === sub.versionId
+                            })
+                            return <SubmissionCard
                                 key={sub.id}
                                 sub={sub}
-                                maxGrade={maxGrade}
+                                subAnswers={subAnswers}
+                                subQuestions={subQuestions}
                                 handleNavToCanvasSub={handleNavToCanvasSub}
                                 handleDeletion={handleDeletion}
                             />
-                        ))}
+                        })}
                         {/* create submission button */}
                         <SubmissionCardAdd handleAddNew={handleAddNew}/>     
                     </div>

@@ -118,6 +118,9 @@ async function createInitialQuestions (versions, courseId) {
 
   console.log(questionMaxGrades);
 
+  // add null version for questions that are not versioned
+  versions.unshift(null);
+  console.log("versions with null", versions);
   for (const version of versions) {
 
     for (let j = 0; j < numQuestions; j++) {
@@ -127,7 +130,8 @@ async function createInitialQuestions (versions, courseId) {
       const newQuestion = {
         id: newQuestionId.toString(),
         name: questionName,
-        versionId: version.id,
+        versionId: (version === null ? null : version.id),
+        assignmentId: assignmentId,
         position: j,
         createdAt: Date.now(),
         maxGrade: questionMaxGrades[j],
@@ -135,7 +139,7 @@ async function createInitialQuestions (versions, courseId) {
       initQuestions.push(newQuestion);
     }
   }
-  console.log(initQuestions);
+  console.log("init Qs", initQuestions);
   return initQuestions;
 }
 
