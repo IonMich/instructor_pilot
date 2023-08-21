@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
+from django.db.models import Q
 
 from courses.models import Course
 from courses.utils import get_canvas_course, get_canvas_object, API_URL
@@ -103,7 +104,8 @@ class Assignment(models.Model):
         return self.get_all_submissions().filter(student__isnull=True).count()
 
     def count_submissions_no_sync(self):
-        return self.get_all_submissions().filter(canvas_id__isnull=True).count()
+        # not "" instead of None because the field is a CharField
+        return self.get_all_submissions().filter(Q(canvas_id__isnull=True) | Q(canvas_id="")).count()
 
     def get_all_saved_comments(self, requester):
         from submissions.models import SubmissionComment
@@ -202,11 +204,19 @@ class Assignment(models.Model):
         canvas_submissions = canvas_assignment.get_submissions(
                 include=["submission_comments", "user"]
                 )
+        all_submissions = self.get_all_submissions()
+
         for canvas_submission in canvas_submissions:
-            if canvas_submission.user["sis_user_id"] is None:
+            try:
+                if canvas_submission.user["sis_user_id"] is None:
+                    continue
+            except KeyError:
+                print(f"Could not find sis_user_id for {canvas_submission.user['name']}. This usually means that the course is not of the ongoing semester.")
                 continue
             try:
                 submission = self.submissions_papersubmission_related.get(
+                    student__canvas_id=canvas_submission.user["id"])
+                all_submissions = all_submissions.exclude(
                     student__canvas_id=canvas_submission.user["id"])
                 print(f"Found submission in database for student with canvas_id: {canvas_submission.user['name']}")
             except self.submissions_papersubmission_related.model.DoesNotExist:
@@ -215,6 +225,7 @@ class Assignment(models.Model):
             submission.canvas_id = canvas_submission.id
             submission.canvas_url = canvas_submission.preview_url
             submission.save()
+        print(f"{all_submissions.count()} submissions in database that were not found on canvas. This indicates that there are submissions of students not actively enrolled in the course on Canvas.")
 
 
     def upload_graded_submissions_to_canvas(self, 
