@@ -2,6 +2,7 @@ import re
 
 from django.db import models
 from django.db.models import Q
+from django.apps import apps
 
 from sections.models import Section
 from universities.models import University
@@ -39,6 +40,27 @@ class Student(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+    
+    def get_section_in_course(self, course):
+        # if the student is enrolled in multiple sections in the same course
+        # raise an error
+        student_sections = self.sections.filter(course=course)
+        
+        if len(student_sections) > 1:
+            raise ValueError(f"Student {self} is enrolled in multiple sections in course {course}")
+        elif len(student_sections) == 0:
+            return None
+        else:
+            return student_sections.first()
+        
+    def get_papersubmissions_in_course(self, course):
+        """returns a list of submissions for this student in the given course
+        """
+        PaperSubmission = apps.get_model('submissions', 'PaperSubmission')
+        submissions = PaperSubmission.objects.filter(
+            Q(student=self) & Q(assignment__course=course)
+        )
+        return submissions
 
     @classmethod
     def update_from_canvas(

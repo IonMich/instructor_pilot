@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load submission_extras %}
+{% load static %}
+
+{% block title %}
+{% if not section %}
+| {{ student }}
+{% else %}
+| {{ student.name }} ({{ section.name }})
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.2.4/build/index.umd.min.js" defer></script>
+    <script src="https://d3js.org/d3.v7.min.js" defer></script>
+    
+    {{ student_submissions|json_script:"student-submissions" }}
+    {{ remaining_submissions|json_script:"remaining-submissions" }}
+    <script src="{% static 'students/stats.js' %}" defer></script>
+{% endblock scripts %}
+
+{% block content %}
+<header>
+    <nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E&#34;); " aria-label="breadcrumb">
+        <ol class="breadcrumb mr-1">
+        <li class="breadcrumb-item"><a href="/">
+            Home
+        </a></li>
+        <li class="breadcrumb-item"><a href="{{course.get_absolute_url}}">
+            {{course.course_code}}
+        </a></li>
+        {% if section %}
+        <li class="breadcrumb-item"><a href="../../sections/{{section.pk}}/students/">
+            {{section.name}}
+        </a></li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">
+            {{ student }}
+        </li>
+        </ol>
+    </nav>
+</header>
+<main class="mb-5">
+    <img 
+        class="card-img-top rounded-circle mt-2 mx-auto d-block" 
+        src="{{ student.profile.avatar.url }}"
+        alt="{{ student }}" 
+        style="max-width:128px; align:center"
+    >
+    <h1 class="mb-3">{{ student }} <small class="text-muted">({{ student.uni_id }})</small></h1>
+    {% comment %} show avatar {% endcomment %}
+    
+    <h3 class="mb-5"> {{ section }} </h3>
+    {% comment %} add bs-badge with the number of submissions {% endcomment %}
+    <h3 class="mb-3"> Statistics</h3>
+    <div class="w-75 mb-5 justify-content-center mx-auto">
+        <canvas id="myChart"></canvas>
+    </div>
+    <h3 class="mb-3"> Submissions 
+        <span class="badge rounded-pill bg-primary">{{ student_submissions|length }}
+            <i class="bi bi-file-earmark-text-fill"></i>
+        </span>
+    </h3>
+    <div class="row row-cols-1 row-cols-xs-2 row-cols-sm-3 row-cols-sm-4 row-cols-lg-5 g-4">
+        {% for obj in student_submissions %}
+            <div class="col">
+                {% comment %} create the submission card {% endcomment %}
+                <div class="card h-100" data-pk="{{ obj.pk }}">
+                    {% comment %} add bootstrap carousel with all images (obj.submissions_papersubmissionimage_related.all){% endcomment %}
+                    
+                    <div>
+                        <div class="thumbnail position-relative">
+                            <div>
+                                <img 
+                                src="{{obj.front_page}}" 
+                                class="card-img-top sub-img" 
+                                loading="lazy"
+                                >
+                            </div>
+                            {% if obj.grade %}
+                                <span class="position-absolute bottom-0 start-50 translate-middle badge text-dark bg-warning">
+                                    {{obj.grade}}/{{obj.max_score}}
+                                </span>
+                            {% endif %} 
+                        </div>
+                    </div>
+                    
+                      <div class="card-body">
+                        <h5 class="card-title">
+                          {% if obj.assignment %}
+                            <h5 class="card-title"> 
+                              {% if obj.classification_type == "D"%}
+                              <span class="badge bg-primary">{{obj.classification_type}}</span> 
+                              
+                              {% elif obj.classification_type == "M"%}
+                              <span class="badge bg-warning">{{obj.classification_type}}</span> 
+        
+                              {% elif obj.classification_type == "W"%}
+                              <span class="badge bg-info text-dark">{{obj.classification_type}}</span> 
+                              
+                              {% else %}
+                              <span class="badge bg-danger">?</span> 
+                              {% endif %}
+                              
+                               {{obj.assignment}}
+                              
+                            </h5>
+                          {% else %}
+                            <h5 class="card-title text-muted"> <i>No Student</i></h5>
+                          {% endif %}
+                          {% if obj.grade is not None %}
+                            {% for q_grade in obj.question_grades %}
+                              <p class="card-text">
+                                Question {{forloop.counter}} grade: {{q_grade}}
+                              </p>
+                            {% endfor %}
+                          {% else %}
+                            <p class="card-text">
+                              <i>No Grade</i>
+                            </p>
+                          {% endif %}
+
+                            {% if obj.version != "None" %}
+                                <span class="badge rounded-pill bg-success" title="{{obj.version}}">
+                                    {{obj.version}}
+                                </span> 
+                            {% endif %}
+                          
+                          <a href="{{obj.url}}" class="stretched-link"></a>
+                          
+                      </div>
+                      <div class="card-footer" style="background: linear-gradient(10deg, #e3dfd1, #d4cced);">
+                        <small>Last updated at {{obj.updated}}</small>
+                      </div>
+                      
+        
+                </div>
+
+            </div>
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}

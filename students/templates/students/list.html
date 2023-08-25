@@ -19,7 +19,7 @@
             {{course.course_code}}
         </a></li>
         {% if section %}
-        <li class="breadcrumb-item"><a href="{{course.get_absolute_url}}">
+        <li class="breadcrumb-item"><a href="">
             {{section.name}}
         </a></li>
         {% endif %}
@@ -53,6 +53,8 @@
     </div>
 </main>
 <footer>
-    <p>Footer</p>
+    <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#statsModal">
+        Statistics
+    </button>
 </footer>
 {% endblock %}
