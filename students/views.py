@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
 
 from courses.models import Course
 from sections.models import Section
@@ -30,9 +31,11 @@ def get_serialized_students(course_pk, section_pk=None):
 
 
 # Create your views here.
+@login_required
 def course_list_view(request, course_pk):
     """create a view that returns a seralized list of students in a course
     """
+    print(request.user)
     course = get_object_or_404(Course, pk=course_pk)
     serialized_students = get_serialized_students(course_pk)
 
@@ -46,10 +49,11 @@ def course_list_view(request, course_pk):
         })
 
 # Create your views here.
+@login_required
 def section_list_view(request, course_pk, section_pk):
     """create a view that returns a seralized list of students in a course
     """
-    
+    print(request.user)
     section = get_object_or_404(Section, pk=section_pk)
     if course_pk != str(section.course.pk):
         raise ValueError("Course pk does not match section's course pk")
@@ -63,6 +67,9 @@ def section_list_view(request, course_pk, section_pk):
         'section': section,
         })
 
-
+@login_required
 def detail_view(request, course_pk, student_pk):
+    """create a view that returns a seralized list of students in a course
+    """
+    print(request.user)
     raise NotImplementedError()
