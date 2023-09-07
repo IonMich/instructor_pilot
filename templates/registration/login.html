@@ -46,18 +46,6 @@
       {% endif %}
     <form method="post" action="{% url 'login' %}">
       {% csrf_token %}
-      {% comment %} <table>
-        <tr>
-          <td>{{ form.username.label_tag }}</td>
-          <td>{{ form.username }}</td>
-        </tr>
-        <tr>
-          <td>{{ form.password.label_tag }}</td>
-          <td>{{ form.password }}</td>
-        </tr>
-      </table>
-      <input type="submit" value="login">
-      <input type="hidden" name="next" value="{{ next }}"> {% endcomment %}
         <div class="mb-3">
           <label for="inputUsername1" class="form-label">Username</label>
           <input type="username" class="form-control" id="inputUsername1" aria-describedby="usernameHelp" name="username">
