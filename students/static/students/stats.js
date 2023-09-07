@@ -134,7 +134,7 @@ function generate_chart() {
 
 
     var myChart = new Chart(ctx, {
-        type: 'boxplot',
+        type: 'violin',
         data: boxplotData,
         options: {
             responsive: true,
