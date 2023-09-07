@@ -19,7 +19,12 @@
     </ol>
 </nav>
 
-<h1 class="mb-4">My Profile</h1> 
+<h1 class="mb-4">My Profile
+    <form action="{% url 'logout' %}" method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warning">Logout</button>
+    </form>
+</h1> 
 {% comment %} Editable list of user's information {% endcomment %}
 <div class="information-grid">
     <div class="avatar">
@@ -102,6 +107,7 @@
             Save
         </button>
     </form>
+    
 
     
 </div>
