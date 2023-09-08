@@ -51,7 +51,7 @@ def course_create_view(request):
     data = json.loads(request.body)
     print(data)
     
-    course_code =  data.get('course_code')
+    course_code = data.get('course_code')
     course_term = data.get('term')
     # if the course already exists, return the course
     try:
@@ -100,7 +100,19 @@ def course_create_view(request):
         course.start_date = timezone.now()
         course.university = University.objects.first()
         course.save()
-        course.update_from_canvas(request.user)
+        canvas_updated_course = course.update_from_canvas(request.user)
+        print(f"canvas_updated_course: {canvas_updated_course}")
+        print(f"course: {course}")
+        print(f"{not canvas_updated_course}")
+        if canvas_updated_course is None:
+            # if the course doesn't exist in Canvas, delete it from the database
+            course.delete()
+            response = {
+                'message': 'Course does not exist in Canvas!',
+                'course_id': course.pk,
+                'status': 'not-found-canvas'
+            }
+            return JsonResponse(response)
     else:
         course.description = data.get('description')
         course.image = data.get('image')

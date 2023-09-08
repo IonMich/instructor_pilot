@@ -110,7 +110,7 @@ class Course(models.Model):
                     except Exception as e:
                         print(e)
                         print(course.id)
-                return
+                return None
             self.canvas_id = canvas_course.id
         else:
             canvas_course = get_canvas_course(canvas_id=self.canvas_id)

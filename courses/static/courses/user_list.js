@@ -98,7 +98,21 @@ addCourseForm.addEventListener("submit", (event) => {
                 // change the button text back to Add Course
                 addCourseButton.innerHTML = 'Add Course';
                 addCourseButton.disabled = false;
-            }
+            } else if (data.status === 'not-found-canvas') {
+                // if the course was not found in canvas, show an error message
+                const courseCodeInput = addCourseForm.querySelector('input[name="course_code"]');
+                const termInput = addCourseForm.querySelector('input[name="term"]');
+                const errorDiv = addCourseForm.querySelector('.invalid-feedback');
+
+                errorDiv.innerHTML = 'This course was not found in Canvas';
+                courseCodeInput.classList.add('is-invalid');
+                termInput.classList.add('is-invalid');
+                // remove was-validated class from the form
+                addCourseForm.classList.remove('was-validated');
+                // change the button text back to Add Course
+                addCourseButton.innerHTML = 'Add Course';
+                addCourseButton.disabled = false;
+            };
         })
         .catch((error) => {
             // if there was an error, show an error message

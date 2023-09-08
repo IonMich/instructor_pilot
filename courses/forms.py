@@ -23,8 +23,6 @@ class CreateCourseForm(forms.ModelForm):
         import datetime
 
         from django.utils import timezone
-
-        # cal
         
         course = Course.objects.create(
             name=self.cleaned_data['name'],
