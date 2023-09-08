@@ -25,26 +25,4 @@ where you should replace `django-ta` with the name you chose for the conda envir
 
 # Updating the source code
 
-To update the app, navigate to your `instructor_pilot` directory do the following:
-
-- First, download the latest version of the app with Git:
-
-   ```shell
-   git pull
-   ```
-
-- Update the app dependencies in the conda environment:
-
-   ```shell
-   conda env update --file environment.yml --name <name-of-your-conda-env> --prune
-   ```
-
-   This might take a few minutes and the dependencies change rarely, so in most cases you can skip this step.
-- Update the database structure and existing data:
-
-   ```shell
-   python manage.py makemigrations
-   python manage.py migrate
-   ```
-
-- *Important*: Restart the server, open the app in your browser and empty the cache. Different browsers and operating systems have different keyboard shortcuts for that. For example, in Chrome on Windows or Linux, you can press `Ctrl + Shift + R` to do this (`Cmd + Shift + R` on Mac), while other browsers may require you to press `Ctrl + F5`.
+You can find update instructions [here](https://github.com/IonMich/instructor_pilot/wiki/Update-instructions).
