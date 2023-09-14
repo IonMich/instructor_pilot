@@ -116,6 +116,8 @@ def course_create_view(request):
     else:
         course.description = data.get('description')
         course.image = data.get('image')
+        course.start_date = timezone.now()
+        course.university = University.objects.first()
 
     course.save()
 
