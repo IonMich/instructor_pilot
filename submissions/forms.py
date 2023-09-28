@@ -319,6 +319,22 @@ class SyncToForm(forms.Form):
         required=False,
         )
     
+    # grade_summary_sync_option
+    grade_summary_sync_option = forms.BooleanField(
+        initial=True,
+        required=False,
+        label="Upload grade summary",
+        help_text="Upload the grade summary as a comment on the submission on canvas",
+        )
+    
+    # submission_pdf_sync_option
+    submission_pdf_sync_option = forms.BooleanField(
+        initial=True,
+        required=False,
+        label="Upload submission pdf",
+        help_text="Upload the submission pdf as a file attachment on the submission on canvas",
+    )
+    
     def clean(self):
         cleaned_data = super().clean()
         return cleaned_data
@@ -330,6 +346,8 @@ class SyncToForm(forms.Form):
         # from the cleaned_data
         submission_sync_option = self.cleaned_data['submission_sync_option']
         comment_sync_option = self.cleaned_data['comment_sync_option']
+        grade_summary_sync_option = self.cleaned_data['grade_summary_sync_option']
+        submission_pdf_sync_option = self.cleaned_data['submission_pdf_sync_option']
         # if submission_sync_option is 'specific', get the specific
         # paper submissions from the cleaned_data
         if submission_sync_option == 'specific':
@@ -339,11 +357,15 @@ class SyncToForm(forms.Form):
         print("assignment: ", assignment)
         print("submission_sync_option: ", submission_sync_option)
         print("comment_sync_option: ", comment_sync_option)
+        print("grade_summary_sync_option: ", grade_summary_sync_option)
+        print("submission_pdf_sync_option: ", submission_pdf_sync_option)
         print("specific_submissions: ", specific_submissions)
 
         assignment.upload_graded_submissions_to_canvas(
             submission_sync_option=submission_sync_option,
             comment_sync_option=comment_sync_option,
+            grade_summary_sync_option=grade_summary_sync_option,
+            submission_pdf_sync_option=submission_pdf_sync_option,
             request_user=self.request_user,
             specific_submissions=specific_submissions,
         )
