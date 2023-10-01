@@ -3,6 +3,7 @@ from itertools import zip_longest
 
 import pandas as pd
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db.models.query_utils import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -10,7 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.generic.edit import DeleteView
 
-from assignments.models import Assignment
+from assignments.models import Assignment, SavedComment
 from courses.models import Course
 
 from .forms import GradingForm, StudentClassifyForm, SubmissionSearchForm
@@ -197,20 +198,18 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
             return render(
                 request, 
                 'submissions/detail.html', 
-                {'submission': submission , 
-                'saved_comments': submission.assignment.get_all_saved_comments(requester=request.user),
+                {'submission': submission,
                 'grading_form': grading_form,
                 'grades_zipped': grades_zipped,})
         else:
             print("form is not valid")
     else:
         grading_form = GradingForm(None)
-    print(submission.assignment.get_all_saved_comments(requester=request.user))
+
     return render(
         request, 
         'submissions/detail.html', 
-        {'submission': submission, 
-        'saved_comments': submission.assignment.get_all_saved_comments(requester=request.user),
+        {'submission': submission,
         'grading_form': grading_form, 
         'grades_zipped': grades_zipped})
 
@@ -301,30 +300,15 @@ def submission_comment_modify_view(request, course_pk, assignment_pk, submission
     if request.method == 'POST':
         import json
 
-        # get the data 
-        #     "text"
-        #     "saved_title"
-        #     "saved_token"
-        #     "is_saved"
         # from the body of the request
         data = json.loads(request.body)
         print(data)
-        
-        if data.get('comment_action') == "star_comment":
-            comment.saved_title = data.get('saved_title')
-            comment.saved_token = data.get('saved_token')
-            comment.is_saved = data.get('is_saved')
-            comment.text = data.get('text')
-            comment.save()
         # if modified-text is in the request data, then the user is trying to modify the text comment
-        elif data.get('comment_action') == "edit_comment":
+        if data.get('comment_action') == "edit_comment":
             comment.text = data.get('text')
             comment.save()
-        return JsonResponse({'message': 'success'})
+            return JsonResponse({'message': 'success'})
+        else:
+            return JsonResponse({'message': 'failure'}, status=400)
     else:
         return JsonResponse({'message': 'failure'})
-
-
-
-
-

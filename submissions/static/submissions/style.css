@@ -4,6 +4,17 @@
     --duration: 0.5s;
 }
 
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    display: none;
+    appearance: none;
+    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+}
+
+input[type=number] {
+    appearance:textfield; /* Firefox */
+}
+
 #newCommentTextArea[closing] {
     pointer-events: none;
     animation: fade-up 10ms forwards;
@@ -301,3 +312,64 @@ animation-fill-mode: forwards;
     background-color: rgb(255, 255, 255);
 }
 
+.draggable-saved-comment {
+    border: 3px solid transparent;
+    border-radius: 0.25rem; 
+}
+
+.draggable-saved-comment[draggable="true"] {
+    border: 3px solid var(--bs-secondary);
+    cursor: move;
+    transition: border-color 800ms ease-in-out;
+}
+
+.draggable-saved-comment[draggable="true"] div.drag-indicator {
+    width: 10%;
+    opacity: 1;
+    transition: width 800ms ease-in-out, opacity 800ms ease-in-out;
+}
+
+.draggable-saved-comment[draggable="false"] div.drag-indicator {
+    width: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.draggable-saved-comment[draggable="false"] div.non-drag-actions {
+    transition: width 800ms ease-in-out, opacity 800ms ease-in-out;
+}
+
+.draggable-saved-comment[draggable="true"] div.non-drag-actions {
+    width: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.draggable-saved-comment[draggable="true"] > div {
+    pointer-events: none;
+}
+
+.draggable-saved-comment.dragged-over {
+    border: 3px dotted green;
+}
+
+.starred-comment-edit {
+    border: 2px solid var(--bs-secondary);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    background-color: var(--bs-light);
+}
+
+.starred-comment-delete {
+    border: 2px solid var(--bs-danger);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    background-color: var(--bs-light);
+}
+
+#btnToggleReorder.active {
+    background-color: var(--bs-success);
+    color: var(--bs-light);
+}

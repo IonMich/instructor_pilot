@@ -6,11 +6,11 @@ import uuid
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import F, Max, Q
 from django.urls import reverse
-from django.db.models import Q
 
 from courses.models import Course
-from courses.utils import get_canvas_course, get_canvas_object, API_URL
+from courses.utils import API_URL, get_canvas_course, get_canvas_object
 from courses.views import course_detail_view
 from submissions.utils import CommaSeparatedFloatField
 
@@ -108,10 +108,8 @@ class Assignment(models.Model):
         return self.get_all_submissions().filter(Q(canvas_id__isnull=True) | Q(canvas_id="")).count()
 
     def get_all_saved_comments(self, requester):
-        from submissions.models import SubmissionComment
-        return SubmissionComment.objects.filter(
-            paper_submission__assignment=self,
-            is_saved=True,
+        return SavedComment.objects.filter(
+            assignment=self,
             author=requester)
 
     def get_grading_progress(self):
@@ -471,9 +469,113 @@ class VersionText(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
-            
+class SavedComment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    text = models.TextField()
+    title = models.CharField(max_length=30)
+    token = models.CharField(max_length=64, blank=True)
+    position = models.PositiveSmallIntegerField(
+        blank=True,
+    )
+    version = models.ForeignKey(
+        Version, 
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE
+    )
+    question_number = models.PositiveSmallIntegerField(
+        blank=True,
+        null=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
-            
-        
+    def __str__(self):
+        return f"{self.title}"
 
-    
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            highest_position = SavedComment.objects.filter(
+                    assignment=self.assignment,
+                    author=self.author,
+                ).aggregate(Max('position'))['position__max']
+            if highest_position is None:
+                next_position = 0
+                self.position = next_position
+                return super().save(*args, **kwargs)
+            if self.position is None:
+                self.position = highest_position + 1
+                return super().save(*args, **kwargs)
+            if self.position > highest_position:
+                next_position = highest_position + 1
+                self.position = next_position   
+                return super().save(*args, **kwargs)
+
+            # check if the position is already taken for this assignment and author
+            saved_comment = SavedComment.objects.filter(
+                position=self.position,
+                assignment=self.assignment,
+                author=self.author,
+            )
+            
+            if saved_comment.exists():
+                # if it exists, move all the comments with a position >= to the next position
+                SavedComment.objects.filter(
+                    position__gte=self.position,
+                    assignment=self.assignment,
+                    author=self.author,
+                ).update(position=F('position') + 1)
+        else:
+            # exclude the current comment from the queryset
+            highest_position = (SavedComment.objects.filter(
+                    assignment=self.assignment,
+                    author=self.author,)
+                    .exclude(id=self.id)
+                    .aggregate(Max('position'))['position__max']
+            )
+            old_position = SavedComment.objects.get(id=self.id).position
+            if highest_position is None:
+                self.position = 0
+                return super().save(*args, **kwargs)
+            if (self.position is None) or (self.position > highest_position):
+                self.position = max(highest_position, old_position)
+            print(highest_position)
+            print(old_position)
+            new_position = self.position
+            print(new_position)
+            # if the old position is higher than the new position, 
+            # subtract 1 from all the positions in between
+            
+            if old_position < new_position:
+                print('old position is lower than new position')
+                comments_update = SavedComment.objects.filter(
+                    position__gt=old_position,
+                    position__lte=new_position,
+                    assignment=self.assignment,
+                    author=self.author,
+                )
+                print(comments_update)
+                comments_update.update(position=F('position') - 1)
+            elif old_position > new_position:
+                print('old position is higher than new position')
+                comments_update = SavedComment.objects.filter(
+                    position__gte=new_position,
+                    position__lt=old_position,
+                    assignment=self.assignment,
+                    author=self.author,
+                )
+                print(comments_update)
+                comments_update.update(position=F('position') + 1)
+
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # move all the comments with a position > to the next position
+        SavedComment.objects.filter(
+            position__gt=self.position,
+            assignment=self.assignment,
+            author=self.author,
+        ).update(position=F('position') - 1)
+        return super().delete(*args, **kwargs)

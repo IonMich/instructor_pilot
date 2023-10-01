@@ -1,29 +1,31 @@
+import json
+import os
+
+import numpy as np
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.core import serializers
+from django.core.files.storage import FileSystemStorage
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db.models import Max
+from django.forms.models import model_to_dict
 from django.http import JsonResponse
-# Create your views here.
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from courses.models import Course
+from submissions.cluster import (crop_and_ocr, crop_images_to_text,
+                                 perform_dbscan_clustering,
+                                 plot_clusters_dbscan, vectorize_texts)
 from submissions.forms import (StudentClassifyForm, SubmissionFilesUploadForm,
                                SubmissionSearchForm, SyncFromForm, SyncToForm)
-from submissions.models import PaperSubmission, PaperSubmissionImage, SubmissionComment
+from submissions.models import (PaperSubmission, PaperSubmissionImage,
+                                SubmissionComment)
 from submissions.views import _random1000
 
-from .models import Assignment, Version, VersionFile, VersionText
-
-from submissions.cluster import (crop_and_ocr, crop_images_to_text, vectorize_texts, perform_dbscan_clustering, plot_clusters_dbscan)
-
-from django.core.files.storage import FileSystemStorage
-import os
-from django.conf import settings
-from django.forms.models import model_to_dict
-from django.core import serializers
-import numpy as np
-import json
-from django.core.files.uploadedfile import InMemoryUploadedFile
-
+from .models import Assignment, SavedComment, Version, VersionFile, VersionText
 from .utils import delete_versions
+
 # Create your views here.
 
 @login_required
@@ -445,3 +447,99 @@ def delete_comment(request, course_pk, assignment_pk):
         
         return JsonResponse({'message': 'success'})
     return JsonResponse({'message': 'error'})
+
+@login_required
+def api_savedcomment_list_view(request, assignment_pk):
+    if request.method == 'POST':
+        import json
+
+        # from the body of the request
+        data = json.loads(request.body)
+        print(data)
+        # if modified-text is in the request data, then the user is trying to modify the text comment
+    
+        saved_title = data.get('title')
+        saved_token = data.get('token')
+        text = data.get('text')
+
+        # get the assignment
+        assignment = get_object_or_404(Assignment, pk=assignment_pk)
+        # create the saved/starred comment
+        max_position = SavedComment.objects.filter(assignment=assignment).aggregate(Max('position'))['position__max']
+        if max_position is None:
+            position = 0
+        else:
+            position = max_position + 1
+        saved_comment = SavedComment.objects.create(
+            title=saved_title,
+            token=saved_token,
+            assignment=assignment,
+            text=text,
+            position=position,
+            author=request.user)
+        
+        saved_comment.save()
+
+        # get the saved comments for this assignment
+        saved_comments = assignment.get_all_saved_comments(requester=request.user)
+        # serialize the saved comments
+        saved_comments = serializers.serialize('json', saved_comments)
+        # send the saved comments to the frontend
+        return JsonResponse(saved_comments, safe=False)
+
+    elif request.method == 'GET':
+        # get the assignment
+        assignment = get_object_or_404(Assignment, pk=assignment_pk)
+        # get all the saved comments for this assignment
+        saved_comments = assignment.get_all_saved_comments(requester=request.user)
+        # serialize the saved comments
+        saved_comments = serializers.serialize('json', saved_comments, fields=('title', 'token', 'text', 'position', 'version'))
+        # send the saved comments to the frontend
+        return JsonResponse(saved_comments, safe=False, status=200)
+    else:
+        return JsonResponse({'message': 'failure'})
+
+@login_required
+def api_savedcomment_detail_view(request, assignment_pk, savedcomment_pk):
+    if request.method == 'GET':
+        # get the saved comment
+        saved_comment = get_object_or_404(SavedComment, pk=savedcomment_pk)
+        # serialize the saved comment
+        saved_comment = serializers.serialize('json', [saved_comment])
+        # send the saved comment to the frontend
+        return JsonResponse(saved_comment, safe=False, status=200)
+    elif request.method == 'PUT':
+        # get the saved comment
+        saved_comment = get_object_or_404(SavedComment, pk=savedcomment_pk)
+        # get the data from the request
+        data = json.loads(request.body)
+        # update the saved comment
+        saved_comment.title = data.get('title')
+        saved_comment.text = data.get('text')
+        saved_comment.token = data.get('token')
+        saved_comment.save()
+        # serialize the saved comment
+        saved_comment = serializers.serialize('json', [saved_comment])
+        # send the saved comment to the frontend
+        return JsonResponse(saved_comment, safe=False, status=200)
+    elif request.method == 'PATCH':
+        # get the saved comment
+        saved_comment = get_object_or_404(SavedComment, pk=savedcomment_pk)
+        # get the data from the request
+        data = json.loads(request.body)
+        # update the saved comment
+        saved_comment.position = int(data.get('position'))
+        saved_comment.save()
+        # serialize the saved comment
+        saved_comment = serializers.serialize('json', [saved_comment])
+        # send the saved comment to the frontend
+        return JsonResponse(saved_comment, safe=False, status=200)
+    elif request.method == 'DELETE':
+        # get the saved comment
+        saved_comment = get_object_or_404(SavedComment, pk=savedcomment_pk)
+        # delete the saved comment
+        saved_comment.delete()
+        # send a success message
+        return JsonResponse({'message': 'success'}, status=200)
+    else:
+        return JsonResponse({'message': 'failure'})

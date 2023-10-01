@@ -3,12 +3,12 @@ import random
 import string
 import uuid
 
-from django.core.files.base import ContentFile
-from django.db.models import Max
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.db import models
+from django.db.models import Max
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -17,14 +17,10 @@ from assignments.models import Assignment, Version
 from students.models import Student
 from submissions.digits_classify import (classify, import_students_from_db,
                                          import_tf_model)
-from submissions.utils import (
-    CommaSeparatedFloatField, 
-    convert_pdf_to_images,
-    get_quiz_pdf_path, 
-    open_UploadedFile_as_PDF, 
-    submission_upload_to,
-    submission_image_upload_to,
-    )
+from submissions.utils import (CommaSeparatedFloatField, convert_pdf_to_images,
+                               get_quiz_pdf_path, open_UploadedFile_as_PDF,
+                               submission_image_upload_to,
+                               submission_upload_to)
 
 # Create your models here.
 
@@ -556,22 +552,6 @@ class SubmissionComment(models.Model):
 
     is_grade_summary = models.BooleanField(
         default=False,
-        )
-
-    is_saved = models.BooleanField(
-        default=False,
-        )
-
-    saved_title = models.CharField(
-        max_length=30,
-        null=True,
-        blank=True,
-        )
-
-    saved_token = models.CharField(
-        max_length=100,
-        null=True,
-        blank=True,
         )
 
     canvas_id = models.CharField(

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Assignment, Version, VersionFile, VersionText
+from .models import Assignment, SavedComment, Version, VersionFile, VersionText
 
 # Register your models here.
 
@@ -13,8 +13,13 @@ class AssignmentAdmin(admin.ModelAdmin):
         'assignment_group',
     ]
 
+class SavedCommentAdmin(admin.ModelAdmin):
+    list_display = ['id', '__str__', 'author', 'assignment', 'position', 'version', 'question_number', 'created_at']
+    list_filter = ['author', 'assignment__course', 'assignment']
+
 admin.site.register(Assignment, AssignmentAdmin)
 
 admin.site.register(Version)
 admin.site.register(VersionFile)
 admin.site.register(VersionText)
+admin.site.register(SavedComment, SavedCommentAdmin)

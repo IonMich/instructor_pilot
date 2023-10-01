@@ -24,6 +24,20 @@ function navigatorHandler (event) {
     if (element_focused.tagName === "TEXTAREA" && element_focused.value !== "") {
         return;
     }
+    // if any modal is open, do not navigate
+    const modals = document.querySelectorAll(".modal");
+    for (const modal of modals) {
+        if (modal.classList.contains("show")) {
+            return;
+        }
+    }
+    // if any text inputs are focused and their value is not empty, do not navigate
+    // only exception is the grade input.
+    if (element_focused.tagName === "INPUT" && element_focused.value !== "" && !element_focused.classList.contains("grade-input")) {
+        return;
+    }
+    
+
     // if the offcanvas is open, do not navigate
     if (offcanvas.classList.contains("show")) {
         return;
@@ -118,9 +132,10 @@ function handleScroll () {
         const grade_inputs = document.querySelectorAll(".grade-input");
         // for each grade input element add event listener on focus
         grade_inputs.forEach((input, i) => {
+            console.log('adding event listener for input', i);
             input.addEventListener("focus", () => {
-                console.log("focus");
-                input.select();
+                console.log("focus, select, and scroll");
+                // and select the corresponding grade input element
                 console.log(scrollFactors);
                 // if the scroll height factor is not empty, scroll to the corresponding scroll height factor
                 if (scrollFactors[i] === "") {
@@ -132,8 +147,16 @@ function handleScroll () {
                     left:0, 
                     behavior: "smooth"
                 });
+                // TODO: Chrome does not scroll to the input element (works only when switching tabs)
+                input.scrollIntoView({behavior: "smooth", block: "end"});
+                // TODO: Safari does not select the text in the input element
+                // input.select(); does not work, so use the following workaround
+                setTimeout(() => {
+                    input.select();
+                }, 15);
+                
             });
-        $('#id_grade_question_1').focus();
+        document.getElementById('id_grade_question_1').focus();
         });
     });
 };
@@ -308,11 +331,11 @@ const prevBtn = document.getElementById("btnPrev");
 const nextBtn = document.getElementById("btnNext");
 const offcanvas = document.querySelector("#offcanvasExample");
 const offcanvasGradeStepInput = offcanvas.querySelector("#id_grade_step");
-const url = new URL(window.location.href);
+const url_this = new URL(window.location.href);
 // add previous to the end of the url
-const prev_url = url.href + "previous/";
+const prev_url = url_this.href + "previous/";
 // add next to the end of the url
-const next_url = url.href + "next/";
+const next_url = url_this.href + "next/";
 let scrollFactors = [];
 let gradeStep = null;
 
@@ -368,6 +391,30 @@ setInitialGradeStep();
 handleOffcanvasGradeStepInput();
 
 document.addEventListener('keydown', navigatorHandler);
+
+// API call to get the starred comments for the current user and the current assignment
+const url_saved_comments_list = `/assignments/${assignment_id}/starcomments/`;
+
+async function getSavedComments() {
+    const options = {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        }
+    };
+    let savedComments = null;
+    try {
+        const response = await fetch(url_saved_comments_list, options);
+        const data = await response.json();
+        savedComments = JSON.parse(data);
+    } catch (error) {
+        console.log(error);
+    }
+    return savedComments;
+}
+
+constructStarredCommentList();
+
 
 // remove the muted class from the offcanvasGradeStepInput if the input value is changed
 offcanvasGradeStepInput.addEventListener("change", () => {
@@ -630,6 +677,7 @@ modalDeleteBtn.addEventListener("click", () => {
 const modalStarBtn = document.querySelector("#btnStarCommentConfirmed");
 const starModal = document.querySelector("#starCommentModal");
 const starModalform = starModal.querySelector("form");
+
 starModalform.addEventListener("submit", (event) => {
     console.log("prevent default");
     event.preventDefault();
@@ -639,37 +687,45 @@ starModalform.addEventListener("submit", (event) => {
     if (!starModalform.checkValidity()) {
         return;
     }
-    // get the comment id
-    const commentId = modalStarBtn.getAttribute("data-bs-pk");
     // get the csrf token from the modal form
     const csrfToken = starModalform.querySelector("input[name='csrfmiddlewaretoken']").value;
     // send a fetch request to delete the comment
-    const url = `/courses/${course_id}/assignments/${assignment_id}/submissions/${pk}/comments/${commentId}/modify/`;
+    const url = `/assignments/${assignment_id}/starcomments/`;
     const options = {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "X-CSRFToken": csrfToken
         },
-        // add saved_titlte, saved_token, is_saved=True and text to the body of the request
+        // add saved_titlte, saved_token, and text to the body of the request
         body: JSON.stringify({
             "comment_action": starModalform.querySelector("input[name='comment_action']").value,
             "text": starModalform.querySelector("#id_saved_text").value,
-            "saved_title": starModalform.querySelector("#id_saved_title").value,
-            "saved_token": starModalform.querySelector("#id_saved_token").value,
-            "is_saved": true
-            
+            "title": starModalform.querySelector("#id_saved_title").value,
+            "token": starModalform.querySelector("#id_saved_token").value, 
         })
     };
     fetch(url, options)
         .then(response => response.json())
         .then(data => {
             console.log(data);
-            // update the text on the old comment using data-bs-pk attribute
-            const oldComment = document.querySelector(`.old-comment .btn-edit-comment[data-bs-pk="${commentId}"]`).closest(".old-comment");
-            oldComment.querySelector(".comment-text").textContent = starModalform.querySelector("#id_saved_text").value;
+            if (data.message === "failure") {
+                // remove was-validated from the form
+                starModalform.classList.remove("was-validated");
+                // add the is-invalid pseudo class to all the inputs and textareas
+                starModalform.querySelectorAll("input, textarea").forEach(input => {
+                    input.classList.add("is-invalid");
+                });
+                // change the text of the invalid-feedback div
+                starModalform.querySelector(".invalid-feedback").textContent = "Something went wrong";
+                // execute the catch block
+                throw new Error("Something went wrong");
+            }
             const modalInstance = bootstrap.Modal.getInstance(starModal);
             modalInstance.hide();
+            // destroy and reconstruct the starred comment list
+            destroyStarredCommentList();
+            constructStarredCommentList();
         })
         .catch(error => {
             console.log(error);
@@ -738,7 +794,10 @@ editModalform.addEventListener("submit", (event) => {
 // note that selectpicker creates a div with class "btn-group bootstrap-select" around the select
 // so we need to get the parent of the parent of the select and add the "d-none" class to it
 const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comments");
-    showSavedCommentsBtn.addEventListener("click", (event) => {
+
+const editSavedCommentsBtn = document.querySelector("#edit-assignment-saved-comments");
+
+showSavedCommentsBtn.addEventListener("click", (event) => {
     
     // override the default behaviour of the button
     event.preventDefault();
@@ -757,6 +816,7 @@ const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comm
         } 
 
         console.log("closing textarea");
+        
         text_area.setAttribute("closing", "");
         
         text_area.addEventListener(
@@ -769,6 +829,7 @@ const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comm
             { once: true }
             );
         console.log("opening saved comments");
+        editSavedCommentsBtn.classList.remove("d-none");
         savedCommentsDiv.classList.remove("d-none");
         savedCommentsDiv.setAttribute("opening", "");
         savedCommentsDiv.addEventListener(
@@ -801,6 +862,7 @@ const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comm
         
     } else {
         console.log("closing saved comments");
+        editSavedCommentsBtn.classList.add("d-none");
         savedCommentsDiv.setAttribute("closing", "");
         savedCommentsDiv.addEventListener(
             "animationend",
@@ -858,9 +920,696 @@ const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comm
 }
 );
 
-// when the saved-comments selectpicker is changed, update the textarea with the selected comment(s)
+let draggedSource = null;
+const toggleReorderBtn = document.querySelector("#btnToggleReorder");
+
+
+function handleDragStart(event) {
+    event.target.style.opacity = 0.4;
+    draggedSource = event.target;
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/html", event.target.innerHTML);
+}
+
+function handleDragEnd(event) {
+    const draggableSavedComments = document.querySelectorAll(".draggable-saved-comment");
+    event.target.style.opacity = 1;
+    draggableSavedComments.forEach(draggableSavedComment_i => {
+        draggableSavedComment_i.classList.remove("dragged-over");
+    }
+    );
+}
+
+function handleDragOver(event) {
+    if (event.preventDefault) {
+        event.preventDefault();
+    }
+    event.dataTransfer.dropEffect = "move";
+    return false;
+}
+
+function handleDragEnter(event, comment) {
+    comment.classList.add("dragged-over"); 
+}
+
+function handleDragLeave(event, comment) {
+    comment.classList.remove("dragged-over");
+}
+
+async function handleDrop(event) {
+    if (event.stopPropagation) {
+        event.stopPropagation();
+    }
+    if (draggedSource != event.target) {
+        draggedSource.innerHTML = event.target.innerHTML;
+        event.target.innerHTML = event.dataTransfer.getData("text/html");
+    }
+    
+    const pk_dragged = draggedSource.getAttribute("data-pk");
+    const pk_dropped_on = event.target.getAttribute("data-pk");
+    console.log("pk_dragged: ", pk_dragged);
+    console.log("pk_dropped_on: ", pk_dropped_on);
+
+    const old_positions = await getPositions();
+    console.log("old_positions: ", old_positions);
+    handleOrderSwapConfirmed();
+
+    async function getPositions() {
+        const saved_comments = await getSavedComments();
+        const dropped_comment = saved_comments.find(saved_comment => saved_comment.pk == pk_dropped_on);
+        const old_dropped_comment_position = dropped_comment.fields.position;
+        const dragged_comment = saved_comments.find(saved_comment => saved_comment.pk == pk_dragged);
+        const old_dragged_comment_position = dragged_comment.fields.position;
+        return [old_dropped_comment_position, old_dragged_comment_position];
+    }
+
+    async function handleOrderSwapConfirmed() {
+        const new_dragged_position = old_positions[0];
+        const new_dropped_on_position = old_positions[1];
+        console.log("new_dragged_position: ", new_dragged_position);
+        console.log("new_dropped_on_position: ", new_dropped_on_position);
+        
+        const urls = [
+            `/assignments/${assignment_id}/starcomments/${pk_dropped_on}/`,
+            `/assignments/${assignment_id}/starcomments/${pk_dragged}/`
+        ];
+        const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+        const options = (position) => {
+                return {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                // add saved_titlte, saved_token, is_saved=True and text to the body of the request
+                body: JSON.stringify({
+                    "position": position
+                })
+            };
+        };
+
+        try {
+            await fetch(urls[0], options(new_dropped_on_position))
+            await fetch(urls[1], options(new_dragged_position))
+            draggedSource.setAttribute("data-pk", pk_dropped_on);
+            event.target.setAttribute("data-pk", pk_dragged);
+        } catch (error) {
+            console.log(error);
+        }
+    
+        toggleForms(null);
+        // add bootstrap toast to the page
+        const toastDiv = document.createElement("div");
+        toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-success", "border-0");
+        toastDiv.setAttribute("role", "alert");
+        toastDiv.setAttribute("aria-live", "assertive");
+        toastDiv.setAttribute("aria-atomic", "true");
+        toastDiv.innerHTML = `<div class="d-flex">
+                                <div class="toast-body">
+                                    Comments re-ordered.
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                </div>`;
+        document.querySelector(".toast-container").appendChild(toastDiv);
+        const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+        toastBootstrap.show();
+
+        // destroyStarredCommentList();
+        // constructStarredCommentList(isDraggable=true);
+    }
+
+    return false;
+}
+
+function addDragListenersToComment (comment) {
+    comment.addEventListener("dragstart", handleDragStart);
+    comment.addEventListener("dragend", handleDragEnd);
+    comment.addEventListener("dragover", handleDragOver);
+    comment.addEventListener("dragenter", (event) => {
+        handleDragEnter(event, comment);
+    });
+
+    comment.addEventListener("dragleave", (event) => {
+        handleDragLeave(event, comment);
+    });
+
+    comment.addEventListener("drop", handleDrop);
+};
+
+function removeDragListenersFromComment (comment) {
+    comment.removeEventListener("dragstart", handleDragStart);
+    comment.removeEventListener("dragend", handleDragEnd);
+    comment.removeEventListener("dragover", handleDragOver);
+    comment.removeEventListener("dragenter", (event) => {
+        handleDragEnter(event, comment);
+    });
+    comment.removeEventListener("dragleave", (event) => {
+        handleDragLeave(event, comment);
+    });
+    comment.removeEventListener("drop", handleDrop);
+};
+
+function destroyStarredCommentList () {
+    // get all the draggable saved comments
+    const draggableSavedComments = document.querySelectorAll(".draggable-saved-comment");
+    draggableSavedComments.forEach(draggableSavedComment_i => {
+        draggableSavedComment_i.remove();
+    }
+    );
+}
+
+async function constructStarredCommentList(isDraggable=false) {
+    const savedComments = await getSavedComments();
+
+    // for (let i = 0; i < savedComments.length; i++) {
+    //     const comment = savedComments[i];
+    //     constructStarredCommentOverview(comment, isDraggable);
+    // }
+
+    // sort by fields.position
+    const sortedSavedComments = savedComments.sort((a, b) => a.fields.position - b.fields.position);
+    console.log("sortedSavedComments: ", sortedSavedComments);
+    for (let i = 0; i < sortedSavedComments.length; i++) {
+        const comment = sortedSavedComments[i];
+        constructStarredCommentOverview(comment, isDraggable);
+    }
+    reloadSavedCommentsToSelect();
+}
+
+function constructStarredCommentOverview (comment, isDraggable=false) {
+    const modalBody = document.querySelector("#savedCommentsEditModal .modal-body");
+    const commentDiv = document.createElement("div");
+    commentDiv.classList.add("mb-3", "p-2", "draggable-saved-comment");
+    commentDiv.setAttribute("draggable", isDraggable);
+    commentDiv.setAttribute("data-pk", comment.pk);
+    const commentOverviewDiv = document.createElement("div");
+    commentOverviewDiv.classList.add("comment-overview", "mb-2", "d-flex", "flex-row", "align-items-center", "justify-content-start");
+    commentOverviewDiv.setAttribute("id", `starred-comment-overview-${comment.pk}`);
+    commentOverviewDiv.setAttribute("data-pk", comment.pk);
+    const dragIndicatorDiv = document.createElement("div");
+    dragIndicatorDiv.classList.add("drag-indicator", "me-2");
+    const dragIndicatorIcon = document.createElement("i");
+    dragIndicatorIcon.classList.add("bi", "bi-grip-vertical");
+    dragIndicatorDiv.appendChild(dragIndicatorIcon);
+    commentOverviewDiv.appendChild(dragIndicatorDiv);
+    const commentTextDiv = document.createElement("div");
+    commentTextDiv.classList.add("d-flex", "flex-column", "align-items-start", "justify-content-start", "me-auto");
+    const commentTitleDiv = document.createElement("div");
+    commentTitleDiv.classList.add("d-flex", "flex-row", "align-items-start", "justify-content-start");
+    const commentTitle = document.createElement("h5");
+    commentTitle.classList.add("comment-title", "d-inline-block", "me-2");
+    commentTitle.setAttribute("id", `id_starred_title_${comment.pk}`);
+    commentTitle.textContent = comment.fields.title;
+    commentTitleDiv.appendChild(commentTitle);
+    const commentTokenSpan = document.createElement("span");
+    commentTokenSpan.setAttribute("id", `id_starred_token_${comment.pk}`);
+    commentTokenSpan.classList.add("comment-tags");
+    if (comment.fields.token) {
+        commentTokenSpan.classList.add("ms-2", "bg-secondary-subtle", "border", "border-secondary-subtle", "rounded-3", "p-1");
+        commentTokenSpan.textContent = comment.fields.token;
+    } else {
+        commentTokenSpan.textContent = "";
+    }
+    commentTitleDiv.appendChild(commentTokenSpan);
+    commentTextDiv.appendChild(commentTitleDiv);
+    const commentTextP = document.createElement("p");
+    commentTextP.classList.add("comment-text");
+    commentTextP.setAttribute("id", `id_starred_p_${comment.pk}`);
+    commentTextP.textContent = comment.fields.text;
+    commentTextDiv.appendChild(commentTextP);
+    commentOverviewDiv.appendChild(commentTextDiv);
+    const nonDragActionsDiv = document.createElement("div");
+    nonDragActionsDiv.classList.add("btn-group-sm", "d-inline-flex", "non-drag-actions");
+    const editButton = document.createElement("button");
+    editButton.setAttribute("type", "button");
+    editButton.classList.add("btn", "btn-edit-star");
+    editButton.setAttribute("aria-label", "Edit");
+    editButton.setAttribute("title", "Edit Star Attributes");
+    editButton.setAttribute("tabindex", "-1");
+    const editButtonIcon = document.createElement("i");
+    editButtonIcon.classList.add("bi", "bi-pencil-fill");
+    editButton.appendChild(editButtonIcon);
+    if (isDraggable) {
+        console.log("is draggable");
+    } else {
+        editButton.addEventListener("click", toggleForms);
+    }
+    nonDragActionsDiv.appendChild(editButton);
+    const removeButton = document.createElement("button");
+    removeButton.setAttribute("type", "button");
+    removeButton.classList.add("btn", "btn-remove-star");
+    removeButton.setAttribute("aria-label", "Delete");
+    removeButton.setAttribute("title", "Toggle star comment");
+    removeButton.setAttribute("tabindex", "-1");
+    const removeButtonIcon = document.createElement("i");
+    removeButtonIcon.classList.add("bi", "bi-trash-fill");
+    removeButton.appendChild(removeButtonIcon);
+    if (isDraggable) {
+        console.log("is draggable");
+    } else {
+        removeButton.addEventListener("click", toggleForms);
+    }
+    nonDragActionsDiv.appendChild(removeButton);
+    commentOverviewDiv.appendChild(nonDragActionsDiv);
+    commentDiv.appendChild(commentOverviewDiv);
+    
+    modalBody.appendChild(commentDiv);
+
+    // insert commentDiv in correct position
+    // const commentDivs = document.querySelectorAll(".draggable-saved-comment");
+    // if (commentDivs.length === 0) {
+    //     modalBody.appendChild(commentDiv);
+    // }
+    // else if (commentDivs.length === 1) {
+    //     if (comment.fields.position === 0) {
+    //         modalBody.insertBefore(commentDiv, commentDivs[0]);
+    //     } else {
+    //         modalBody.appendChild(commentDiv);
+    //     }
+    // } else {
+    //     if (comment.fields.position === 0) {
+    //         modalBody.insertBefore(commentDiv, commentDivs[0]);
+    //     } else if (comment.fields.position === commentDivs.length) {
+    //         modalBody.appendChild(commentDiv);
+    //     } else {
+    //         modalBody.insertBefore(commentDiv, commentDivs[comment.fields.position]);
+    //     }
+    // }
+}
+
+// when the edit button is clicked, append the edit form to the div with class "starred-comment-edit"
+function starredCommentEditFormConstructor (event) {
+    // get the comment div with class draggable-saved-comment
+    const commentDiv = event.target.closest(".draggable-saved-comment");
+    // get the comment pk from the data-pk attribute of the comment div
+    const commentPk = commentDiv.getAttribute("data-pk");
+    console.log(commentPk);
+    // add form element to edit the comment
+    const editForm = document.createElement("form");
+    editForm.setAttribute("method", "put");
+    editForm.setAttribute("action", "");
+    editForm.setAttribute("id", `edit-saved-comment-form-${commentPk}`);
+    editForm.classList.add("mb-2");
+    // get a csrf token input
+    const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+    const csrfTokenInput = document.createElement("input");
+    csrfTokenInput.setAttribute("type", "hidden");
+    csrfTokenInput.setAttribute("name", "csrfmiddlewaretoken");
+    csrfTokenInput.setAttribute("value", csrfToken);
+    editForm.appendChild(csrfTokenInput);
+    commentDiv.appendChild(editForm);
+
+    // append a child div to the comment div with class "draggable-saved-comment"
+    const editFormDiv = document.createElement("div");
+    editFormDiv.classList.add("mb-2", "starred-comment-edit");
+    editFormDiv.setAttribute("id", `starred-comment-edit-${commentPk}`);
+    editForm.appendChild(editFormDiv);
+    // create a textarea with the comment text
+    const textarea = document.createElement("textarea");
+    textarea.classList.add("form-control", "mb-2");
+    textarea.setAttribute("id", "id_saved_text");
+    textarea.setAttribute("name", "saved_text");
+    // textarea.setAttribute("disabled", "");
+    textarea.value = commentDiv.querySelector(".comment-text").innerHTML;
+    editFormDiv.appendChild(textarea);
+    // create a hidden input with name "comment_action" and value "edit_saved_comment"
+    const commentActionInput = document.createElement("input");
+    commentActionInput.setAttribute("type", "hidden");
+    commentActionInput.setAttribute("name", "comment_action");
+    commentActionInput.setAttribute("value", "star_comment");
+    editFormDiv.appendChild(commentActionInput);
+    const commentIdInput = document.createElement("input");
+    commentIdInput.setAttribute("type", "hidden");
+    commentIdInput.setAttribute("name", "comment_id");
+    commentIdInput.setAttribute("value", commentPk);
+    editFormDiv.appendChild(commentIdInput);
+    // create a label for the title input
+    const titleLabel = document.createElement("label");
+    titleLabel.setAttribute("for", `id_saved_title`);
+    titleLabel.innerHTML = "Title";
+    editFormDiv.appendChild(titleLabel);
+    // create a title input with the comment title
+    const titleInput = document.createElement("input");
+    titleInput.setAttribute("type", "text");
+    titleInput.classList.add("form-control", "mb-2");
+    titleInput.setAttribute("id", `id_saved_title`);
+    titleInput.setAttribute("name", "saved_title");
+    titleInput.setAttribute("value", commentDiv.querySelector(".comment-title").innerText);
+    titleInput.setAttribute("required", "");
+    editFormDiv.appendChild(titleInput);
+    // create a label for the token input
+    const tokenLabel = document.createElement("label");
+    tokenLabel.setAttribute("for", `id_saved_token`);
+    tokenLabel.innerHTML = "Search tags";
+    editFormDiv.appendChild(tokenLabel);
+    // create a token input with the comment token
+    const tokenInput = document.createElement("input");
+    tokenInput.setAttribute("type", "text");
+    tokenInput.classList.add("form-control", "mb-2");
+    tokenInput.setAttribute("id", `id_saved_token`);
+    tokenInput.setAttribute("name", "saved_token");
+    tokenInput.setAttribute("value", commentDiv.querySelector(".comment-tags").innerText);
+    editFormDiv.appendChild(tokenInput);
+    // create a div with class "invalid-feedback"
+    const invalidFeedbackDiv = document.createElement("div");
+    invalidFeedbackDiv.classList.add("invalid-feedback");
+    invalidFeedbackDiv.innerHTML = "Please enter a title.";
+    editFormDiv.appendChild(invalidFeedbackDiv);
+    // create a button with class "btn btn-secondary btn-sm" and innerHTML "Cancel"
+    const cancelButton = document.createElement("button");
+    cancelButton.classList.add("cancel-edit-star", "btn", "btn-secondary", "me-2");
+    cancelButton.setAttribute("type", "button");
+    cancelButton.innerHTML = "Cancel";
+    editFormDiv.appendChild(cancelButton);
+    // create a button with class "btn btn-primary btn-sm" and innerHTML "Save"
+    const saveButton = document.createElement("button");
+    saveButton.classList.add("submit-edit-star", "btn", "btn-primary");
+    saveButton.setAttribute("type", "button");
+    saveButton.innerHTML = "Save";
+    editFormDiv.appendChild(saveButton);
+
+    // add event listeners to the cancel and save buttons
+    cancelButton.addEventListener("click", toggleForms);
+
+    saveButton.addEventListener("click", (event) => {
+        console.log("save button clicked");
+        handleEditStarCommentConfirmed(event);
+    });
+};
+
+function handleEditStarCommentConfirmed (event) {
+    console.log("prevent default");
+    event.preventDefault();
+    console.log("handle edit star");
+
+    const editStarForm = event.target.closest("form");
+    console.log(editStarForm)
+    if (!editStarForm.checkValidity()) {
+        return;
+    }
+    // get the comment primary key
+    const savedCommentPk = editStarForm.parentElement.getAttribute("data-pk");
+    // get the csrf token from the modal form
+    const csrfToken = editStarForm.querySelector("input[name='csrfmiddlewaretoken']").value;
+    console.log(csrfToken);
+    console.log(savedCommentPk);
+    const newText = editStarForm.querySelector("#id_saved_text").value;
+    const newTitle = editStarForm.querySelector("#id_saved_title").value;
+    const newToken = editStarForm.querySelector("#id_saved_token").value;
+    // send a fetch request to delete the comment
+    const url = `/assignments/${assignment_id}/starcomments/${savedCommentPk}/`;
+    const options = {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
+        },
+        // add saved_titlte, saved_token, is_saved=True and text to the body of the request
+        body: JSON.stringify({
+            "text": newText,
+            "title": newTitle,
+            "token": newToken,
+        })
+    };
+    console.log(url);
+    console.log(options);
+    fetch(url, options)
+    .then(response => response.json())
+    .then(data => {
+        toggleForms(null);
+        // add bootstrap toast to the page
+        const toastDiv = document.createElement("div");
+        toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-success", "border-0");
+        toastDiv.setAttribute("role", "alert");
+        toastDiv.setAttribute("aria-live", "assertive");
+        toastDiv.setAttribute("aria-atomic", "true");
+        toastDiv.innerHTML = `<div class="d-flex">
+                                <div class="toast-body">
+                                    Comment updated.
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                </div>`;
+        document.querySelector(".toast-container").appendChild(toastDiv);
+        const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+        toastBootstrap.show();
+
+        const commentDiv = document.querySelector(`.comment-overview[data-pk="${savedCommentPk}"]`);
+        // delete the old star comment overview parent, and reconstruct it
+        commentDiv.parentElement.remove();
+        // create a new comment overview div
+        const comment = JSON.parse(data)[0];
+        console.log(comment);
+        // constructStarredCommentOverview(comment, isDraggable=false);
+        destroyStarredCommentList();
+        // create the saved comments modal again
+        constructStarredCommentList();
+    })
+    .catch(error => {
+        console.log(error);
+    });
+}
+
+function starredCommentDeleteFormConstructor (event) {
+    // get the comment div with class draggable-saved-comment
+    const commentDiv = event.target.closest(".draggable-saved-comment");
+    // get the comment pk from the data-pk attribute of the comment div
+    const commentPk = commentDiv.getAttribute("data-pk");
+    console.log(commentPk);
+    // add form element to edit the comment
+    const deleteStarForm = document.createElement("form");
+    deleteStarForm.classList.add("starred-comment-delete");
+    commentDiv.appendChild(deleteStarForm);
+    // create a csrf token input
+    const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+    const csrfTokenInput = document.createElement("input");
+    csrfTokenInput.setAttribute("type", "hidden");
+    csrfTokenInput.setAttribute("name", "csrfmiddlewaretoken");
+    csrfTokenInput.setAttribute("value", csrfToken);
+    deleteStarForm.appendChild(csrfTokenInput);
+    // create a div with class "mb-3"
+    const formDiv = document.createElement("div");
+    formDiv.classList.add("mb-3");
+    deleteStarForm.appendChild(formDiv);
+    // create a label with class "form-label" and innerHTML "Are you sure you want to delete this comment?"
+    const formLabel = document.createElement("label");
+    formLabel.classList.add("form-label");
+    formLabel.innerHTML = "Are you sure you want to delete this comment?";
+    formDiv.appendChild(formLabel);
+    // create a button with class "btn btn-secondary btn-sm" and innerHTML "Cancel"
+    const cancelButton = document.createElement("button");
+    cancelButton.classList.add("cancel-delete-star", "btn", "btn-secondary", "me-2");
+    cancelButton.setAttribute("type", "button");
+    cancelButton.innerHTML = "Cancel";
+    deleteStarForm.appendChild(cancelButton);
+    // add event listener to the cancel button
+    cancelButton.addEventListener("click", toggleForms);
+
+    // create a button with class "btn btn-danger btn-sm" and innerHTML "Delete"
+    const deleteButton = document.createElement("button");
+    deleteButton.classList.add("btn", "btn-danger");
+    deleteButton.setAttribute("type", "button");
+    deleteButton.innerHTML = "Delete";
+    deleteStarForm.appendChild(deleteButton);
+    // add event listener to the delete button
+    deleteButton.addEventListener("click", (event) => {
+        console.log("delete button clicked");
+        handleDeleteStarCommentConfirmed(event);
+        toggleForms(event);
+    });
+};
+
+function handleDeleteStarCommentConfirmed (event) {
+    console.log("prevent default");
+    event.preventDefault();
+    console.log("handle delete star");
+
+    const deleteStarForm = event.target.closest("form");
+    console.log(deleteStarForm)
+    if (!deleteStarForm.checkValidity()) {
+        return;
+    }
+    // get the comment primary key
+    const savedCommentPk = deleteStarForm.parentElement.getAttribute("data-pk");
+    // get the csrf token from the modal form
+    const csrfToken = deleteStarForm.querySelector("input[name='csrfmiddlewaretoken']").value;
+    console.log(csrfToken);
+    console.log(savedCommentPk);
+    // send a fetch request to delete the comment
+    const url = `/assignments/${assignment_id}/starcomments/${savedCommentPk}/`;
+    const options = {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
+        },
+        // add saved_titlte, saved_token, is_saved=True and text to the body of the request
+        body: JSON.stringify({
+        })
+    };
+    console.log(url);
+    console.log(options);
+    fetch(url, options)
+    .then(response => response.json())
+    .then(data => {
+        toggleForms(null);
+        // add bootstrap toast to the page
+        const toastDiv = document.createElement("div");
+        toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-success", "border-0");
+        toastDiv.setAttribute("role", "alert");
+        toastDiv.setAttribute("aria-live", "assertive");
+        toastDiv.setAttribute("aria-atomic", "true");
+        toastDiv.innerHTML = `<div class="d-flex">
+                                <div class="toast-body">
+                                    Comment Deleted.
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                </div>`;
+        document.querySelector(".toast-container").appendChild(toastDiv);
+        const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+        toastBootstrap.show();
+
+        const commentDiv = document.querySelector(`.comment-overview[data-pk="${savedCommentPk}"]`);
+        // delete the old star comment overview parent, and reconstruct it
+        commentDiv.parentElement.remove();
+        destroyStarredCommentList();
+        // create the saved comments modal again
+        constructStarredCommentList();
+        
+    })
+    .catch(error => {
+        console.log(error);
+    });
+}
+
+
+function toggleForms (event) {
+    // destroy all existing edit forms
+    const editForms = document.querySelectorAll(".starred-comment-edit");
+    editForms.forEach(editForm => {
+        editForm.remove();
+    });
+    // destroy all existing delete forms
+    const deleteForms = document.querySelectorAll(".starred-comment-delete");
+    deleteForms.forEach(deleteForm => {
+        deleteForm.remove();
+    });
+    // remove d-none from all comment overview divs
+    const commentOverviews = document.querySelectorAll(".comment-overview");
+    commentOverviews.forEach(commentOverview => {
+        commentOverview.classList.remove("d-none");
+    });
+
+    if (!event) {
+        console.log("generic toggle forms");
+        return;
+    }
+
+    const targetButton = event.target.closest("button");
+
+    if (targetButton.classList.contains("cancel-edit-star")) {
+        console.log("cancel edit form");
+    } else if (targetButton.classList.contains("cancel-delete-star")) {
+        console.log("cancel delete form");
+    } else if (targetButton.classList.contains("btn-edit-star")) {
+        // construct the edit form for the clicked comment
+        starredCommentEditFormConstructor(event);
+        // add d-none to the clicked comment overview div
+        const commentOverview = targetButton.closest(".comment-overview");
+        commentOverview.classList.add("d-none");
+    } else if (targetButton.classList.contains("btn-remove-star")) {
+        // construct the delete form for the clicked comment
+        starredCommentDeleteFormConstructor(event);
+        // add d-none to the clicked comment overview div
+        const commentOverview = targetButton.closest(".comment-overview");
+        commentOverview.classList.add("d-none");
+    } else {
+        console.log(targetButton);
+        console.log("generic toggle edit forms");
+    }
+}
+
+function toggleReorder() {
+    const draggableSavedComments = document.querySelectorAll(".draggable-saved-comment");
+    if (toggleReorderBtn.classList.contains("active")) {
+        console.log("toggle reorder on");
+        draggableSavedComments.forEach(draggableSavedComment => {
+            draggableSavedComment.setAttribute("draggable", "true");
+            addDragListenersToComment(draggableSavedComment);
+        });
+        const editButtons = document.querySelectorAll(".btn-edit-star");
+        editButtons.forEach(editButton => {
+            editButton.removeEventListener("click", starredCommentEditFormConstructor);
+        });
+        const deleteButtons = document.querySelectorAll(".btn-remove-star");
+        deleteButtons.forEach(deleteButton => {
+            deleteButton.removeEventListener("click", starredCommentDeleteFormConstructor);
+        });
+    } else {
+        console.log("toggle reorder off");
+        draggableSavedComments.forEach(draggableSavedComment => {
+            draggableSavedComment.setAttribute("draggable", "false");
+            removeDragListenersFromComment(draggableSavedComment);
+        });
+        const editButtons = document.querySelectorAll(".btn-edit-star");
+        editButtons.forEach(editButton => {
+            editButton.addEventListener("click", toggleForms);
+        });
+        const deleteButtons = document.querySelectorAll(".btn-remove-star");
+        deleteButtons.forEach(deleteButton => {
+            deleteButton.addEventListener("click", toggleForms);
+        });
+    }
+    toggleForms(null);
+}
+
+toggleReorderBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    toggleReorder();
+});
+
+
+// when the saved-comments bootdtrap selectpicker is changed, update the textarea with the selected comment(s)
 // and update the preview comment div
 const savedCommentsSelect = document.querySelector("#id_assignment_saved_comments");
+
+
+// {% for comment in saved_comments %}
+//     {% comment %} when data-subtext is too long, wrap to next line {% endcomment %}
+//     <option value="{{comment.pk}}" data-container="body" data-tokens="{{comment.saved_token}}" data-subtext="{{comment.text}}">
+//         {% if comment.saved_title %}
+//             {{comment.saved_title | truncatechars:50}}
+//         {% else %}
+//         {% endif %}
+//     </option>
+// {% endfor %}
+
+// load the saved comments from the database
+async function reloadSavedCommentsToSelect() {
+    // remove all existing options
+    
+    const options = savedCommentsSelect.querySelectorAll("option");
+    options.forEach(option => {
+        option.remove();
+    });
+    $(savedCommentsSelect).selectpicker("destroy");
+    const savedComments = await getSavedComments()
+    savedComments.forEach( (savedComment, i) => {
+        console.log(`option ${i}: ${savedComment.pk} created`);
+        const option = document.createElement("option");
+        option.setAttribute("value", savedComment.pk);
+        option.setAttribute("data-container", "body");
+        option.setAttribute("data-tokens", savedComment.fields.token);
+        option.setAttribute("data-subtext", savedComment.fields.text);
+        if (savedComment.fields.title) {
+            // truncate the saved title to 50 characters
+            option.innerHTML = savedComment.fields.title.substring(0, 50);
+        }
+        savedCommentsSelect.appendChild(option);
+    });
+
+    $(savedCommentsSelect).selectpicker("destroy");
+    $(savedCommentsSelect).selectpicker();
+}
 
 savedCommentsSelect.addEventListener("change", (event) => {
     // get the selected comment(s)
