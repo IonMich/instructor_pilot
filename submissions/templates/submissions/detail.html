@@ -27,8 +27,17 @@
 
 {% block navbar %}
 
-<div class="progress" style="height: 2px; width:100%">
-    <div class="progress-bar" role="progressbar" style=" width: {{submission.assignment.get_grading_progress}}%" aria-valuenow="{{submission.assignment.get_grading_progress}}" aria-valuemin="0" aria-valuemax="100"></div>
+<div class="progress" style="height: 3px; width:100%">
+    <div 
+        class="progress-bar" 
+        role="progressbar" 
+        style=" width: {{submission.assignment.get_grading_progress}}%" 
+        aria-valuenow="{{submission.assignment.get_grading_progress}}" 
+        aria-valuemin="0" 
+        aria-valuemax="100"
+        id="grading-progress-bar"
+    >
+    </div>
 </div>
 {% endblock navbar %} 
 

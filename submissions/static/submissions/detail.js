@@ -1667,3 +1667,104 @@ savedCommentsSelect.addEventListener("change", (event) => {
 }
 );
 
+// listen for the dropdown to be closed in the student name selectpicker
+// when the dropdown is closed, console.log the selected student
+const studentNameSelect = document.querySelector("#id_student");
+studentNameSelect.addEventListener("change", (event) => {
+    console.log(event.target.value);
+
+    // get the student pk from the selectpicker
+    const studentPk = event.target.value;
+    // get the student name from the selectpicker
+    const studentName = event.target.selectedOptions[0].text;
+    console.log(studentName);
+    // send the student name change to the server
+    handleNameChange(event);
+});
+
+// send the name change to the server
+async function handleNameChange (event) {
+    // get the student pk from the selectpicker
+    const assignmentPk = JSON.parse(
+        document.querySelector("#assignment_id").textContent
+    );
+    const studentPk = event.target.value;
+    const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+    // get the student name from the selectpicker
+    const studentName = event.target.selectedOptions[0].text;
+    console.log(studentName);
+    // send the student name change to the server
+    const url = `/assignments/${assignmentPk}/submissions/${pk}/`;
+    const data = {
+        "student": studentPk,
+        "classification_type": "M",
+        "csrfmiddlewaretoken": csrfToken,
+    };
+    const options = {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+        },
+        body: JSON.stringify(data),
+    };
+    try {
+        const response = await fetch(url, options);
+        const json = await response.json();
+        console.log(json.student);
+        console.log(studentPk);
+        if (json.student.toString() !== studentPk) {
+            throw new Error("Student name change failed");
+        }
+        const toastDiv = document.createElement("div");
+        toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-success", "border-0");
+        toastDiv.setAttribute("role", "alert");
+        toastDiv.setAttribute("aria-live", "assertive");
+        toastDiv.setAttribute("aria-atomic", "true");
+        toastDiv.innerHTML = `<div class="d-flex">
+                                <div class="toast-body">
+                                    Student name changed to ${studentName}
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                </div>`;
+        document.querySelector(".toast-container").appendChild(toastDiv);
+        const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+        toastBootstrap.show();
+    } catch (error) {
+        console.log(error);
+        const toastDiv = document.createElement("div");
+        toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-danger", "border-0");
+        toastDiv.setAttribute("role", "alert");
+        toastDiv.setAttribute("aria-live", "assertive");
+        toastDiv.setAttribute("aria-atomic", "true");
+        toastDiv.innerHTML = `<div class="d-flex">
+                                <div class="toast-body">
+                                    Error changing student name
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                </div>`;
+        document.querySelector(".toast-container").appendChild(toastDiv);
+        const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+        toastBootstrap.show();
+    }
+}
+
+// get the grading-progress-bar and set the color to primary if data-bs-theme is light
+// get the grading-progress-bar and set the color to orange if
+// - data-bs-theme is dark
+// - data-bs-theme is auto and prefers-color-scheme is dark
+
+const gradingProgressBar = document.querySelector("#grading-progress-bar");
+
+if (gradingProgressBar) {
+    console.log("gradingProgressBar exists");
+    const getStoredTheme = () => localStorage.getItem('theme')
+    const storedTheme = getStoredTheme()
+    const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+    
+    if (storedTheme === "light") {
+        gradingProgressBar.classList.add("bg-primary");
+    } else if (storedTheme === "dark" || (storedTheme === "auto" && prefersDarkScheme.matches)) {
+        gradingProgressBar.classList.add("bg-warning");
+    }
+}

@@ -214,6 +214,44 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         'grades_zipped': grades_zipped})
 
 @login_required
+def api_submission_patch_view(request, assignment_pk, submission_pk):
+    import json
+    submission = get_object_or_404(PaperSubmission, pk=submission_pk)
+    if request.method == 'PATCH':
+        print("request was PATCH")
+        print(request.body)
+        data = json.loads(request.body)
+        print(data)
+        # get the student model from the database
+        from django.apps import apps
+        Student = apps.get_model('students', 'Student')
+        if data.get('student'):
+            try:
+                student_pk = data.get('student')
+                # check if the student belongs to the course
+                student = get_object_or_404(Student, pk=student_pk)
+                assignment = get_object_or_404(Assignment, pk=assignment_pk)
+                if student not in assignment.course.get_students():
+                    return JsonResponse({"message": "error"})
+                else:
+                    submission.student = student
+            except Exception as e:
+                print(e)
+                return JsonResponse({"message": "error"})
+        if data.get('classification_type'):
+            submission.classification_type = data.get('classification_type')
+        else:
+            submission.classification_type = 'M'
+        if data.get('canvas_id'):
+            submission.canvas_id = data.get('canvas_id')
+        if data.get('canvas_url'):
+            submission.canvas_url = data.get('canvas_url')
+        submission.save()
+        return JsonResponse({"message": "success", "student": submission.student.id})
+    else:
+        return JsonResponse({"message": "error"})
+
+@login_required
 def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
     
     # first find the object corresponding to the pk
