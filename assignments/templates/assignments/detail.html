@@ -11,8 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <script src="https://d3js.org/d3.v7.min.js" defer></script>
     {{ assignment.get_all_grades|json_script:"all_grades"}}
-    {{ assignment.max_score|json_script:"max_score"}}
-    {{ request.user.profile.preferences.identify_pages|json_script:"pages-to-check"}}     
+    {{ assignment.max_score|json_script:"max_score"}}  
     <script src="{% static 'assignments/detail.js' %}" defer></script>
 {% endblock scripts %}
 
@@ -77,11 +76,9 @@
             <div class="row">
                 <div class="col-md-6">
                     <p class="mt-3">Identify students based on 
-                        <span style="white-space: nowrap;">
-                            their ID 
-                        {% with page_UIDs=request.user.profile.preferences.identify_pages %}
-                            {{page_UIDs}}
-                        {% endwith %}
+                        <span style="white-space: nowrap;" id="identify-method-text">
+                            their ID on page
+                        </span>
                         {% comment %} add small edit pencil button that un-hides input for pages to search for ID{% endcomment %}
                         <button 
                             type="button" class="btn btn-link btn-sm" 
@@ -110,6 +107,10 @@
                                     <label class="btn btn-outline-success mb-3" for="btn-pageSelect-{{forloop.counter}}">{{forloop.counter}}</label>
                                 {% endfor %}
                                 {% endwith %}
+                                </div>
+                                {% comment %} make default button: {% endcomment %}
+                                <div class="mb-3">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-default-identify-pages">Set as Default</button>
                                 </div>
                             </div>
                         </div>

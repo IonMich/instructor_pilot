@@ -1,8 +1,8 @@
 from django.urls import path
 
-from .views import (profile_avatar_upload_view, profile_preferences_edit_view,
-                    profile_update_view, profiles_detail_view,
-                    profiles_list_view)
+from .views import (api_get_profile_preferences, profile_avatar_upload_view,
+                    profile_preferences_edit_view, profile_update_view,
+                    profiles_detail_view, profiles_list_view)
 
 app_name = 'profiles'
 
@@ -11,6 +11,7 @@ urlpatterns = [
     path('profile/update/', profile_update_view, name='update'),
     path('profile/avatar/', profile_avatar_upload_view, name='avatar'),
     path('profile/preferences/edit/', profile_preferences_edit_view, name='preferences'),
+    path('profile/preferences/', api_get_profile_preferences, name='preferences_get'),
     path('profiles/<pk>/', profiles_detail_view, name='detail'),
 
 ]

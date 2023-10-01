@@ -92,10 +92,6 @@ function uploadPDFs (event, form) {
 
 }
 
-const checked_pages = JSON.parse(
-    document.querySelector("#pages-to-check").textContent
-    );
-
 const buttonToggleIdentifyInput = document.getElementById('btn-edit-identify');
 if (buttonToggleIdentifyInput) {
     // initialize the checked pages
@@ -113,9 +109,32 @@ if (buttonToggleIdentifyInput) {
     });
 }
 
+async function getIdentifyPages() {
+    const url_preferences = "/profile/preferences/";
+    const options = {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        }
+    };
+    let identifyPages = null;
+    try {
+        const response = await fetch(url_preferences, options);
+        const data = await response.json();
+        identifyPages = data.identify_pages;
+    } catch (error) {
+        console.log(error);
+    }
+    return identifyPages;
+}
 
 // function to set grade inputs step size from checked_pages
-function initializeCheckedPages() {
+async function initializeCheckedPages() {
+    let checked_pages = await getIdentifyPages();
+    console.log("checked_pages", checked_pages);
+    const course_id = document.getElementById('course_num').value;
+    const assignment_id = document.getElementById('assignment_num').value;
+    console.log("course_id", course_id, "assignment_id", assignment_id);
     let checkedPages;
     let default_type;
     if (checked_pages && checked_pages[course_id] && checked_pages[course_id][assignment_id]) {
@@ -129,13 +148,25 @@ function initializeCheckedPages() {
             checkedPages = checked_pages["default"];
             default_type = "user";
         } else {
-            checkedPages = [1,];
+            checkedPages = [0,];
             default_type = "global";
         }
         // the checkedPages is set here to a default set of checked pages
     }
     console.log("Pages to check:", checkedPages, "default_type:", default_type);
+    // initialize the text describing the checked pages to say `their ID on pages ${checkedPages}`
+    const checkedPagesText = document.getElementById('identify-method-text');
+    if (checkedPages.length === 1) {
+        // convert the page number to 1-indexed
+        checkedPagesText.innerHTML = `their ID on page ${checkedPages[0] + 1}`;
+    } else if (checkedPages.length > 1) {
+        // convert the page numbers to 1-indexed
+        checkedPagesText.innerHTML = `their ID on pages ${checkedPages.map(page => page + 1).join(', ')}`;
+    } else {
+        checkedPagesText.innerHTML = `their ID`;
+    }
     // select inputs whose name starts with "page-selected-"
+    // names are created with forloop.counter, so they are 1-indexed
     const pageCheckInputs = document.querySelectorAll('input[name^="page-selected-"]');
     pageCheckInputs.forEach(input => {
         // get the page number from the input name
@@ -143,7 +174,8 @@ function initializeCheckedPages() {
         pageNumber = parseInt(pageNumber);
         console.log(pageNumber);
         // if the page number is in checkedPages, set the input to checked
-        if (checkedPages.includes(pageNumber)) {
+        // We subtract 1 from the page number because the checkedPages is 0-indexed
+        if (checkedPages.includes(Math.max(pageNumber - 1, 0))) {
             input.checked = true;
             console.log("checked");
         }
@@ -968,7 +1000,7 @@ if (updateGradingSchemeButton) {
         const applyToAll = document.getElementById('apply_to_all').checked;
         const assignmentId = document.getElementById('assignment_id').value;
         
-        courseId = JSON.parse(document.getElementById('course_id').textContent);
+        const courseId = JSON.parse(document.getElementById('course_id').textContent);
 
         const url = '/course/' + courseId + '/grading_scheme/update/';
         const data = {
@@ -1563,4 +1595,85 @@ if(resetClusterBtn) {
         });
 
     });
+}
+
+// handle btn-default-identify-pages
+const btnDefaultIdentifyPages = document.getElementById('btn-default-identify-pages');
+if(btnDefaultIdentifyPages) {
+    btnDefaultIdentifyPages.addEventListener('click', handleDefaultIdentifyPages);
+}
+
+async function handleDefaultIdentifyPages(event) {
+    // stop the default action of the button
+    event.preventDefault();
+
+    // get the assignment id
+    const assignmentId = document.getElementById('assignment_num').value;
+    // get the course id
+    const courseId = document.getElementById('course_num').value;
+
+    const identifyForm = document.getElementById('identifyStudentsForm');
+    const csrfToken = identifyForm.querySelector("input[name='csrfmiddlewaretoken']").value;
+
+    // get all the checkboxes in the form
+    const checkboxes = identifyForm.querySelectorAll("input[type='checkbox']");
+    // get the indices of the checked checkboxes
+    let page_indices = [];
+    for (let i = 0; i < checkboxes.length; i++) {
+        if (checkboxes[i].checked) {
+            page_indices.push(i);
+        }
+    }
+    console.log(page_indices);
+    const url = "/profile/preferences/edit/";
+    const data = {
+        "identify_pages": {
+            [courseId]: {
+                [assignmentId]: page_indices
+            }
+        }
+    };
+
+    const options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify(data)
+    };
+
+    try {
+        const response = await fetch(url, options);
+        const responseJSON = await response.json();
+        console.log(responseJSON);
+        // if the message is success
+        if (responseJSON['success']) {
+            // create a toast
+            const toast = createToastElement(
+                "Default pages for identifying students updated successfully.",
+                "success"
+            );
+            // append the toast to the toast-container
+            const toastContainer = document.querySelector('#toast-container');
+            toastContainer.appendChild(toast);
+            console.log("toast", toast);
+            let toastElement = new bootstrap.Toast(toast,
+                {delay: 10000, autohide: false});
+            toastElement.show();
+        }
+    } catch (error) {
+        // create a toast
+        const toast = createToastElement(
+            "Default pages for identifying students could not be updated.",
+            "danger"
+        );
+        // append the toast to the toast-container
+        const toastContainer = document.querySelector('#toast-container');
+        toastContainer.appendChild(toast);
+        console.log("toast", toast);
+        let toastElement = new bootstrap.Toast(toast,
+            {delay: 10000, autohide: false});
+        toastElement.show();
+    }
 }
