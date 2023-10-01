@@ -249,7 +249,7 @@
                             <div class="modal-dialog modal-dialog-centered modal-lg">
                               <div class="modal-content">
                                 <div class="modal-header">
-                                  <h5 class="modal-title" id="syncToModalLabel">Upload to Canvas</h5>
+                                  <h5 class="modal-title" id="syncToModalLabel">Upload to Canvas: {{assignment.name}}</h5>
                                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 
@@ -302,21 +302,53 @@
                                             {% endfor %}
                                         </select>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="id_comment_sync_option" class="control-label">Comment Sync Option</label>
-                                        <div class="form-check">
-                                            <input checked type="radio" name="comment_sync_option" value="all" id="id_comment_sync_option_0" class="form-check-input">
-                                            <label for="id_comment_sync_option_0" class="form-check-label">Upload all locally saved comments as new comments on canvas</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input disabled type="radio" name="comment_sync_option" value="comment_not_on_canvas" id="id_comment_sync_option_1" class="form-check-input">
-                                            <label for="id_comment_sync_option_1" class="form-check-label">Upload only locally saved comments that are not on canvas</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input disabled type="radio" name="comment_sync_option" value="delete_previous" id="id_comment_sync_option_2" class="form-check-input">
-                                            <label for="id_comment_sync_option_2" class="form-check-label">Upload all locally saved comments as new comments on canvas, but delete all previously uploaded comments on the canvas submission posted by the current user</label>
+                                    
+
+                                    {% comment %} more options: one switch checkbox for uploading the grade per question as a comment, one switch checkbox for uploading the submission pdf file as an attachment to a comment {% endcomment %}
+                                    
+
+                                    <div class="d-flex flex-column justify-content-center align-items-center mt-3 mb-3">
+                                        <div>
+                                            <a class="btn btn-outline-primary btn-sm"
+                                                data-bs-toggle="collapse" 
+                                                href="#collapseMoreSyncToOptions" 
+                                                role="button" 
+                                                aria-expanded="false" 
+                                                aria-controls="collapseMoreSyncToOptions">
+                                                More Options
+                                            </a>
                                         </div>
                                     </div>
+                                    <div class="collapse mb-2" id="collapseMoreSyncToOptions">
+                                        <div class="form-group">
+                                            <label for="id_comment_sync_option" class="control-label">Comment Sync Option</label>
+                                            <div class="form-check">
+                                                <input checked type="radio" name="comment_sync_option" value="all" id="id_comment_sync_option_0" class="form-check-input">
+                                                <label for="id_comment_sync_option_0" class="form-check-label">Upload all locally saved comments as new comments on canvas</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input disabled type="radio" name="comment_sync_option" value="comment_not_on_canvas" id="id_comment_sync_option_1" class="form-check-input">
+                                                <label for="id_comment_sync_option_1" class="form-check-label">Upload only locally saved comments that are not on canvas</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input disabled type="radio" name="comment_sync_option" value="delete_previous" id="id_comment_sync_option_2" class="form-check-input">
+                                                <label for="id_comment_sync_option_2" class="form-check-label">Upload all locally saved comments as new comments on canvas, but delete all previously uploaded comments on the canvas submission posted by the current user</label>
+                                            </div>
+                                        </div>
+                                        <div class="form-group mt-1">
+                                            <div class="form-check form-switch">
+                                                <input checked type="checkbox" name="grade_summary_sync_option" value="1" id="id_grade_summary_sync_option" class="form-check-input">
+                                                <label for="id_grade_summary_sync_option" class="form-check-label">Upload grade per question as a comment</label>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-check form-switch">
+                                                <input checked type="checkbox" name="submission_pdf_sync_option" value="1" id="id_submission_pdf_sync_option" class="form-check-input">
+                                                <label for="id_submission_pdf_sync_option" class="form-check-label">Upload submission PDF file as an attachment to a comment</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {% comment %} describe details of syncing process in an accordion: {% endcomment %}
 
 

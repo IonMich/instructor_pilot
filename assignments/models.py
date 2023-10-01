@@ -229,6 +229,8 @@ class Assignment(models.Model):
     def upload_graded_submissions_to_canvas(self, 
             submission_sync_option,
             comment_sync_option,
+            grade_summary_sync_option,
+            submission_pdf_sync_option,
             request_user,
             specific_submissions=None,
     ):
@@ -271,6 +273,22 @@ class Assignment(models.Model):
                 ('comment_not_on_canvas', 'Upload only comments that are not on canvas'),
                 ),
             )
+
+        Finally, we also need to specify the grade_summary_sync_option:
+        grade_summary_sync_option = forms.BooleanField(
+            initial=True,
+            required=False,
+            label="Upload grade summary",
+            help_text="Upload the grade summary as a comment on the submission on canvas",
+            )
+        
+        And the submission_pdf_sync_option:
+        submission_pdf_sync_option = forms.BooleanField(
+            initial=True,
+            required=False,
+            label="Upload submission pdf",
+            help_text="Upload the submission pdf as a file attachment on the submission on canvas",
+        )
         """
         # raise ValueError("This error is raised as a final safety measure to prevent accidental uploads of grades to canvas. Comment out this line from assignments.models.upload_graded_submissions_to_canvas to enable the upload.")
         canvas_course = get_canvas_course(canvas_id=self.course.canvas_id)
@@ -304,40 +322,46 @@ class Assignment(models.Model):
 
             # upload the grade and a comment with the question grades to canvas
             score = submission.grade
-            new_question_grades_comment = ""
-            for idx, question_grade in enumerate(submission.get_question_grades()):
-                new_question_grades_comment += f"Question {idx+1} Grade: {question_grade}\n"
             print(f'Student grade: {score}')
-            print(f'Question grades comment: {new_question_grades_comment}')
+            if grade_summary_sync_option:
+                new_question_grades_comment = ""
+                for idx, question_grade in enumerate(submission.get_question_grades()):
+                    new_question_grades_comment += f"Question {idx+1} Grade: {question_grade}\n"
+                print(f'Question grades comment: {new_question_grades_comment}')
 
-            # get or create the grade comment for this submission
-            grade_comment = submission.submissions_submissioncomment_related.filter(
-                is_grade_summary=True,
-                author=request_user,
-                ).first()
-            if grade_comment is None:
-                grade_comment = submission.submissions_submissioncomment_related.create(
+                # get or create the grade comment for this submission
+                grade_comment = submission.submissions_submissioncomment_related.filter(
                     is_grade_summary=True,
                     author=request_user,
-                    text=new_question_grades_comment,
+                    ).first()
+                if grade_comment is None:
+                    grade_comment = submission.submissions_submissioncomment_related.create(
+                        is_grade_summary=True,
+                        author=request_user,
+                        text=new_question_grades_comment,
+                        )
+                else:
+                    grade_comment.text = new_question_grades_comment
+                    grade_comment.save()
+
+                uploaded_canvas_submission = canvas_submission.edit(submission={
+                    'posted_grade': score},
+                    comment= 
+                        {"text_comment":new_question_grades_comment,
+                        },
                     )
-            else:
-                grade_comment.text = new_question_grades_comment
+
+                # find the canvas_comment_id from the newly edited submission
+                canvas_comment_id = uploaded_canvas_submission.submission_comments[-1]['id']
+                grade_comment.canvas_id = canvas_comment_id
                 grade_comment.save()
 
-            uploaded_canvas_submission = canvas_submission.edit(submission={
-                'posted_grade': score},
-                comment= 
-                    {"text_comment":new_question_grades_comment,
-                    },
-                )
-
-            # find the canvas_comment_id from the newly edited submission
-            canvas_comment_id = uploaded_canvas_submission.submission_comments[-1]['id']
-            grade_comment.canvas_id = canvas_comment_id
-            grade_comment.save()
-
-            print(f"Uploaded grade and grade comment for {canvas_submission.user['name']}")
+                print(f"Uploaded grade and grade comment for {canvas_submission.user['name']}")
+            else:
+                uploaded_canvas_submission = canvas_submission.edit(submission={
+                    'posted_grade': score},
+                    )
+                print(f"Uploaded grade for {canvas_submission.user['name']}. Grade summary comment was not uploaded.")
 
             for comment in submission.submissions_submissioncomment_related.all():
                 if comment.is_grade_summary:
@@ -376,27 +400,27 @@ class Assignment(models.Model):
                             print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
 
             print(f'Submission comment file url: {submission.pdf}')
-            
-            new_file_name = f"submission_{submission.student.first_name}_{submission.student.last_name}.pdf"
-            tmp_folder_path = os.path.join(settings.BASE_DIR, "tmp")
-            if not os.path.exists(tmp_folder_path):
-                os.makedirs(tmp_folder_path)
-            with tempfile.TemporaryDirectory(dir=tmp_folder_path) as tmp_dir:
-                tmp_file_path = os.path.join(tmp_dir, new_file_name)
-                shutil.copyfile(submission.pdf.path, tmp_file_path)
+            if submission.pdf and submission_pdf_sync_option:
+                new_file_name = f"submission_{submission.student.first_name}_{submission.student.last_name}.pdf"
+                tmp_folder_path = os.path.join(settings.BASE_DIR, "tmp")
+                if not os.path.exists(tmp_folder_path):
+                    os.makedirs(tmp_folder_path)
+                with tempfile.TemporaryDirectory(dir=tmp_folder_path) as tmp_dir:
+                    tmp_file_path = os.path.join(tmp_dir, new_file_name)
+                    shutil.copyfile(submission.pdf.path, tmp_file_path)
 
-                uploaded = canvas_submission.upload_comment(
-                    file=tmp_file_path,
-                )
-                if uploaded:
-                    print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
+                    uploaded = canvas_submission.upload_comment(
+                        file=tmp_file_path,
+                    )
+                    if uploaded:
+                        print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
 
             # get the version comments for this submission
             # if something goes wrong, we continue to the next submission
                 
             submission_version = submission.version
             if not submission_version:
-                print(f"Coud not find submission version for {canvas_submission.user['name']}")
+                print(f"Skipping version comments for {canvas_submission.user['name']} because submission has no version.")
                 continue
     
                 
