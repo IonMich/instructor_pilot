@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.2.4/build/index.umd.min.js" defer></script>
     <script src="https://d3js.org/d3.v7.min.js" defer></script>
     
@@ -122,7 +122,12 @@
                           {% endif %}
 
                             {% if obj.version != "None" %}
-                                <span class="badge rounded-pill bg-success" title="{{obj.version}}">
+                                <span 
+                                    class="badge rounded-pill bg-success" 
+                                    title="{{obj.version}}"
+                                    {% comment %} wrap is fine {% endcomment %}
+                                    style="white-space: normal;"
+                                    >
                                     {{obj.version}}
                                 </span> 
                             {% endif %}

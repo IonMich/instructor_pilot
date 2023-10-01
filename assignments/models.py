@@ -463,6 +463,9 @@ class Version(models.Model):
     # add a field to store the image to determine the version
     version_image = models.ImageField(upload_to='assignments/versions/', null=True, blank=True)
 
+    def __str__(self):
+        return f"{self.name} - {self.assignment.name}"
+
 class VersionFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     version_file = models.FileField(upload_to='assignments/versions/', null=True, blank=True)
