@@ -124,6 +124,19 @@ function handleScroll () {
         images.forEach((image, i) => {
             console.log(image, `\nloaded? ${image.complete}`);
         });
+        
+        // invert the colors of the image if the theme is dark
+        const getStoredTheme = () => localStorage.getItem('theme')
+        const storedTheme = getStoredTheme()
+        if ((storedTheme === 'dark') || (storedTheme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            // get all image tags in the div
+            const imgs = imgdiv.querySelectorAll("img");
+            // style with invert filter
+            imgs.forEach((img, i) => {
+                img.style.filter = "invert(1)";
+            });
+        }
+
         let page_height = imgEl.height;
         let margin = 10;
 
@@ -1591,7 +1604,6 @@ async function reloadSavedCommentsToSelect() {
     options.forEach(option => {
         option.remove();
     });
-    $(savedCommentsSelect).selectpicker("destroy");
     const savedComments = await getSavedComments()
     savedComments.forEach( (savedComment, i) => {
         console.log(`option ${i}: ${savedComment.pk} created`);

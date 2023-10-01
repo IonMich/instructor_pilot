@@ -29,14 +29,16 @@
     <link rel="manifest" href="{% static 'site.webmanifest' %}">
 
     {% block scripts %}
-    
     {% endblock scripts %}
-
+    {% block script-theme %}
+        <script defer src="{% static 'app.js' %}"></script>
+    {% endblock script-theme %}
 
     <title>Teaching {% block title %}{% endblock %}</title>
 
     
 </head>
+{% comment %} data-bs-theme="dark" {% endcomment %}
 <body>
     {% block navbar %}
         {% include 'navbar.html' %}

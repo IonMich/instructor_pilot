@@ -57,7 +57,7 @@
             <img src="{{submission.student.profile.avatar.url}}" class="rounded-circle ms-3" style="width: 24px; height: 24px;" alt="">
             </a>  
             {% if submission.canvas_url %}
-                <a href="{{submission.canvas_url}}" target="_blank" class="ms-3" title="View on Canvas" style="background-color: #fff; border-color: #fff;">
+                <a href="{{submission.canvas_url}}" target="_blank" class="ms-3" title="View on Canvas" style="color: #0055a5;">
                 <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" 
                 style="width: 16px; height: 16px;filter: grayscale(100%);">
               </a>
@@ -79,7 +79,7 @@
                 {% endif %}
                 / {{submission.assignment.max_score}}
             </span>
-            <a href="{{request.user.profile.get_absolute_url}}" class="text-decoration-none text-dark">
+            <a href="{{request.user.profile.get_absolute_url}}" class="text-decoration-none link-body-emphasis">
                 <img src="{{request.user.profile.avatar.url}}" class="rounded-circle" style="width: 2rem; height: 2rem; object-fit: cover;">
                 <span class="ms-2">{{request.user.username}}</span>
             </a>
@@ -106,7 +106,8 @@
             <div data-bs-spy="scroll" id="div-imgs" data-bs-target="#list-pages" style="height:80vh; position:relative; overflow-y:scroll;" data-bs-offset="200" class="scrollspy-example"  tabindex="0">
             {% for image in submission.submissions_papersubmissionimage_related.all%}  
                 <h4 id="page-{{forloop.counter}}"></h4>
-                <img id="img-{{forloop.counter}}" src="{{ image.image.url }}" class="img-fluid" alt="{{ image.image.name }}" style="max-width:95% ">
+                {% comment %} if data-bs-theme is set to dark, the images will be inverted {% endcomment %}
+                <img id="img-{{forloop.counter}}" src="{{ image.image.url }}" class="img-fluid" alt="{{ image.image.name }}" style="max-width:95%;">
             {% endfor %}
             </div> 
         </figure>

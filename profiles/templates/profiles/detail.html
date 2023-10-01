@@ -59,10 +59,44 @@
     </form>
     <form action="" method="POST" id="profileFieldsForm" enctype="multipart/form-data" style="display: contents;">
         {% csrf_token %}
-        <div class="item-label mt-5" id="firstNameLabel">
+        <div class="item-label mt-2" id="ColorThemeLabel">
+            <label for="ColorTheme">Color Theme</label>
+        </div>
+        <div class="item-input mt-2" id="ColorThemeInput">
+            <div class="dropdown">
+                <button class="btn btn-link py-2 px-0 px-lg-2 dropdown-toggle d-flex align-items-center" id="bd-theme" type="button" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static" aria-label="Toggle theme (light)">
+                  <i class="bi theme-icon-active bi-sun-fill me-2"></i>
+                  <span class="d-lg-none ms-2" id="bd-theme-text">Toggle theme</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-start" aria-labelledby="bd-theme-text">
+                  <li>
+                    <button type="button" class="dropdown-item d-flex align-items-center active" data-bs-theme-value="light" aria-pressed="true">
+                      <i class="bi bi-sun-fill theme-icon me-2"></i>
+                      Light
+                      <svg class="bi ms-auto d-none"><use href="#check2"></use></svg>
+                    </button>
+                  </li>
+                  <li>
+                    <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark" aria-pressed="false">
+                      <i class="bi bi-moon-stars-fill theme-icon me-2"></i>
+                      Dark
+                      <svg class="bi ms-auto d-none"><use href="#check2"></use></svg>
+                    </button>
+                  </li>
+                  <li>
+                    <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto" aria-pressed="false">
+                      <i class="bi bi-circle-half theme-icon me-2"></i>
+                      Auto
+                      <svg class="bi ms-auto d-none"><use href="#check2"></use></svg>
+                    </button>
+                  </li>
+                </ul>
+            </div>
+        </div>
+        <div class="item-label mt-2" id="firstNameLabel">
             <label for="firstName">First Name</label>
         </div>
-        <div class="item-inpu mt-5" id="firstNameInput">
+        <div class="item-input mt-2" id="firstNameInput">
             <input type="text" name="firstName" id="firstName" value="{{request.user.first_name}}" class="form-control">
         </div>
         <div class="item-label" id="lastNameLabel">
@@ -107,9 +141,6 @@
             Save
         </button>
     </form>
-    
-
-    
 </div>
 
 {% comment %} add a Bootstrap toast container {% endcomment %}
