@@ -6,10 +6,11 @@ import uuid
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import F, Max, Q
 from django.urls import reverse
 
 from courses.models import Course
-from courses.utils import get_canvas_course, get_canvas_object, API_URL
+from courses.utils import API_URL, get_canvas_course, get_canvas_object
 from courses.views import course_detail_view
 from submissions.utils import CommaSeparatedFloatField
 
@@ -103,13 +104,12 @@ class Assignment(models.Model):
         return self.get_all_submissions().filter(student__isnull=True).count()
 
     def count_submissions_no_sync(self):
-        return self.get_all_submissions().filter(canvas_id__isnull=True).count()
+        # not "" instead of None because the field is a CharField
+        return self.get_all_submissions().filter(Q(canvas_id__isnull=True) | Q(canvas_id="")).count()
 
     def get_all_saved_comments(self, requester):
-        from submissions.models import SubmissionComment
-        return SubmissionComment.objects.filter(
-            paper_submission__assignment=self,
-            is_saved=True,
+        return SavedComment.objects.filter(
+            assignment=self,
             author=requester)
 
     def get_grading_progress(self):
@@ -202,24 +202,37 @@ class Assignment(models.Model):
         canvas_submissions = canvas_assignment.get_submissions(
                 include=["submission_comments", "user"]
                 )
+        all_submissions = self.get_all_submissions()
+
         for canvas_submission in canvas_submissions:
-            if canvas_submission.user["sis_user_id"] is None:
+            try:
+                if canvas_submission.user["sis_user_id"] is None:
+                    continue
+            except KeyError:
+                print(f"Could not find sis_user_id for {canvas_submission.user['name']}. This usually means that the course is not of the ongoing semester.")
                 continue
             try:
                 submission = self.submissions_papersubmission_related.get(
+                    student__canvas_id=canvas_submission.user["id"])
+                all_submissions = all_submissions.exclude(
                     student__canvas_id=canvas_submission.user["id"])
                 print(f"Found submission in database for student with canvas_id: {canvas_submission.user['name']}")
             except self.submissions_papersubmission_related.model.DoesNotExist:
                 print(f"No submission found in database for student with canvas_id: {canvas_submission.user['name']}")
                 continue
+            except self.submissions_papersubmission_related.model.MultipleObjectsReturned:
+                print(f"********Multiple submissions found in database for {canvas_submission.user['name']} **********")
+                continue
             submission.canvas_id = canvas_submission.id
             submission.canvas_url = canvas_submission.preview_url
             submission.save()
-
-
+        print(f"{all_submissions.count()} submissions in database that were not found on canvas. This indicates that there are submissions of students not actively enrolled in the course on Canvas.")
+    
     def upload_graded_submissions_to_canvas(self, 
             submission_sync_option,
             comment_sync_option,
+            grade_summary_sync_option,
+            submission_pdf_sync_option,
             request_user,
             specific_submissions=None,
     ):
@@ -262,6 +275,22 @@ class Assignment(models.Model):
                 ('comment_not_on_canvas', 'Upload only comments that are not on canvas'),
                 ),
             )
+
+        Finally, we also need to specify the grade_summary_sync_option:
+        grade_summary_sync_option = forms.BooleanField(
+            initial=True,
+            required=False,
+            label="Upload grade summary",
+            help_text="Upload the grade summary as a comment on the submission on canvas",
+            )
+        
+        And the submission_pdf_sync_option:
+        submission_pdf_sync_option = forms.BooleanField(
+            initial=True,
+            required=False,
+            label="Upload submission pdf",
+            help_text="Upload the submission pdf as a file attachment on the submission on canvas",
+        )
         """
         # raise ValueError("This error is raised as a final safety measure to prevent accidental uploads of grades to canvas. Comment out this line from assignments.models.upload_graded_submissions_to_canvas to enable the upload.")
         canvas_course = get_canvas_course(canvas_id=self.course.canvas_id)
@@ -280,6 +309,8 @@ class Assignment(models.Model):
             except self.submissions_papersubmission_related.model.DoesNotExist:
                 print(f"No submission found in database for {canvas_submission.user['name']}")
                 continue
+            except self.submissions_papersubmission_related.model.MultipleObjectsReturned:
+                print(f"********Multiple submissions found in database for {canvas_submission.user['name']} **********")
             if submission.grade is None:
                 print(f"Will not upload submission without grade for {canvas_submission.user['name']}")
                 continue
@@ -295,40 +326,46 @@ class Assignment(models.Model):
 
             # upload the grade and a comment with the question grades to canvas
             score = submission.grade
-            new_question_grades_comment = ""
-            for idx, question_grade in enumerate(submission.get_question_grades()):
-                new_question_grades_comment += f"Question {idx+1} Grade: {question_grade}\n"
             print(f'Student grade: {score}')
-            print(f'Question grades comment: {new_question_grades_comment}')
+            if grade_summary_sync_option:
+                new_question_grades_comment = ""
+                for idx, question_grade in enumerate(submission.get_question_grades()):
+                    new_question_grades_comment += f"Question {idx+1} Grade: {question_grade}\n"
+                print(f'Question grades comment: {new_question_grades_comment}')
 
-            # get or create the grade comment for this submission
-            grade_comment = submission.submissions_submissioncomment_related.filter(
-                is_grade_summary=True,
-                author=request_user,
-                ).first()
-            if grade_comment is None:
-                grade_comment = submission.submissions_submissioncomment_related.create(
+                # get or create the grade comment for this submission
+                grade_comment = submission.submissions_submissioncomment_related.filter(
                     is_grade_summary=True,
                     author=request_user,
-                    text=new_question_grades_comment,
+                    ).first()
+                if grade_comment is None:
+                    grade_comment = submission.submissions_submissioncomment_related.create(
+                        is_grade_summary=True,
+                        author=request_user,
+                        text=new_question_grades_comment,
+                        )
+                else:
+                    grade_comment.text = new_question_grades_comment
+                    grade_comment.save()
+
+                uploaded_canvas_submission = canvas_submission.edit(submission={
+                    'posted_grade': score},
+                    comment= 
+                        {"text_comment":new_question_grades_comment,
+                        },
                     )
-            else:
-                grade_comment.text = new_question_grades_comment
+
+                # find the canvas_comment_id from the newly edited submission
+                canvas_comment_id = uploaded_canvas_submission.submission_comments[-1]['id']
+                grade_comment.canvas_id = canvas_comment_id
                 grade_comment.save()
 
-            uploaded_canvas_submission = canvas_submission.edit(submission={
-                'posted_grade': score},
-                comment= 
-                    {"text_comment":new_question_grades_comment,
-                    },
-                )
-
-            # find the canvas_comment_id from the newly edited submission
-            canvas_comment_id = uploaded_canvas_submission.submission_comments[-1]['id']
-            grade_comment.canvas_id = canvas_comment_id
-            grade_comment.save()
-
-            print(f"Uploaded grade and grade comment for {canvas_submission.user['name']}")
+                print(f"Uploaded grade and grade comment for {canvas_submission.user['name']}")
+            else:
+                uploaded_canvas_submission = canvas_submission.edit(submission={
+                    'posted_grade': score},
+                    )
+                print(f"Uploaded grade for {canvas_submission.user['name']}. Grade summary comment was not uploaded.")
 
             for comment in submission.submissions_submissioncomment_related.all():
                 if comment.is_grade_summary:
@@ -367,27 +404,27 @@ class Assignment(models.Model):
                             print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
 
             print(f'Submission comment file url: {submission.pdf}')
-            
-            new_file_name = f"submission_{submission.student.first_name}_{submission.student.last_name}.pdf"
-            tmp_folder_path = os.path.join(settings.BASE_DIR, "tmp")
-            if not os.path.exists(tmp_folder_path):
-                os.makedirs(tmp_folder_path)
-            with tempfile.TemporaryDirectory(dir=tmp_folder_path) as tmp_dir:
-                tmp_file_path = os.path.join(tmp_dir, new_file_name)
-                shutil.copyfile(submission.pdf.path, tmp_file_path)
+            if submission.pdf and submission_pdf_sync_option:
+                new_file_name = f"submission_{submission.student.first_name}_{submission.student.last_name}.pdf"
+                tmp_folder_path = os.path.join(settings.BASE_DIR, "tmp")
+                if not os.path.exists(tmp_folder_path):
+                    os.makedirs(tmp_folder_path)
+                with tempfile.TemporaryDirectory(dir=tmp_folder_path) as tmp_dir:
+                    tmp_file_path = os.path.join(tmp_dir, new_file_name)
+                    shutil.copyfile(submission.pdf.path, tmp_file_path)
 
-                uploaded = canvas_submission.upload_comment(
-                    file=tmp_file_path,
-                )
-                if uploaded:
-                    print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
+                    uploaded = canvas_submission.upload_comment(
+                        file=tmp_file_path,
+                    )
+                    if uploaded:
+                        print(f"Uploaded file comment to canvas for {canvas_submission.user['name']}")
 
             # get the version comments for this submission
             # if something goes wrong, we continue to the next submission
                 
             submission_version = submission.version
             if not submission_version:
-                print(f"Coud not find submission version for {canvas_submission.user['name']}")
+                print(f"Skipping version comments for {canvas_submission.user['name']} because submission has no version.")
                 continue
     
                 
@@ -430,6 +467,9 @@ class Version(models.Model):
     # add a field to store the image to determine the version
     version_image = models.ImageField(upload_to='assignments/versions/', null=True, blank=True)
 
+    def __str__(self):
+        return f"{self.name} - {self.assignment.name}"
+
 class VersionFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     version_file = models.FileField(upload_to='assignments/versions/', null=True, blank=True)
@@ -460,9 +500,113 @@ class VersionText(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
-            
+class SavedComment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    text = models.TextField()
+    title = models.CharField(max_length=30)
+    token = models.CharField(max_length=64, blank=True)
+    position = models.PositiveSmallIntegerField(
+        blank=True,
+    )
+    version = models.ForeignKey(
+        Version, 
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE
+    )
+    question_number = models.PositiveSmallIntegerField(
+        blank=True,
+        null=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
-            
-        
+    def __str__(self):
+        return f"{self.title}"
 
-    
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            highest_position = SavedComment.objects.filter(
+                    assignment=self.assignment,
+                    author=self.author,
+                ).aggregate(Max('position'))['position__max']
+            if highest_position is None:
+                next_position = 0
+                self.position = next_position
+                return super().save(*args, **kwargs)
+            if self.position is None:
+                self.position = highest_position + 1
+                return super().save(*args, **kwargs)
+            if self.position > highest_position:
+                next_position = highest_position + 1
+                self.position = next_position   
+                return super().save(*args, **kwargs)
+
+            # check if the position is already taken for this assignment and author
+            saved_comment = SavedComment.objects.filter(
+                position=self.position,
+                assignment=self.assignment,
+                author=self.author,
+            )
+            
+            if saved_comment.exists():
+                # if it exists, move all the comments with a position >= to the next position
+                SavedComment.objects.filter(
+                    position__gte=self.position,
+                    assignment=self.assignment,
+                    author=self.author,
+                ).update(position=F('position') + 1)
+        else:
+            # exclude the current comment from the queryset
+            highest_position = (SavedComment.objects.filter(
+                    assignment=self.assignment,
+                    author=self.author,)
+                    .exclude(id=self.id)
+                    .aggregate(Max('position'))['position__max']
+            )
+            old_position = SavedComment.objects.get(id=self.id).position
+            if highest_position is None:
+                self.position = 0
+                return super().save(*args, **kwargs)
+            if (self.position is None) or (self.position > highest_position):
+                self.position = max(highest_position, old_position)
+            print(highest_position)
+            print(old_position)
+            new_position = self.position
+            print(new_position)
+            # if the old position is higher than the new position, 
+            # subtract 1 from all the positions in between
+            
+            if old_position < new_position:
+                print('old position is lower than new position')
+                comments_update = SavedComment.objects.filter(
+                    position__gt=old_position,
+                    position__lte=new_position,
+                    assignment=self.assignment,
+                    author=self.author,
+                )
+                print(comments_update)
+                comments_update.update(position=F('position') - 1)
+            elif old_position > new_position:
+                print('old position is higher than new position')
+                comments_update = SavedComment.objects.filter(
+                    position__gte=new_position,
+                    position__lt=old_position,
+                    assignment=self.assignment,
+                    author=self.author,
+                )
+                print(comments_update)
+                comments_update.update(position=F('position') + 1)
+
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # move all the comments with a position > to the next position
+        SavedComment.objects.filter(
+            position__gt=self.position,
+            assignment=self.assignment,
+            author=self.author,
+        ).update(position=F('position') - 1)
+        return super().delete(*args, **kwargs)
