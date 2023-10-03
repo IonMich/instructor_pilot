@@ -220,6 +220,9 @@ class Assignment(models.Model):
             except self.submissions_papersubmission_related.model.DoesNotExist:
                 print(f"No submission found in database for student with canvas_id: {canvas_submission.user['name']}")
                 continue
+            except self.submissions_papersubmission_related.model.MultipleObjectsReturned:
+                print(f"*********Multiple submissions found in database for student with canvas_id: {canvas_submission.user['name']}********")
+                continue
             submission.canvas_id = canvas_submission.id
             submission.canvas_url = canvas_submission.preview_url
             submission.save()
@@ -306,6 +309,9 @@ class Assignment(models.Model):
                 print(f"Found submission in database for {canvas_submission.user['name']}")
             except self.submissions_papersubmission_related.model.DoesNotExist:
                 print(f"No submission found in database for {canvas_submission.user['name']}")
+                continue
+            except self.submissions_papersubmission_related.model.MultipleObjectsReturned:
+                print(f"*******Multiple submissions found in database for {canvas_submission.user['name']}******")
                 continue
             if submission.grade is None:
                 print(f"Will not upload submission without grade for {canvas_submission.user['name']}")
