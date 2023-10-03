@@ -810,10 +810,13 @@ const showSavedCommentsBtn = document.querySelector("#show-assignment-saved-comm
 
 const editSavedCommentsBtn = document.querySelector("#edit-assignment-saved-comments");
 
-showSavedCommentsBtn.addEventListener("click", (event) => {
-    
+showSavedCommentsBtn.addEventListener("click", handleToggleSavedComments);
+
+function handleToggleSavedComments (event) {
     // override the default behaviour of the button
-    event.preventDefault();
+    if (event) {
+        event.preventDefault();
+    }
     const savedCommentsDiv = document.querySelector("div.saved-comments")
     const previewCommentDiv = document.querySelector("div.preview-comment")
     const expander = document.querySelector("#expander");
@@ -861,17 +864,6 @@ showSavedCommentsBtn.addEventListener("click", (event) => {
             );
 
         expander.classList.toggle("expanded");
-        // previewCommentDiv.classList.remove("d-none");
-        // previewCommentDiv.setAttribute("opening", "");
-
-        // previewCommentDiv.addEventListener(
-        //     "animationend",
-        //     () => {
-                    
-        //             previewCommentDiv.removeAttribute("opening");
-                    
-        //         }
-        //     );
         
     } else {
         console.log("closing saved comments");
@@ -897,41 +889,11 @@ showSavedCommentsBtn.addEventListener("click", (event) => {
                 text_area.removeAttribute("opening");
             },
             { once: true }
-            );
-        
+            ); 
         
         expander.classList.toggle("expanded");
-        // previewCommentDiv.setAttribute("closing", "");
-        // previewCommentDiv.addEventListener(
-        //     "animationend",
-        //     () => {
-        //         previewCommentDiv.removeAttribute("closing");
-        //         previewCommentDiv.classList.add("d-none");
-        //     },
-        //     { once: true }
-
-        // );
     }
-    
-    // const savedCommentsSelect = document.querySelector("#id_assignment_saved_comments");
-    // if (savedCommentsSelect.classList.contains("d-none")) {
-    //     savedCommentsSelect.classList.remove("d-none");
-    //     // also remove the "d-none" class from the div with class "btn-group bootstrap-select"
-    //     savedCommentsSelect.parentElement.classList.remove("d-none");
-    // } else {
-    //     savedCommentsSelect.classList.add("d-none");
-    //     // also add the "d-none" class to the div with class "btn-group bootstrap-select"
-    //     savedCommentsSelect.parentElement.classList.add("d-none");
-    // }
-    // // if the textarea is hidden, show it
-    // if (text_area.classList.contains("d-none")) {
-    //     text_area.classList.remove("d-none");
-    // } else {
-    //     text_area.classList.add("d-none");
-    // }
-
 }
-);
 
 let draggedSource = null;
 const toggleReorderBtn = document.querySelector("#btnToggleReorder");
@@ -1049,6 +1011,7 @@ async function handleDrop(event) {
 
         // destroyStarredCommentList();
         // constructStarredCommentList(isDraggable=true);
+        reloadSavedCommentsToSelect();
     }
 
     return false;
@@ -1585,17 +1548,6 @@ toggleReorderBtn.addEventListener("click", (event) => {
 // and update the preview comment div
 const savedCommentsSelect = document.querySelector("#id_assignment_saved_comments");
 
-
-// {% for comment in saved_comments %}
-//     {% comment %} when data-subtext is too long, wrap to next line {% endcomment %}
-//     <option value="{{comment.pk}}" data-container="body" data-tokens="{{comment.saved_token}}" data-subtext="{{comment.text}}">
-//         {% if comment.saved_title %}
-//             {{comment.saved_title | truncatechars:50}}
-//         {% else %}
-//         {% endif %}
-//     </option>
-// {% endfor %}
-
 // load the saved comments from the database
 async function reloadSavedCommentsToSelect() {
     // remove all existing options
@@ -1605,7 +1557,8 @@ async function reloadSavedCommentsToSelect() {
         option.remove();
     });
     const savedComments = await getSavedComments()
-    savedComments.forEach( (savedComment, i) => {
+    const sortedSavedComments = savedComments.sort((a, b) => a.fields.position - b.fields.position);
+    sortedSavedComments.forEach( (savedComment, i) => {
         console.log(`option ${i}: ${savedComment.pk} created`);
         const option = document.createElement("option");
         option.setAttribute("value", savedComment.pk);
