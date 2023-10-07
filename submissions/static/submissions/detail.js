@@ -133,7 +133,7 @@ function handleScroll () {
             const imgs = imgdiv.querySelectorAll("img");
             // style with invert filter
             imgs.forEach((img, i) => {
-                img.style.filter = "invert(1)";
+                img.style.filter = "invert(1) brightness(2)"
             });
         }
 
