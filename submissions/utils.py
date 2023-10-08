@@ -117,11 +117,21 @@ def convert_pdf_to_images(filepath, dpi, top_percent=0.25, left_percent=0.5, cro
             continue
         print(page.number, end="\r")
         rect = page.rect  # the page rectangle
-        rect.y1 = rect.y0 + (rect.y1 - rect.y0) * top_percent
-        rect.x1 = rect.x0 + (rect.x1 - rect.x0) * left_percent
 
-        if crop_box is not None:
-            raise NotImplementedError
+        if crop_box is not None and page.number in crop_box:
+            x_perc = float(crop_box[page.number]["x"])
+            y_perc = float(crop_box[page.number]["y"])
+            w_perc = float(crop_box[page.number]["width"])
+            h_perc = float(crop_box[page.number]["height"])
+            page_width = rect.x1 - rect.x0
+            page_height = rect.y1 - rect.y0
+            rect.x0 = rect.x0 + x_perc * page_width / 100
+            rect.y0 = rect.y0 + y_perc * page_height / 100
+            rect.x1 = rect.x0 + w_perc * page_width / 100
+            rect.y1 = rect.y0 + h_perc * page_height / 100
+        else:
+            rect.x1 = rect.x0 + (rect.x1 - rect.x0) * left_percent
+            rect.y1 = rect.y0 + (rect.y1 - rect.y0) * top_percent
 
         pix = page.get_pixmap(dpi=dpi, clip=rect)
         images.append(Image.frombytes(mode="RGB", size=[pix.width, pix.height], data=pix.samples))

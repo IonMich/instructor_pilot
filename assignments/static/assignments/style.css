@@ -59,4 +59,10 @@
 .assignment-canvas-btn:hover, .assignment-canvas-btn:focus, .assignment-canvas-btn:active {
     border-color: black;
     background-color: rgb(255, 255, 255);
-  }
+}
+
+/* Make sure the size of the image fits perfectly into the container */
+#cropImg {
+    display: block;
+    max-width: 100%;
+}

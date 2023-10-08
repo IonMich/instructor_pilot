@@ -1,6 +1,7 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Layout, Row, Submit
 from django import forms
+import json
 
 from assignments.models import Assignment
 from students.models import Student
@@ -232,6 +233,10 @@ class StudentClassifyForm(forms.Form):
     pages_selected = forms.JSONField(
         required=False,
         )
+    
+    crop_box = forms.JSONField(
+        required=False,
+        )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -251,10 +256,19 @@ class StudentClassifyForm(forms.Form):
         pages_to_skip = tuple(i for i in range(max_page_num) if i+1 not in do_not_skip)
         print("0-indexed pages_to_skip: ", pages_to_skip)
         
+        crop_box = self.cleaned_data['crop_box']
+        if crop_box:
+            crop_box_0_indexed = {}
+            for key, value in crop_box.items():
+                crop_box_0_indexed[int(key)-1] = value
+            crop_box = crop_box_0_indexed
+        else:
+            crop_box = None
 
         classified_submission_pks, not_classified_submission_pks = PaperSubmission.classify(
                 assignment,
                 skip_pages=pages_to_skip,
+                crop_box=crop_box,
                 )
         return classified_submission_pks, not_classified_submission_pks
 

@@ -218,6 +218,44 @@ function identifyStudents (event, form) {
     // delete all entries that start with page-selected-
     Array.from(formData.keys()).filter(key => key.startsWith('page-selected-')).forEach(key => formData.delete(key));
 
+    // append the crop regions to the form data for each selected page
+    // get the crop regions from the cropBoxData variable
+    // cropBoxData is a dictionary with keys as 0-indexed page numbers and values 
+    // as crop regions (x, y, width, height) in natural image coordinates
+    const cropBoxDataCopy = new Map(JSON.parse(JSON.stringify(Array.from(cropBoxData))));
+    const cropRegions = {};
+    for (const pageNumber of numbers_selected) {
+        console.log("pageNumber", pageNumber);
+        // convert the page number to 0-indexed
+        cropRegions[pageNumber] = cropBoxDataCopy.get(pageNumber-1);
+        console.log("cropRegions", cropRegions);
+    }
+    // convert all values of cropRegions to percentages using region["naturalWidth"] and region["naturalHeight"]
+    // get the natural width and height of the image
+    for (const [pageNumber, region] of Object.entries(cropRegions)) {
+        if (!region) {
+            continue;
+        }
+        const naturalWidth = region["naturalWidth"];
+        const naturalHeight = region["naturalHeight"];
+        // convert the x, y, width, height to percentages
+        // store up to 2 decimal places
+        region["x"] = (region["x"] / naturalWidth * 100).toFixed(2);
+        region["y"] = (region["y"] / naturalHeight * 100).toFixed(2);
+        region["width"] = (region["width"] / naturalWidth * 100).toFixed(2);
+        region["height"] = (region["height"] / naturalHeight * 100).toFixed(2);
+    }
+    // remove the naturalWidth and naturalHeight keys from the cropRegions
+    for (const [pageNumber, region] of Object.entries(cropRegions)) {
+        if (!region) {
+            continue;
+        }
+        delete region["naturalWidth"];
+        delete region["naturalHeight"];
+    }
+    // append the JSON-stringified crop regions to the form data
+    formData.append('crop_box', JSON.stringify(cropRegions));
+
 
 	// ADAPT url if the fetch request is submitted at a different url than the current page.
 	const url = window.location.href
@@ -1676,4 +1714,212 @@ async function handleDefaultIdentifyPages(event) {
             {delay: 10000, autohide: false});
         toastElement.show();
     }
+}
+
+// handle btn-identify-region
+let cropBoxData = new Map();
+const btnIdentifyRegion = document.getElementById('btn-identify-region-modal');
+if(btnIdentifyRegion) {
+    btnIdentifyRegion.addEventListener('click', handleIdentifyRegionModal);
+}
+
+async function handleIdentifyRegionModal (event) {
+    // load the "#cropDetails > img" using the first image
+    const cropDetails = document.getElementById('cropDetails');
+    const img = cropDetails.querySelector('img');
+    const sub_imgs = document.querySelectorAll(".sub-img");
+    const identifyForm = document.getElementById('identifyStudentsForm');
+
+    // get all the checkboxes in the form
+    const checkboxes = identifyForm.querySelectorAll("input[type='checkbox']");
+    // get the indices of the checked checkboxes
+    let page_indices = [];
+    for (let i = 0; i < checkboxes.length; i++) {
+        if (checkboxes[i].checked) {
+            page_indices.push(i);
+        }
+    }
+    console.log(page_indices);
+
+    // destroy all children of cropInfo
+    const cropInfo = document.getElementById('cropInfo');
+    while (cropInfo.firstChild) {
+        cropInfo.removeChild(cropInfo.firstChild);
+    }
+
+    // destroy all previous croppers
+    const previousCropper = img.cropper;
+    if (previousCropper) {
+        previousCropper.destroy();
+    }
+
+    const first_sub_img = sub_imgs[page_indices[0]];
+    if (first_sub_img) {
+        // add navigation buttons
+        createIdentifyPageNavigator(page_indices);
+        img.src = first_sub_img.src;
+        img.style.display = 'block';
+        await new Promise(r => setTimeout(r, 200));
+        const cropper = await createIdentifyRegionCropper(img);
+    } else {
+        // hide the image
+        img.style.display = 'none';
+        // show an alert
+        const cropInfo = document.getElementById('cropInfo');
+        // create a new alert
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-info m-5';
+        alert.innerHTML = 'No pages selected.';
+        // append the alert to the cropInfo
+        cropInfo.appendChild(alert);
+    }
+}
+
+function createIdentifyPageNavigator (page_indices) {
+    // create a new div to display the page toggle buttons
+    const cropInfo = document.getElementById('cropInfo');
+    const pageNavigatorContainer = document.createElement('div');
+    pageNavigatorContainer.className = 'd-flex justify-content-center';
+    cropInfo.appendChild(pageNavigatorContainer);
+    const pageNavigator = document.createElement('div');
+    
+    pageNavigator.className = 'btn-group m-2';
+    pageNavigator.role = 'group';
+    pageNavigator.setAttribute('aria-label', 'Identify Page Navigator');
+
+    // add the buttons to the pageNavigator
+    for (let i = 0; i < page_indices.length; i++) {
+        // create a new button
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-outline-primary';
+        button.setAttribute('data-page-index', page_indices[i]);
+        button.title = 'Select page ' + (page_indices[i] + 1);
+        // natural page number is 1 more than the index
+        button.innerHTML = page_indices[i] + 1;
+        // add active class to the first button
+        if (i == 0) {
+            button.classList.add('active');
+        }
+        // add an event listener to the button
+        button.addEventListener('click', selectIdentifyPageNavigatorButton);
+        pageNavigator.appendChild(button);
+    }
+    pageNavigatorContainer.appendChild(pageNavigator);
+
+    // set the page index to 0
+    pageNavigator.setAttribute('data-page-index', page_indices[0]);
+}
+
+async function selectIdentifyPageNavigatorButton (event) {
+    // get the page index
+    const pageNavigator = document.querySelector('#cropInfo > div > div');
+    const page_index = parseInt(pageNavigator.getAttribute('data-page-index'));
+    // get the current page index
+    const current_page_index = parseInt(event.target.getAttribute('data-page-index'));
+    // if the current page index is different from the page index
+    if (page_index != current_page_index) {
+        // delete all previous croppers
+        let img = document.getElementById('cropDetails').querySelector('img');
+        let previousCropper = img.cropper;
+        if (previousCropper) {
+            previousCropper.destroy();
+        }
+
+        const previous_button = pageNavigator.querySelector('.active');
+        previous_button.classList.remove('active');
+        event.target.classList.add('active');
+        // change the page index
+        pageNavigator.setAttribute('data-page-index', current_page_index);
+        // load the image
+        const cropDetails = document.getElementById('cropDetails');
+        img = cropDetails.querySelector('img');
+        const sub_imgs = document.querySelectorAll(".sub-img");
+        img.src = sub_imgs[current_page_index].src;
+        img.style.display = 'block';
+        // destroy the previous cropper
+        previousCropper = img.cropper;
+        if (previousCropper) {
+            previousCropper.destroy();
+        }
+        // create a new cropper
+        await new Promise(r => setTimeout(r, 200));
+        const cropper = await createIdentifyRegionCropper(img);
+    }
+}
+
+async function createIdentifyRegionCropper (img) {
+    const cropper = new Cropper(img, {
+        autoCrop: false,
+        ready() {
+            console.log('ready');
+            // crop the image to the crop box
+            this.cropper.crop();
+            // set the crop box data to top 0, left 0, width 50%, height 50%
+            // getData and setData use natural dimensions
+            const heightImg = this.cropper.getImageData().naturalHeight;
+            const widthImg = this.cropper.getImageData().naturalWidth;
+            const defaultCropBoxData = {
+                x: 0,
+                y: 0,
+                width: widthImg / 2,
+                height: heightImg / 4,
+            };
+            // get active page index
+            const pageNavigator = document.querySelector('#cropInfo > div > div');
+            const page_index = parseInt(pageNavigator.getAttribute('data-page-index'));
+            console.log(page_index);
+            console.log(cropBoxData);
+            if (cropBoxData.has(page_index)) {
+                console.log('cropBoxData', cropBoxData.get(page_index));
+                console.log('defaultCropBoxData', defaultCropBoxData);
+                this.cropper.setData(cropBoxData.get(page_index));
+            } else {
+                console.log('defaultCropBoxData', defaultCropBoxData);
+                this.cropper.setData(defaultCropBoxData);
+            }
+        },
+    });
+    return cropper;
+}
+
+// handle updateCropBtn
+const updateCropBtn = document.getElementById('updateCropBtn');
+if(updateCropBtn) {
+    updateCropBtn.addEventListener('click', handleUpdateCrop);
+}
+
+async function handleUpdateCrop(event) {
+    // get the crop box data
+    const cropper = document.getElementById('cropDetails').querySelector('img').cropper;
+    const newData = cropper.getData(rounded=true);
+    console.log(newData);
+    // keep only the top, left, width and height
+    // delete newData['rotate'];
+    // delete newData['scaleX'];
+    // delete newData['scaleY'];
+    if (newData['x'] < 0) {
+        newData['width'] = newData['width'] + newData['x'];
+        newData['x'] = 0;
+    }
+    if (newData['y'] < 0) {
+        newData['height'] = newData['height'] + newData['y'];
+        newData['y'] = 0;
+    }
+    if (newData['x'] + newData['width'] > cropper.getImageData().naturalWidth) {
+        newData['width'] = cropper.getImageData().naturalWidth - newData['x'];
+    }
+    if (newData['y'] + newData['height'] > cropper.getImageData().naturalHeight) {
+        newData['height'] = cropper.getImageData().naturalHeight - newData['y'];
+    }
+    // store also the natural dimensions
+    newData['naturalWidth'] = cropper.getImageData().naturalWidth;
+    newData['naturalHeight'] = cropper.getImageData().naturalHeight;
+
+    console.log(newData);
+    // get the active page index
+    const pageNavigator = document.querySelector('#cropInfo > div > div');
+    const page_index = parseInt(pageNavigator.getAttribute('data-page-index'));
+    console.log(page_index);
+    cropBoxData.set(page_index, newData);
 }
