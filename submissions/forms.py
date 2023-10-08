@@ -1,7 +1,6 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Column, Layout, Row, Submit
 from django import forms
-import json
 
 from assignments.models import Assignment
 from students.models import Student
@@ -311,9 +310,10 @@ class SyncToForm(forms.Form):
 
     submission_sync_option = forms.ChoiceField(
         choices=(
-            ('all', 'Upload all locally graded submissions'),
+            ('all_graded', 'Upload all locally graded submissions'),
             ('grade_not_on_canvas', 'Upload only locally graded submissions that are not graded on canvas'),
             ('specific', 'Upload a specific selection of submissions'),
+            ('all_identified', 'Upload every identified submission, even if it is ungraded'),
             ),
         )
     # Now fot the submissions determined by submission_sync_option,
@@ -321,6 +321,7 @@ class SyncToForm(forms.Form):
     comment_sync_option = forms.ChoiceField(
         choices=(
             ('all', 'Upload all locally saved comments as new comments on canvas'),
+            ('none', 'Do not upload any grader comments'),
             ('delete_previous', 'Upload all locally saved comments as new comments on canvas, but delete all previously uploaded comments on the canvas submission posted by the current user'),
             ('comment_not_on_canvas', 'Upload only comments that are not on canvas'),
             ),

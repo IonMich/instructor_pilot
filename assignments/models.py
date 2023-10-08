@@ -262,9 +262,10 @@ class Assignment(models.Model):
 
         submission_sync_option = forms.ChoiceField(
         choices=(
-            ('all', 'Upload all locally graded submissions'),
+            ('all_graded', 'Upload all locally graded submissions'),
             ('grade_not_on_canvas', 'Upload only locally graded submissions that are not graded on canvas'),
             ('specific', 'Upload a specific selection of submissions'),
+            ('all_identified', 'Upload all identified submissions'),
             ),
         )
         # Now fot the submissions determined by submission_sync_option,
@@ -272,6 +273,7 @@ class Assignment(models.Model):
         comment_sync_option = forms.ChoiceField(
             choices=(
                 ('all', 'Upload all locally saved comments as new comments on canvas'),
+                ('none', 'Do not upload any grader comments'),
                 ('delete_previous', 'Upload all locally saved comments as new comments on canvas, but delete all previously uploaded comments on the canvas submission posted by the current user'),
                 ('comment_not_on_canvas', 'Upload only comments that are not on canvas'),
                 ),
@@ -313,7 +315,7 @@ class Assignment(models.Model):
             except self.submissions_papersubmission_related.model.MultipleObjectsReturned:
                 print(f"*******Multiple submissions found in database for {canvas_submission.user['name']}******")
                 continue
-            if submission.grade is None:
+            if (submission.grade is None) and (submission_sync_option != "all_identified"):
                 print(f"Will not upload submission without grade for {canvas_submission.user['name']}")
                 continue
             if submission_sync_option == "grade_not_on_canvas" and canvas_submission.score is not None:
@@ -329,7 +331,7 @@ class Assignment(models.Model):
             # upload the grade and a comment with the question grades to canvas
             score = submission.grade
             print(f'Student grade: {score}')
-            if grade_summary_sync_option:
+            if grade_summary_sync_option and (score is not None):
                 new_question_grades_comment = ""
                 for idx, question_grade in enumerate(submission.get_question_grades()):
                     new_question_grades_comment += f"Question {idx+1} Grade: {question_grade}\n"
@@ -364,13 +366,19 @@ class Assignment(models.Model):
 
                 print(f"Uploaded grade and grade comment for {canvas_submission.user['name']}")
             else:
-                uploaded_canvas_submission = canvas_submission.edit(submission={
-                    'posted_grade': score},
-                    )
-                print(f"Uploaded grade for {canvas_submission.user['name']}. Grade summary comment was not uploaded.")
+                if score is None:
+                    print(f"Will not upload grade for {canvas_submission.user['name']} because it is None.")
+                else:
+                    uploaded_canvas_submission = canvas_submission.edit(submission={
+                        'posted_grade': score},
+                        )
+                    print(f"Uploaded grade for {canvas_submission.user['name']}. Grade summary comment was not uploaded.")
 
             for comment in submission.submissions_submissioncomment_related.all():
                 if comment.is_grade_summary:
+                    continue
+                if comment_sync_option == "none":
+                    print(f"Will not upload comment for {canvas_submission.user['name']} because comment_sync_option is 'none'.")
                     continue
                 # if the comment contains a file, we upload the file to canvas
                 # if the comment does not contain a file, we upload the comment text to canvas

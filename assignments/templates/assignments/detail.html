@@ -132,10 +132,10 @@
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-footer d-flex justify-content-center">
-                                    <button type="button" class="btn btn-outline-secondary" id="resetCropBtn" disabled>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetCropBtn" disabled>
                                         Reset Regions to Top Left
                                     </button>
-                                    <button type="button" class="btn btn-outline-secondary" id="defaultCropBtn" disabled>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="defaultCropBtn" disabled>
                                         Set Regions as Default
                                     </button>
                                 </div>
@@ -310,9 +310,9 @@
                                         <input type="hidden" name="assignment" value="{{ assignment.pk }}" id="id_assignment">
                                     </div>
                                     <div class="form-group">
-                                        <label for="id_submission_sync_option" class="control-label">Submission Sync Option</label>
+                                        <label for="id_submission_sync_option" class="control-label">Choose submissions to upload</label>
                                         <div class="form-check">
-                                            <input checked type="radio" name="submission_sync_option" value="all" id="id_submission_sync_option_0" class="form-check-input">
+                                            <input checked type="radio" name="submission_sync_option" value="all_graded" id="id_submission_sync_option_0" class="form-check-input">
                                             <label for="id_submission_sync_option_0" class="form-check-label">Upload all locally graded submissions</label>
                                         </div>
                                         <div class="form-check">
@@ -322,6 +322,10 @@
                                         <div class="form-check">
                                             <input type="radio" name="submission_sync_option" value="specific" id="id_submission_sync_option_2" class="form-check-input">
                                             <label for="id_submission_sync_option_2" class="form-check-label">Upload a specific selection of submissions</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input type="radio" name="submission_sync_option" value="all_identified" id="id_submission_sync_option_3" class="form-check-input">
+                                            <label for="id_submission_sync_option_3" class="form-check-label">Upload every identified submission, even if it is ungraded</label>
                                         </div>
                                     </div>
                                     {% comment %} if specific is checked, we want to display a bootstrap-select for the submissions{% endcomment %}
@@ -362,18 +366,22 @@
                                     </div>
                                     <div class="collapse mb-2" id="collapseMoreSyncToOptions">
                                         <div class="form-group">
-                                            <label for="id_comment_sync_option" class="control-label">Comment Sync Option</label>
+                                            <label for="id_comment_sync_option" class="control-label">Choose how to upload submission comments</label>
                                             <div class="form-check">
                                                 <input checked type="radio" name="comment_sync_option" value="all" id="id_comment_sync_option_0" class="form-check-input">
                                                 <label for="id_comment_sync_option_0" class="form-check-label">Upload all locally saved comments as new comments on canvas</label>
                                             </div>
                                             <div class="form-check">
-                                                <input disabled type="radio" name="comment_sync_option" value="comment_not_on_canvas" id="id_comment_sync_option_1" class="form-check-input">
-                                                <label for="id_comment_sync_option_1" class="form-check-label">Upload only locally saved comments that are not on canvas</label>
+                                                <input type="radio" name="comment_sync_option" value="none" id="id_comment_sync_option_1" class="form-check-input">
+                                                <label for="id_comment_sync_option_1" class="form-check-label">Do not upload any grader comments</label>
                                             </div>
                                             <div class="form-check">
-                                                <input disabled type="radio" name="comment_sync_option" value="delete_previous" id="id_comment_sync_option_2" class="form-check-input">
-                                                <label for="id_comment_sync_option_2" class="form-check-label">Upload all locally saved comments as new comments on canvas, but delete all previously uploaded comments on the canvas submission posted by the current user</label>
+                                                <input disabled type="radio" name="comment_sync_option" value="comment_not_on_canvas" id="id_comment_sync_option_2" class="form-check-input">
+                                                <label for="id_comment_sync_option_2" class="form-check-label">Upload only locally saved comments that are not on canvas</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input disabled type="radio" name="comment_sync_option" value="delete_previous" id="id_comment_sync_option_3" class="form-check-input">
+                                                <label for="id_comment_sync_option_3" class="form-check-label">Upload all locally saved comments as new comments on canvas, but delete all previously uploaded comments on the canvas submission posted by the current user</label>
                                             </div>
                                         </div>
                                         <div class="form-group mt-1">
