@@ -1921,5 +1921,36 @@ async function handleUpdateCrop(event) {
     const pageNavigator = document.querySelector('#cropInfo > div > div');
     const page_index = parseInt(pageNavigator.getAttribute('data-page-index'));
     console.log(page_index);
-    cropBoxData.set(page_index, newData);
+    const natural_page_index = page_index + 1;
+    try {
+        cropBoxData.set(page_index, newData);
+        console.log(cropBoxData);
+        // create a simple success message as a toast and append it to the toast-container
+        const toast = createToastElement(
+            `Crop box for page ${natural_page_index} updated successfully!`,
+            "success"
+        );
+        // append the toast to the toast-container
+        const toastContainer = document.querySelector('#toast-container');
+        toastContainer.appendChild(toast);
+        console.log("toast", toast);
+        let toastElement = new bootstrap.Toast(toast,
+            {delay: 10000, autohide: false});
+        toastElement.show();
+    } catch (error) {
+        console.log(error);
+        // create a simple error message as a toast
+        const toast = createToastElement(
+            `Error updating crop box for page ${natural_page_index}!`,
+            "danger"
+        );
+        // append the toast to the toast-container
+        const toastContainer = document.querySelector('#toast-container');
+        toastContainer.appendChild(toast);
+        console.log("toast", toast);
+        let toastElement = new bootstrap.Toast(toast,
+            {delay: 10000, autohide: false});
+        toastElement.show();
+    }
+
 }
