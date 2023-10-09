@@ -36,7 +36,7 @@
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 row-cols-xxl-5 g-2 mt-3" id="submissions-row">
       {% for obj in object_list %}
       <div class="col">
-        <div class="card h-100" data-pk="{{ obj.pk }}">
+        <div class="card h-100 sub-card" data-pk="{{ obj.pk }}">
             {% comment %} add bootstrap carousel with all images (obj.submissions_papersubmissionimage_related.all){% endcomment %}
             <div 
             class="carousel slide"

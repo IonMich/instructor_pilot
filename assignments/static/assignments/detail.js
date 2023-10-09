@@ -1727,7 +1727,6 @@ async function handleIdentifyRegionModal (event) {
     // load the "#cropDetails > img" using the first image
     const cropDetails = document.getElementById('cropDetails');
     const img = cropDetails.querySelector('img');
-    const sub_imgs = document.querySelectorAll(".sub-img");
     const identifyForm = document.getElementById('identifyStudentsForm');
 
     // get all the checkboxes in the form
@@ -1752,8 +1751,8 @@ async function handleIdentifyRegionModal (event) {
     if (previousCropper) {
         previousCropper.destroy();
     }
-
-    const first_sub_img = sub_imgs[page_indices[0]];
+    const sub_imgs_at_idx = document.querySelectorAll(`.sub-card .carousel-item:nth-child(${page_indices[0] + 1})`);
+    const first_sub_img = sub_imgs_at_idx.length > 0 ? sub_imgs_at_idx[0].querySelector('img') : null;
     if (first_sub_img) {
         // add navigation buttons
         createIdentifyPageNavigator(page_indices);
@@ -1818,34 +1817,35 @@ async function selectIdentifyPageNavigatorButton (event) {
     // get the current page index
     const current_page_index = parseInt(event.target.getAttribute('data-page-index'));
     // if the current page index is different from the page index
-    if (page_index != current_page_index) {
-        // delete all previous croppers
-        let img = document.getElementById('cropDetails').querySelector('img');
-        let previousCropper = img.cropper;
-        if (previousCropper) {
-            previousCropper.destroy();
-        }
-
-        const previous_button = pageNavigator.querySelector('.active');
-        previous_button.classList.remove('active');
-        event.target.classList.add('active');
-        // change the page index
-        pageNavigator.setAttribute('data-page-index', current_page_index);
-        // load the image
-        const cropDetails = document.getElementById('cropDetails');
-        img = cropDetails.querySelector('img');
-        const sub_imgs = document.querySelectorAll(".sub-img");
-        img.src = sub_imgs[current_page_index].src;
-        img.style.display = 'block';
-        // destroy the previous cropper
-        previousCropper = img.cropper;
-        if (previousCropper) {
-            previousCropper.destroy();
-        }
-        // create a new cropper
-        await new Promise(r => setTimeout(r, 200));
-        const cropper = await createIdentifyRegionCropper(img);
+    if (page_index == current_page_index) {
+        return;
     }
+    // delete all previous croppers
+    let img = document.getElementById('cropDetails').querySelector('img');
+    let previousCropper = img.cropper;
+    if (previousCropper) {
+        previousCropper.destroy();
+    }
+
+    const previous_button = pageNavigator.querySelector('.active');
+    previous_button.classList.remove('active');
+    event.target.classList.add('active');
+    // change the page index
+    pageNavigator.setAttribute('data-page-index', current_page_index);
+    // load the image
+    const cropDetails = document.getElementById('cropDetails');
+    img = cropDetails.querySelector('img');
+    const sub_imgs_at_idx = document.querySelectorAll(`.sub-card .carousel-item:nth-child(${current_page_index + 1})`);
+    img.src = sub_imgs_at_idx[0].querySelector('img').src;
+    img.style.display = 'block';
+    // destroy the previous cropper
+    previousCropper = img.cropper;
+    if (previousCropper) {
+        previousCropper.destroy();
+    }
+    // create a new cropper
+    await new Promise(r => setTimeout(r, 200));
+    const cropper = await createIdentifyRegionCropper(img);
 }
 
 async function createIdentifyRegionCropper (img) {
