@@ -185,25 +185,76 @@ function createGradient() {
     return [gradient, animation];
 }
 
-const courseCards = document.querySelectorAll('.course-card');
+async function allImgsFullyLoaded () {
+    const loadImage = src =>
+        new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                resolve(img);
+            };
+            img.onerror = reject;
+            img.src = src;
+        }
+    );
+    // get all image tags with class card-img-top whose src attribute is not empty
+    const imgs = document.querySelectorAll('.card-img-top[src]');
+    // get image urls via map
+    const imageUrls = Array.from(imgs).map(img => img.src);
+    try {
+        const images = await Promise.allSettled(imageUrls.map(loadImage));
+        
+        images.forEach((image) => {
+            console.log(image, `\nloaded? ${image.status === 'fulfilled'}`);
+            if (image.status === 'fulfilled') {
+                imageStatuses.push(true);
+            } else {
+                imageStatuses.push(false);
+            }
+        });
+        
+        // get the clientHeights of the fulfilled promises
+        let heights = [];
+        for (let i = 0; i < imgs.length; i++) {
+            console.log(imgs[i].clientHeight);
+            if (imageStatuses[i]) {
+                heights.push(imgs[i].clientHeight);
+            }
+        }
+        maxHeight = Math.max(...heights);
+        
+        return new Promise((resolve, reject) => {
+            resolve(true);
+        });
+    } catch (error) {
+        console.error(error);
+        return new Promise((resolve, reject) => {
+            resolve(false);
+        });
+    }
+}
 
-courseCards.forEach( (courseCard) => {
-    const courseImage = courseCard.querySelector('.card-img-top');
-    if (!courseImage.src) {
+let maxHeight = 0;
+let imageStatuses = [];
+const courseCards = document.querySelectorAll('.course-card');
+addAllGradients();
+
+async function addAllGradients() {
+    const allLoaded = await allImgsFullyLoaded();
+    console.log(allLoaded);
+    courseCards.forEach( (courseCard, index) => {
+        const courseImage = courseCard.querySelector('.card-img-top');
+        if (courseImage.src && imageStatuses[index] === true) {
+            // if the course card has an image, don't create the gradient
+            return;
+        }
         backgroundString = createGradient();
         // get the max height of the course card images
-        const maxHeight = Math.max(...Array.from(courseCards).map((card) => {
-            return card.querySelector('.card-img-top').clientHeight;
-        }));
-        console.log(maxHeight);
         courseImage.style.height = `${maxHeight}px`;
         courseImage.style.background = backgroundString[0];
         courseImage.style.backgroundSize = '400% 400%';
         courseImage.style.animation = backgroundString[1];
-
-
-    }
-});
+    });
+}
 
 
 const syncSwitch = document.querySelector('#sync');
