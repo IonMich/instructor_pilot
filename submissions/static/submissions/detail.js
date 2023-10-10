@@ -100,90 +100,111 @@ function navigate(url) {
     window.location.replace(url)
 }
 
-function handleScroll () {
-    const imgdiv = document.querySelector("#div-imgs");
-    const imgEl = document.querySelector("#img-1");
+async function handleScroll () {
+    // check if all images are loaded
+    const areImagesLoaded = await allImgsFullyLoaded()
+    console.log("images loaded: ", areImagesLoaded);
+    // get all grade input elements
+    const grade_inputs = document.querySelectorAll(".grade-input");
+    // for each grade input element add event listener on focus
+    grade_inputs.forEach((input, i) => {
+        console.log('adding event listener for 0-indexed input', i);
+        input.addEventListener("focus", scrollImgAndWindow);
+    });
+    const grade_scroll_height_inputs = document.querySelectorAll(".scroll-height-input");
+    // for each grade input element add event listener on focus
+    grade_scroll_height_inputs.forEach((input, i) => {
+        console.log('adding event listener for 0-indexed input', i);
+        input.addEventListener("focus", scrollImgAndWindow);
+    });
 
+    // focus on the grade input with data-position=0
+    const firstGradeInput = document.querySelector(`input[data-position="0"]`);
+    console.log("focusing on first grade input");
+    firstGradeInput.focus();
+};
+
+async function allImgsFullyLoaded () {
+    const imgsDiv = document.querySelector("#div-imgs");
     const loadImage = src =>
         new Promise((resolve, reject) => {
             const img = new Image();
             img.onload = () => {
                 resolve(img);
-                console.log("img loaded");
             };
             img.onerror = reject;
             img.src = src;
-        });
-    
+        }
+    );
     // get all image tags in the div
-    const imgs = imgdiv.querySelectorAll("img");
+    const imgs = imgsDiv.querySelectorAll("img");
     // get image urls via map
     const imageUrls = Array.from(imgs).map(img => img.src);
-
-    Promise.all(imageUrls.map(loadImage)).then(images => {
+    try {
+        const images = await Promise.all(imageUrls.map(loadImage));
         images.forEach((image, i) => {
             console.log(image, `\nloaded? ${image.complete}`);
         });
-        
-        // invert the colors of the image if the theme is dark
-        const getStoredTheme = () => localStorage.getItem('theme')
-        const storedTheme = getStoredTheme()
-        if ((storedTheme === 'dark') || (storedTheme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            // get all image tags in the div
-            const imgs = imgdiv.querySelectorAll("img");
-            // style with invert filter
-            imgs.forEach((img, i) => {
-                img.style.filter = "invert(1) brightness(2)"
-            });
-        }
-
-        let page_height = imgEl.height;
-        let margin = 10;
-
-        console.log(page_height);
-        // get all grade input elements
-        const grade_inputs = document.querySelectorAll(".grade-input");
-        // for each grade input element add event listener on focus
-        grade_inputs.forEach((input, i) => {
-            console.log('adding event listener for input', i);
-            input.addEventListener("focus", () => {
-                console.log("focus, select, and scroll");
-                // and select the corresponding grade input element
-                console.log(scrollFactors);
-                // if the scroll height factor is not empty, scroll to the corresponding scroll height factor
-                if (scrollFactors[i] === "") {
-                    console.log("empty");
-                    return;
-                }
-                imgdiv.scrollTo({
-                    top:(page_height+margin)*scrollFactors[i], 
-                    left:0, 
-                    behavior: "smooth"
-                });
-                // TODO: Chrome does not scroll to the input element (works only when switching tabs)
-                input.scrollIntoView({behavior: "smooth", block: "end"});
-                // TODO: Safari does not select the text in the input element
-                // input.select(); does not work, so use the following workaround
-                setTimeout(() => {
-                    input.select();
-                }, 15);
-                
-            });
-        document.getElementById('id_grade_question_1').focus();
+        page_height = imgs[0].height;
+        console.log("page height: ", page_height);
+        return new Promise((resolve, reject) => {
+            resolve(true);
         });
-    });
-};
+    } catch (error) {
+        console.error(error);
+        return new Promise((resolve, reject) => {
+            resolve(false);
+        });
+    }
+}
 
-// Define the function setInitialInputValues that will set the initial input values of the offcanvas inputs
-// based on the scroll height factors of the user preferences. The user preferences
-// contain the scroll height factors corresponding to each question of each assignment
-// of each course. The scroll height factors are stored in a JSON object in the user
-// preferences. The JSON object is parsed and the scroll height factors are set as
-// the initial values of the offcanvas inputs. If the scroll height factors for the
-// current assignment are not present in the user preferences, the scroll height
-// factors are set to the course default scroll height factors. If the course default
-// scroll height factors are not present in the user preferences, the scroll height
-// factors are set to empty strings.
+function applyThemeSubmissionImages () {
+    // invert the colors of the image if the theme is dark
+    const getStoredTheme = () => localStorage.getItem('theme')
+    const storedTheme = getStoredTheme()
+    console.log(storedTheme);
+    if ((storedTheme === 'dark') 
+    || (storedTheme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        // get all image tags in the div
+        const imgsDiv = document.querySelector("#div-imgs");
+        const imgs = imgsDiv.querySelectorAll("img");
+        // style with invert filter
+        imgs.forEach((img, i) => {
+            img.style.filter = "invert(1) brightness(2)"
+        });
+    }
+}
+
+function scrollImgAndWindow(event) {
+    const gradeInput = event.target;
+    // get the 0-indexed question position from the data-position attribute
+    const questionPosition = gradeInput.dataset.position;
+    console.log(questionPosition);
+    console.log("scroll");
+    // and select the corresponding grade input element
+    console.log(scrollFactors);
+    // if the scroll height factor is not empty, scroll to the corresponding scroll height factor
+    if (scrollFactors[questionPosition] === "") {
+        console.log("empty");
+        return;
+    }
+    const imgsDiv = document.querySelector("#div-imgs");
+    console.log(page_height);
+    imgsDiv.scrollTo({
+        top:(page_height+margin)*scrollFactors[questionPosition],
+        left:0, 
+        behavior: "smooth"
+    });
+    // TODO: Chrome does not scroll to the input element (works only when switching tabs)
+    gradeInput.scrollIntoView({behavior: "smooth", block: "end"});
+    // TODO: Safari does not select the text in the input element
+    // input.select(); does not work, so use the following workaround
+    setTimeout(() => {
+        gradeInput.select();
+    }, 30);
+}
+
+
 function setInitialInputValues () {
     // set the initial input values of the offcanvas inputs and return the scroll height factors
     const offcanvas = document.querySelector("#offcanvasExample");
@@ -228,17 +249,6 @@ function setInitialInputValues () {
     console.log(Array.from(offcanvasScrollInputs).map(input => input.value));
     return Array.from(offcanvasScrollInputs).map(input => input.value);
 }
-    
-// Handle changes in the offcanvas settings inputs:
-// The offcanvas contains one scroll height input for each question in the assignment.
-// The scroll height is the factor multiplying the page height to get the scroll position.
-// The scroll height is the height that the div containing the images should scroll to when the corresponding question input is focused.
-// the offcanvas allows the user to change the div scroll height for each question.
-// The html element for the scroll height input is named: id_scroll_height_question_<question_number>
-// note that the function handleScroll should take as parameter the scroll height factors for each question
-// and scroll to the correct height for each question.
-// Finally, the scroll height factors should be saved in the user preferences,
-// and specifically in the field "scroll_height_factors" of the user.profile.preferences field
 
 function handleOffcanvasScrollInputs () {
     const offcanvas = document.querySelector("#offcanvasExample");
@@ -250,7 +260,7 @@ function handleOffcanvasScrollInputs () {
     console.log("after set", scrollFactors);
 
     offcanvasScrollInputs.forEach( (input, i) => {
-        input.addEventListener("change", () => {
+        input.addEventListener("change", (event) => {
             // get the form
             const form = document.querySelector("#offcanvas-scroll-form");
             // get csrf token from input element of form
@@ -264,7 +274,6 @@ function handleOffcanvasScrollInputs () {
                 scrollFactors[j] = inputIter.value;
             });
             console.log("after", scrollFactors);
-            handleScroll(scrollFactors);
             // save scroll height factors in user preferences
             const url = "/profile/preferences/edit/";
             const data = {
@@ -288,6 +297,21 @@ function handleOffcanvasScrollInputs () {
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
+                    scrollImgAndWindow(event);
+                    const toastDiv = document.createElement("div");
+                    toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-success", "border-0");
+                    toastDiv.setAttribute("role", "alert");
+                    toastDiv.setAttribute("aria-live", "assertive");
+                    toastDiv.setAttribute("aria-atomic", "true");
+                    toastDiv.innerHTML = `<div class="d-flex">
+                                            <div class="toast-body">
+                                                Scroll height factor for question ${i+1} saved successfully!
+                                            </div>
+                                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                            </div>`;
+                    document.querySelector(".toast-container").appendChild(toastDiv);
+                    const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+                    toastBootstrap.show();
                 })
                 .catch(error => {
                     console.log(error);
@@ -396,8 +420,10 @@ nextBtn.addEventListener("click", () => {
 });
 
 console.log(initial_grades);
-
+applyThemeSubmissionImages();
 handleOffcanvasScrollInputs();
+let page_height;
+const margin = 10;
 handleScroll();
 
 setInitialGradeStep();
