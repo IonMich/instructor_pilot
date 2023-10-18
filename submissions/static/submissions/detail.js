@@ -624,6 +624,9 @@ oldComments.forEach(comment => {
         const commentText = comment.querySelector(".comment-text").textContent;
         const modalCommentText = modalCommentStar.querySelector("#id_saved_text");
         modalCommentText.textContent = commentText;
+        // reset the title field of the modal
+        const modalCommentTitle = modalCommentStar.querySelector("#id_saved_title");
+        modalCommentTitle.value = "";
 
         // show the modal
         const modalInstance = bootstrap.Modal.getOrCreateInstance(modalCommentStar);
