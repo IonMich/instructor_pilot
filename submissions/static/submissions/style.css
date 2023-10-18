@@ -127,6 +127,10 @@ animation-fill-mode: forwards;
     white-space: pre-line;
 }
 
+.old-version-comment > p {
+    white-space: pre-line;
+}
+
 .expander {
     display: grid;
     grid-template-rows: 0fr;

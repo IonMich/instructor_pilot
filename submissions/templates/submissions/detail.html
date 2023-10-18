@@ -227,7 +227,7 @@
                         <label for="newComment" style="font-size:20px;">Version Comments</label>
                         
                         {% for text in submission.version.versiontext_set.all %}
-                        <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
+                        <div class="form-outline old-version-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
                             <p>{{text.text}}<p>
                             <div class="d-flex">
                                 <small class="ms-auto comment-info text-muted">
@@ -241,7 +241,7 @@
                         </div>
                         {% endfor%}
                         {% for file in submission.version.versionfile_set.all %}
-                        <div class="form-outline old-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
+                        <div class="form-outline old-version-comment mb-2" id="version-comment-{{forloop.counter}}" style="position:relative;">
                             <a name="version_comment_{{forloop.counter}}-file" class="comment-file" id="version-{{ forloop.counter }}-file" href="{{file.version_file.url}}" target="_blank">
                                 {{ file.get_filename }}
                             </a>
