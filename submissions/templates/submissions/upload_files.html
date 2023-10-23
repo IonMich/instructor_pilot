@@ -17,6 +17,8 @@ grid-gap: 10px;">
         <hr>
         <form class="needs-validation" action="" enctype="multipart/form-data" method="POST" id="uploadPDFsForm" novalidate>
             {% csrf_token %}
+            <div id="file-preview">
+            </div>
             {{ form|crispy }}
             <button type="submit" name="submit-upload" class="btn btn-primary mt-3" style="display:block; margin:0 auto;">Upload</button>
         </form>
