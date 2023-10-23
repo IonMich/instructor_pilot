@@ -2,6 +2,10 @@
 {% load static %}
 <link rel="stylesheet" href="{% static 'submissions/style.css' %}">
 
+{% block scripts %}
+    <script src="{% static 'submissions/upload_files.js' %}" defer></script>
+{% endblock scripts %}
+
 {% load crispy_forms_tags%}
 
   {% block content %}
@@ -231,6 +235,8 @@
         <div class="modal-body">
           <form class="needs-validation" action="" enctype="multipart/form-data" method="POST" id="uploadMorePDFsForm" novalidate>
             {% csrf_token %}
+            <div id="file-preview">
+            </div>
             {{ upload_form|crispy }}
             <button type="submit" name="submit-upload" class="btn btn-primary mt-3">Upload</button>
           </form>
