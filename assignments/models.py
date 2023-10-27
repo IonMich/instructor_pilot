@@ -9,6 +9,7 @@ from django.db import models
 from django.db.models import F, Max, Q
 from django.urls import reverse
 
+from assignments.utils import versionfile_upload_to
 from courses.models import Course
 from courses.utils import API_URL, get_canvas_course, get_canvas_object
 from courses.views import course_detail_view
@@ -482,7 +483,10 @@ class Version(models.Model):
 
 class VersionFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    version_file = models.FileField(upload_to='assignments/versions/', null=True, blank=True)
+    version_file = models.FileField(
+        upload_to=versionfile_upload_to,
+        null=True, 
+        blank=True)
     version = models.ForeignKey(Version, on_delete=models.CASCADE)
     author = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)

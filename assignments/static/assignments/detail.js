@@ -1217,7 +1217,6 @@ function version_modal (data) {
             newTabContent.className = 'tab-pane fade';
             newTabContent.id = 'pills-home' + i;
             newTabContent.setAttribute('role', 'tabpanel');
-            newTabContent.setAttribute('role', 'tabpanel');
             newTabContent.setAttribute('aria-labelledby', 'pills-home-tab' + i);
             // show the first tab content by default
             if (i == 1) {
@@ -1296,7 +1295,10 @@ function version_modal (data) {
             let oldFiles = document.createElement('div');
             oldFiles.className = 'form-group';
             oldFiles.id = 'oldFiles' + i;
-            // add the old texts to the old files div
+            // if there are no old files/texts, add display none to the old files div
+            if ((data['version_texts'][i] == undefined) && (data['version_pdfs'][i] == undefined)) {
+                oldFilesDiv.style = 'display: none;';
+            }
             // check if data['version_texts'][i] is not empty
             if (data['version_texts'][i] != undefined) {
                 for (let j = 0; j < data['version_texts'][i].length; j++) {
@@ -1308,9 +1310,9 @@ function version_modal (data) {
 
                     // create a new button to delete the old files and texts
                     let deleteButton = document.createElement('button');
-                    deleteButton.className = 'btn btn-outline-light';
+                    deleteButton.className = 'btn btn-outline-danger';
                     deleteButton.id = 'deleteButtonText' + i + j;
-                    deleteButton.innerHTML = 'x';
+                    deleteButton.innerHTML = '<i class="bi bi-trash"></i>';
                     // make its size smaller
                     deleteButton.style = 'font-size: 12px; padding: 0px 4px; margin-left: 8px; border-radius: 4px;';
                     deleteButton.addEventListener('click', function() {
@@ -1351,9 +1353,9 @@ function version_modal (data) {
                 fileLink.innerHTML = data['version_pdfs'][i][j]['name'];
                 // create a new button to delete the old files and texts
                 let deleteButton = document.createElement('button');
-                deleteButton.className = 'btn btn-outline-light';
+                deleteButton.className = 'btn btn-outline-danger';
                 deleteButton.id = 'deleteButtonFile' + i + j;
-                deleteButton.innerHTML = 'x';
+                deleteButton.innerHTML = '<i class="bi bi-trash"></i>';
                 
 
                 // make its size smaller
@@ -1503,7 +1505,7 @@ if(updateVersion) {
                 // display the success message in the div with id clusterMessage
                 let clusterMessage = document.getElementById('clusterMessage');
                 clusterMessage.className = 'alert alert-success';
-                clusterMessage.innerHTML = 'Solutions for versions uploaded successfully.';
+                clusterMessage.innerHTML = 'Version comments added successfully.';
 
             }
             // if the message is failure
@@ -1511,7 +1513,7 @@ if(updateVersion) {
                 // display the failure message in the div with id clusterMessage
                 let clusterMessage = document.getElementById('clusterMessage');
                 clusterMessage.className = 'alert alert-danger';
-                clusterMessage.innerHTML = 'Solutions for versions uploaded unsuccessfully.';
+                clusterMessage.innerHTML = 'Version comments could not be added.';
             }
         })
         .catch(error => {
@@ -1523,8 +1525,8 @@ if(updateVersion) {
 
 // add an event listener to update version button
 const btnClusterV = document.getElementById('btnClusterV');
-if(btnClusterV) {
-        btnClusterV.addEventListener('click', function(event) {
+if (btnClusterV) {
+    btnClusterV.addEventListener('click', function(event) {
         // stop the default action of the button
         event.preventDefault();
 

@@ -5,8 +5,7 @@ import numpy as np
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core import serializers
-from django.core.files.storage import FileSystemStorage
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.files.base import ContentFile
 from django.db.models import Max
 from django.forms.models import model_to_dict
 from django.http import JsonResponse
@@ -305,38 +304,19 @@ def version_submission(request, course_pk, assignment_pk):
                 new_version_text.save()
             # get the files for this version
             if request.FILES.get('versionFiles' + str(version.name)):
-                # set up the file system storage
-                new_comment_file_dir_in_media = os.path.join("submissions", 
-                f"course_{version.assignment.course.pk}", 
-                f"assignment_{version.assignment.pk}",
-                "comment")
-                new_comment_file_dir = os.path.join(
-                    settings.MEDIA_ROOT, 
-                    new_comment_file_dir_in_media)
-
-                if not os.path.exists(new_comment_file_dir):
-                    os.makedirs(new_comment_file_dir)
                 # add this as comment file for this submission
                 files = request.FILES.getlist('versionFiles' + str(version.name))
                 for file in files:
-                    if isinstance(file, InMemoryUploadedFile):
-                        # save the file to the file system
-                        file_name = FileSystemStorage(location=new_comment_file_dir).save(file.name, file)
-                        # copy file to new location, while keeping the original name
-                        new_file_path_in_media = os.path.join(
-                            new_comment_file_dir_in_media,
-                            file_name,
+                    file_bytes = file.read()
+                    file_name = file.name
+                    django_file = ContentFile(file_bytes, name=file_name)
+                    new_version_file = VersionFile.objects.create(
+                        version=version,
+                        version_file=django_file,
+                        author=request.user,
                         )
-                            
-                        # add this to the database
-                        new_version_file = VersionFile.objects.create(
-                            version=version,
-                            version_file=new_file_path_in_media,
-                            author=request.user,
-                            )
-                        new_version_file.save()
-                    else:
-                        print("file was not an InMemoryUploadedFile")
+                    print(f"File {new_version_file} added to media for version {version}")
+                    
                 
         
     return JsonResponse({'message': 'success'})
