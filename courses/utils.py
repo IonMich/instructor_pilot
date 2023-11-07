@@ -1,9 +1,27 @@
 import os
+from os.path import join
+from pathlib import Path
+
+from canvasapi import Canvas
 from dotenv import load_dotenv
 
-import autocanvas.core as ac
-from autocanvas.config import INPUT_DIR, OUTPUT_DIR, get_API_key
-from canvasapi import Canvas
+
+def get_API_key():
+    PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+    TOPLEVEL_DIR = str(Path(PACKAGE_DIR).parent.absolute())
+    dotenv_path = join(TOPLEVEL_DIR, '.env')
+    load_dotenv(dotenv_path)
+
+    API_KEY = os.environ.get("API_KEY")
+
+    if API_KEY is None:
+        raise FileNotFoundError("A `.env` file was not found. You need "
+                            "to create a `.env` inside the top-level " 
+                            "directory (same dir as requirements.txt) and add a single entry:\n\n"
+                            "API_KEY=<value>\n\nSubstitute <value> with "
+                            "your API key. You can find more info in the wiki.")
+    else:
+        return API_KEY
 
 def get_canvas_url():
     """
@@ -46,8 +64,6 @@ def get_canvas_course(course_code=None, term_name=None, canvas_id=None):
     canvas_courses = canvas.get_courses( 
         include=list_to_include)
 
-    # TODO: much more info is available in the Canvas API
-    # so we can add some more columns to the database
     for canvas_course in canvas_courses:
         try:
             if (canvas_course.course_code == course_code 
@@ -56,17 +72,77 @@ def get_canvas_course(course_code=None, term_name=None, canvas_id=None):
         except:
             pass
     return None
-    
 
-def canvas_users_df(canvas_course):
+def get_course_from_UFSOC_apix(
+    term_name,
+    class_number="",
+    course_code="",
+    course_title="",
+    department_name="",
+    instructor_name="",
+    program_level_name="Undergraduate",
+):
+    """Return a course from the UF Schedule of Courses (SOC) API.
     """
-    Return a Pandas DataFrame of users in a course.
-    """
-    df_TAs, df_teachers = ac.course_info.get_teaching_personel(
-        canvas_course, 
-        add_first_name=True, 
-        groups=["teacher", "ta"])
+    import requests
+    import pandas as pd
+    URL_UFSOC = "https://one.uf.edu/soc/"
+    URL_SOC_SCHEDULE = "https://one.uf.edu/apix/soc/schedule"
+    URL_SOC_FILTERS = "https://one.uf.edu/apix/soc/filters"
 
-    df_students, df_sections = ac.course_info.get_students_from_sections(
-                                    canvas_course, add_TA_info=False)
-    return df_TAs, df_teachers, df_students, df_sections
+    _HEADERS = {
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9,el;q=0.8",
+        "Connection": "keep-alive",
+        "Content-Type": "application/json",
+        "Referer": URL_UFSOC,
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+    }
+    def get_soc_filters(url=URL_SOC_FILTERS):
+        response = requests.request("GET", url, headers=_HEADERS)
+        return response.json()
+
+    soc_filters = get_soc_filters()
+    # categories = pd.json_normalize(soc_filters["categories"])
+    progLevels = pd.json_normalize(soc_filters["progLevels"])
+    terms = pd.json_normalize(soc_filters["terms"])
+    departments = pd.json_normalize(soc_filters["departments"])    
+
+    term_code = terms.loc[terms["DESC"]==term_name]["CODE"].values[0]
+    if department_name != "":
+        department_code = departments.loc[departments["DESC"]==department_name]["CODE"]
+        if len(department_code)==0:
+            raise ValueError("Department not found: {}".format(department_name))
+        department_code = department_code.values[0]
+    else:
+        department_code = ""
+    if program_level_name != "":
+        program_level_code = progLevels.loc[progLevels["DESC"]==program_level_name]["CODE"]
+        if len(program_level_code)==0:
+            raise ValueError("Program level not found: {}".format(program_level_name))
+        program_level_code = program_level_code.values[0]
+
+    querystring = {
+        "category":"CWSP",
+        "class-num":class_number,
+        "course-code":course_code,
+        "course-title":course_title,
+        "dept":department_code,
+        "instructor":instructor_name,
+        "prog-level":program_level_code,
+        "term":term_code,}
+
+    response = requests.request("GET", URL_SOC_SCHEDULE, headers=_HEADERS, params=querystring)
+
+    if response.status_code != 200:
+        raise ValueError("Error: {}".format(response.status_code))
+
+    response_json = response.json()
+    if len(response_json) == 0:
+        raise ValueError("No courses found")
+    if len(response_json) > 1:
+        raise ValueError("More than one course found")
+
+    return response_json[0]["COURSES"]

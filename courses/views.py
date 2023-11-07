@@ -569,7 +569,7 @@ def api_canvas_sections_get_view(request, canvas_id):
             print(e)
             section['alreadyAdded'] = False
 
-    from autocanvas.pipes.ufsoc import get_course_from_UFSOC_apix
+    from courses.utils import get_course_from_UFSOC_apix
     try:
         ufsoc_json_response = get_course_from_UFSOC_apix(
             term_name=canvas_course.term['name'],
