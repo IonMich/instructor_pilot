@@ -8,7 +8,7 @@
 
 A Django app to assist Teaching Assistants and Instructors with Canvas integration.
 
-It depends on the [canvasapi](https://github.com/ucfopen/canvasapi) library and on its wrapper [autocanvas](https://github.com/IonMich/autocanvas).
+It depends on the [canvasapi](https://github.com/ucfopen/canvasapi) library.
 
 ## Installation
 
