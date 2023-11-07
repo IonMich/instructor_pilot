@@ -259,13 +259,16 @@ def api_course_assignments_create(request, course_pk):
             defaults.pop('max_question_scores')
             print(f"Assignment has graded submissions. Not updating max_question_scores.")
         if (not created):
-            assignment.__dict__.update(**defaults)
+            print(assignment)
+            print(f"Assignment is updated")
+            for key, value in defaults.items():
+                setattr(assignment, key, value)
             assignment.save()
 
     except Exception as e:
         print("Handling exception: ", e)
         return JsonResponse({
-            'message': 'Error creating//updating assignment.',
+            'message': 'Error creating or updating assignment.',
             'success': False,
         })
 

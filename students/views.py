@@ -154,7 +154,8 @@ def api_course_enrollments_create(request, course_pk):
                 print(f'uni_id {data_uni_id} is not numeric, not overridding existing numeric id {student.uni_id}')
                 defaults.pop('uni_id')
         if (not created):
-            student.__dict__.update(**defaults)
+            for key, value in defaults.items():
+                setattr(student, key, value)
             student.save()
 
         created_list.append(created)
