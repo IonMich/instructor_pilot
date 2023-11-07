@@ -3,6 +3,7 @@
 # Instructor Pilot
 
 ![Instructor Pilot](assets/readme_image.png)
+
 ## Description
 
 A Django app to assist Teaching Assistants and Instructors with Canvas integration.
@@ -21,6 +22,7 @@ The installation instructions need to be followed only once. After that, you can
    conda activate django-ta
    python manage.py runserver
    ```
+
 where you should replace `django-ta` with the name you chose for the conda environment during installation. If you do not recall the name of the conda environment you created, run `conda info --envs` to get a list of all conda environments in your system.
 
 # Updating the source code

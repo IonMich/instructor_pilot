@@ -1,3 +1,18 @@
+import { 
+    orchistrateCourseElementsUpdateOrCreate, 
+    getCanvasCourse,
+    getAvailableCanvasSectionsStudentsDescription, 
+} from './api.js';
+
+import {
+    renderCanvasSectionsDivBody,
+} from './renderSectionsSelect.js';
+
+import {
+    createAllProgressItems,
+    updateProgressItem,
+} from './renderProgress.js';
+
 (function () {
     'use strict'
   
@@ -49,7 +64,7 @@ function createToastElement (message, message_type) {
 
 const syncCourseForm = document.getElementById('syncCourseForm');
 
-syncCourseForm.addEventListener("submit", (event) => {
+syncCourseForm.addEventListener("submit", async (event) => {
     console.log("prevent default");
     event.preventDefault();
     event.stopPropagation();
@@ -57,6 +72,10 @@ syncCourseForm.addEventListener("submit", (event) => {
     const syncCourseButton = document.querySelector('button[name="sync_from_canvas"]');
     const buttonText = syncCourseButton.innerHTML;
     const courseId = syncCourseForm.querySelector('input[name="course_id"]').value;
+    const courseCanvasId = syncCourseForm.querySelector('input[name="course_canvas_id"]').value;
+    if (courseCanvasId === "") {
+        console.log("courseCanvasId is empty");
+    }
     const csrfToken = syncCourseForm.querySelector('input[name=csrfmiddlewaretoken]').value;
 
     // disable the add course button
@@ -65,6 +84,10 @@ syncCourseForm.addEventListener("submit", (event) => {
 
     const reloadPrompt = '<a href="/courses/' + courseId + '/" style="color: #fff; text-decoration: underline;">Reload</a> to see the changes.';
 
+    let canvasCourse = null;
+    let canvasSections = [];
+    let canvasStudents = [];
+
     if (!syncCourseForm.checkValidity()) {
         console.log("form is not valid");
         // enable the add course button
@@ -72,77 +95,236 @@ syncCourseForm.addEventListener("submit", (event) => {
         syncCourseButton.disabled = false;
         return;
     }
-    
-    // REST API endpoint for adding a course
-    const url = '/courses/update/';
-    const options = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-        },
-        body: JSON.stringify({
-            course_id: courseId,
-            sync_from_canvas: true,
-        }),
-    };
 
-    fetch(url, options)
-        .then((response) => {
-            if (response.ok) {
-                return response.json();
+    try {
+        const modal = createCourseSyncModal();
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        const responseCanvasCourse = await getCanvasCourse(courseCanvasId);
+        canvasCourse = responseCanvasCourse;
+        const [
+            responseCanvasSections,
+            responseCanvasStudents,
+            responseDescription,
+        ] = await getAvailableCanvasSectionsStudentsDescription(courseCanvasId);
+        canvasSections = responseCanvasSections;
+        canvasStudents = responseCanvasStudents;
+
+        if (responseDescription) {
+            if (canvasCourse.id.toString() !== courseCanvasId) {
+                return;
             }
-            throw new Error('Network response was not ok.');
+            console.log(`responseDescription: ${responseDescription}`)
+            canvasCourse.description = responseDescription;
+        };
+        if (!canvasSections || canvasSections.length === 0) {
+            throw new Error('No Canvas sections found.');
         }
-        )
-        .then((data) => {
-            console.log(data);
-            // enable the add course button
-            syncCourseButton.innerHTML = buttonText;
-            syncCourseButton.disabled = false;
-            // show the success or error message
-            if (data.success) {
-                // show the success message
-                console.log("success");
-                const full_message = data.message + ' ' + reloadPrompt;
-                const toast = createToastElement (full_message, "success")
-                const toastContainer = document.querySelector('#toast-container');
-                toastContainer.appendChild(toast);
-                console.log("toast", toast);
-                var toastElement = new bootstrap.Toast(toast,
-                    {delay: 10000, autohide: false});
-                toastElement.show();
-            }
-            else {
-                // show the error message
-                console.log("error");
-                const full_message = data.message + ' ' + reloadPrompt;
-                const toast = createToastElement (full_message, "danger")
-                const toastContainer = document.querySelector('#toast-container');
-                toastContainer.appendChild(toast);
-                console.log("toast", toast);
-                var toastElement = new bootstrap.Toast(toast,
-                    {delay: 10000, autohide: false});
-                toastElement.show();
+        if (!canvasStudents || canvasStudents.length === 0) {
+            throw new Error('No Canvas students found.');
         }
-        })
-        .catch((error) => {
-            syncCourseButton.innerHTML = buttonText;
-            syncCourseButton.disabled = false;
-            const error_message = 'There has been a problem with your fetch operation: ' + error;
-            console.log(error_message);
-            // show the error message
-            const full_message = error_message + ' ' + reloadPrompt;
-            const toast = createToastElement (full_message, "danger")
-            const toastContainer = document.querySelector('#toast-container');
-            toastContainer.appendChild(toast);
-            console.log("toast", toast);
-            var toastElement = new bootstrap.Toast(toast,
-                {delay: 10000, autohide: false});
-            toastElement.show();
+        console.log("canvasCourse", canvasCourse);
+        console.log("canvasStudents", canvasStudents);
+        const autoSelectSections = tryAutoSelectSections(canvasSections);
+        console.log("canvasSections", canvasSections);
+        console.log("autoSelectSections", autoSelectSections);
+
+        if (autoSelectSections != [] && autoSelectSections.length > 0) {
+            const selectedCanvasSections = autoSelectSections;
+            const selectedCanvasSectionsIds = selectedCanvasSections.map((section) => section.id);
+            const selectedCanvasStudents = canvasStudents.filter(
+                (student) => selectedCanvasSectionsIds.includes(
+                    student.enrollments[0].course_section_id
+                    ));
+            console.log("selectedCanvasSections", selectedCanvasSections);
+            console.log("selectedCanvasStudents", selectedCanvasStudents);
+            initiateCourseSync(
+                selectedCanvasSections, 
+                selectedCanvasStudents,
+                courseCanvasId,
+                courseId,
+            );
+            
+        } else {
+            // render the canvasSectionsDiv
+            console.log("render the canvasSectionsDiv for manual selection");
+            const canvasSectionsDiv = document.querySelector('#canvasSections');
+            canvasSectionsDiv.classList.remove('d-none');
+            const progressDiv = document.querySelector('#progressDiv');
+            progressDiv.innerHTML = '';
+            // add title
+            const title = document.createElement('p');
+            title.innerHTML = 'Select the Canvas sections to sync:';
+            canvasSectionsDiv.appendChild(title);
+            renderCanvasSectionsDivBody(canvasSections, canvasSectionsDiv)
+            // add event listeners to the submit button
+            const submitButton = document.querySelector('#submitButton');
+            submitButton.addEventListener('click', () => {
+                // get the selected sections
+                canvasSectionsDiv.classList.add('d-none');
+                const selectedCanvasSections = getSelectedCanvasSections(canvasSections);
+                const selectedCanvasSectionsIds = selectedCanvasSections.map((section) => section.id);
+                console.log("selectedCanvasSectionsIds", selectedCanvasSectionsIds);
+                const selectedCanvasStudents = canvasStudents.filter(
+                    (student) => selectedCanvasSectionsIds.includes(
+                        student.enrollments[0].course_section_id
+                        ));
+                console.log("selectedCanvasSections", selectedCanvasSections);
+                console.log("selectedCanvasStudents", selectedCanvasStudents);
+                initiateCourseSync(
+                    selectedCanvasSections, 
+                    selectedCanvasStudents,
+                    courseCanvasId,
+                    courseId,
+                );
+            });
         }
-        );
+        
+    } catch (error) {
+        console.log(error);
+        // enable the add course button
+        syncCourseButton.innerHTML = buttonText;
+        syncCourseButton.disabled = false;
+        // show the error message
+        const full_message = error.message + ' ' + reloadPrompt;
+        const toast = createToastElement (full_message, "danger")
+        const toastContainer = document.querySelector('#toast-container');
+        toastContainer.appendChild(toast);
+        console.log("toast", toast);
+        var toastElement = new bootstrap.Toast(toast,
+            {delay: 10000, autohide: false});
+        toastElement.show();
+        return;
+    }
+
+    // reset the button text and enable the button
+    syncCourseButton.innerHTML = buttonText;
+    syncCourseButton.disabled = false;
 });
+
+async function initiateCourseSync (
+    selectedCanvasSections, 
+    selectedCanvasStudents,
+    courseCanvasId,
+    courseId,
+    ) {
+    const progressListDiv = createAllProgressItems();
+    // append the progressListDiv to the canvasSectionsDiv
+    const progressDiv = document.querySelector('#progressDiv');
+    progressDiv.innerHTML = '';
+    progressDiv.appendChild(progressListDiv);
+    await orchistrateCourseElementsUpdateOrCreate(
+        selectedCanvasSections,
+        selectedCanvasStudents,
+        courseCanvasId,
+        courseId,
+        updateProgressItem,
+    );
+    // show a centered reload button at the bottom of the modal
+    const reloadButton = document.createElement('button');
+    reloadButton.classList.add('btn', 'btn-primary', 'mx-auto');
+    reloadButton.setAttribute('type', 'button');
+
+    reloadButton.innerHTML = 'Reload';
+    reloadButton.addEventListener('click', () => {
+        window.location.reload();
+    });
+    const modal = document.querySelector('#courseSyncModal');
+    const modalFooter = modal.querySelector('.modal-footer');
+    modalFooter.innerHTML = '';
+    modalFooter.appendChild(reloadButton);
+    modalFooter.classList.remove('d-none');
+}
+
+function getSelectedCanvasSections (canvasSections) {
+    // get the selected sections
+    const canvasSectionsInputs = document.querySelectorAll('input[name="canvas_sections"]');
+    console.log("canvasSectionsInputs", canvasSectionsInputs);
+    if (!canvasSectionsInputs || canvasSectionsInputs.length === 0) {
+        throw new Error('No Canvas sections found.');
+    }
+    const selectedCanvasSectionsInputs = Array.from(canvasSectionsInputs).filter((input) => input.checked);
+    console.log("selectedCanvasSectionsInputs", selectedCanvasSectionsInputs);
+    if (!selectedCanvasSectionsInputs || selectedCanvasSectionsInputs.length === 0) {
+        throw new Error('No Canvas sections selected.');
+    }
+    let selectedCanvasSections = [];
+    for (const selectedCanvasSectionsInput of selectedCanvasSectionsInputs) {
+        const selectedCanvasSectionId = parseInt(selectedCanvasSectionsInput.value);
+        const selectedCanvasSection = canvasSections.find((section) => section.id === selectedCanvasSectionId);
+        if (!selectedCanvasSection) {
+            throw new Error(`Canvas section with id ${selectedCanvasSectionId} not found.`);
+        }
+        selectedCanvasSections.push(selectedCanvasSection);
+    }
+    return selectedCanvasSections;
+}
+
+
+function createCourseSyncModal () {
+    // create a bootstrap modal that can hold the update progress items
+    const modal = document.createElement('div');
+    modal.classList.add('modal');
+    modal.classList.add('fade');
+    modal.setAttribute('id', 'courseSyncModal');
+    modal.setAttribute('tabindex', '-1');
+    modal.setAttribute('aria-labelledby', 'courseSyncModalLabel');
+    modal.setAttribute('aria-hidden', 'true');
+    modal.setAttribute('data-bs-backdrop', 'static');
+    modal.setAttribute('data-bs-keyboard', 'false');
+    modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="courseSyncModalLabel">Syncing Course</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="canvasSections" class="d-none">
+                    </div>
+                    <div id="progressDiv">
+                        <p class="text-center">Fetching course information. This may take a while.</p>
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-none">
+                </div>
+            </div>
+        </div>
+    `;
+    return modal;
+
+}
+
+
+function tryAutoSelectSections (canvasSections) {
+    // if only the already added sections are have manualStudentCount > 0, 
+    // then auto select all added sections
+    const addedSections = canvasSections.filter((section) => section.alreadyAdded)
+    const sectionsWithManualStudentCount = canvasSections.filter((section) => section.manual_total_students > 0);
+    // if the two arrays are identical (same section.id), then auto select all added sections
+    const addedSectionsIds = addedSections.map((section) => section.id);
+    const sectionsWithManualStudentCountIds = sectionsWithManualStudentCount.map((section) => section.id);
+    console.log("addedSectionsIds", addedSectionsIds);
+    console.log("addedSectionsWithManualStudentCountIds", sectionsWithManualStudentCountIds);
+    // compare the the sets of ids
+    const addedSectionsIdsSet = new Set(addedSectionsIds);
+    const sectionsWithManualStudentCountIdsSet = new Set(sectionsWithManualStudentCountIds);
+    const sectionsIdsSetDifference = new Set(
+        [...sectionsWithManualStudentCountIdsSet].filter(x => !addedSectionsIdsSet.has(x)));
+
+    if (sectionsIdsSetDifference.size === 0) {
+        // added sections are the only sections worth adding
+        // so don't bother the user with the selection
+        return addedSections;
+    } else {
+        return [];
+    }
+}
+        
 
 // get all buttons with class="assignment-canvas-btn"
 // and add an event listener to the mouseover event

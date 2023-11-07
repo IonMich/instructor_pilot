@@ -114,25 +114,6 @@
                 Please enter a valid email address.
             </div>
         </div>
-        {% comment %} <div class="item-label" id="universityLabel">
-            <label for="university">University</label>
-        </div>
-        <div class="item-input input-group" id="universityInput">
-            <select name="university" id="university" class="form-select input-group-text">
-                {% for university in request.user.profile.get_universities %}
-                    <option value="{{university.id}}">{{university.name}}</option>
-                {% endfor %}
-            </select>
-            <div class="input-group-text">
-                or
-            </div>
-            <div class="input-group-append">
-                <button type="button" class="btn btn-primary" id="addUniversityBtn">Add New University</button>
-            </div>
-            <div class="invalid-feedback">
-                Please select a university.
-            </div> 
-        </div> {% endcomment %}
 
         <button 
         type="submit" 

@@ -52,10 +52,9 @@ class UserProfile(BaseProfile):
     def get_absolute_url(self):
         return reverse('profiles:detail', kwargs={'pk': self.pk})
 
-    def get_universities(self):
-        # each user has user.sections, each section has section.course
-        # each course has course.university
-        return {section.course.university for section in self.user.sections.all()}
+    def get_canvas_object_url(self):
+        from courses.utils import get_canvas_url
+        return get_canvas_url()
 
     @classmethod
     def create_from_canvas_user(cls, canvas_user_id):

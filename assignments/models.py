@@ -40,6 +40,13 @@ class Assignment(models.Model):
         max_length=100,
         null=True,
         blank=True)
+    assignment_group_object = models.ForeignKey(
+        "AssignmentGroup",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="assignments")
+
     course = models.ForeignKey(
         Course, 
         on_delete=models.CASCADE,
@@ -51,9 +58,15 @@ class Assignment(models.Model):
         max_length=100,
         null=True,
         blank=True)
+    position = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True)
     
     # define a field to store whether versioning has been done or not
     versioned = models.BooleanField(default=False, null=True, blank=True)
+
+    class Meta:
+        ordering = ['assignment_group_object', 'position']
 
     def get_long_name(self):
         """Returns the name of the assignment with the name of the course."""
@@ -140,57 +153,6 @@ class Assignment(models.Model):
     def get_all_grades(self):
         """Returns the grades of all submissions of the assignment."""
         return [s.grade for s in self.get_all_submissions().filter(graded_by__isnull=False)]
-
-    @classmethod
-    def update_from_canvas(
-        cls, 
-        course, canvas_course,
-        ):
-        # I should probably rename to bulk_update_from_canvas 
-        course_assignments = course.assignments.all()
-        canvas_assignment_groups = canvas_course.get_assignment_groups(
-            include=["assignments", "submission", "score_statistics", "overrides"]
-            )
-        
-        for canvas_assignment_group in canvas_assignment_groups:
-            for canvas_assignment in canvas_assignment_group.assignments:
-                print(canvas_assignment["name"])
-                print(canvas_assignment["points_possible"], type(canvas_assignment["points_possible"]))
-                if canvas_assignment["points_possible"] in [None, "", 0]:
-                    max_question_scores = "0"
-                else:
-                    max_question_scores = str(canvas_assignment["points_possible"])
-                    
-                
-                if str(canvas_assignment["id"]) in [a.canvas_id for a in course_assignments]:
-                    assignment = course_assignments.get(canvas_id=str(canvas_assignment["id"]))
-                    assignment.name = canvas_assignment["name"]
-                    assignment.description = canvas_assignment["description"]
-                    assignment.assignment_group = canvas_assignment_group.name    
-                    if assignment.max_question_scores is None or assignment.max_question_scores == "":
-                        assignment.max_question_scores = max_question_scores
-                    elif assignment.max_question_scores != max_question_scores:
-                        # The max grades per question have been changed manually
-                        # In order to avoid losing the grades of the submissions,
-                        # check if any submission has been graded. If so, do not update the grades per question.
-                        if assignment.get_all_submissions().filter(graded_by__isnull=False).count() == 0:
-                            assignment.max_question_scores = max_question_scores
-                            print("The grades per question have changed, because there are no graded submissions.")
-                        else:
-                            print("The grades per question have changed, but there are submissions that have been graded. The grades per question will not be updated.")
-                else:
-                    assignment = cls.objects.create(
-                        name=canvas_assignment["name"],
-                        description=canvas_assignment["description"],
-                        assignment_group=canvas_assignment_group.name,
-                        course=course,
-                        canvas_id=str(canvas_assignment["id"]),
-                        max_question_scores=max_question_scores,
-                        )
-
-                assignment.save()
-
-        return course_assignments
 
     def sync_labeled_submissions_from_canvas(self):
         """Adds the canvas_id of the corresponding canvas 
@@ -624,3 +586,33 @@ class SavedComment(models.Model):
             author=self.author,
         ).update(position=F('position') - 1)
         return super().delete(*args, **kwargs)
+
+class AssignmentGroup(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=30)
+    course = models.ForeignKey(
+        Course, 
+        on_delete=models.CASCADE,
+        related_name='assignment_groups'
+    )
+    position = models.PositiveSmallIntegerField(
+        blank=True,
+    )
+    group_weight = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
+        null=True,
+    )
+    canvas_id = models.CharField(
+        max_length=100,
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.name}"
+
+    class Meta:
+        ordering = ['course', 'position']

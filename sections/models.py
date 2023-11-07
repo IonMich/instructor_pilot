@@ -7,7 +7,6 @@ from django.db.models import Q
 from django.urls import reverse
 
 from courses.models import Course
-from universities.models import University
 
 
 # Create your models here.
@@ -38,7 +37,10 @@ class Meeting(models.Model):
         ordering = ['day', 'start_time']
 
     def __str__(self):
-        return f"{self.day} {self.start_time} - {self.end_time} ({self.location})"
+        if self.location:
+            return f"{self.day} {self.start_time} - {self.end_time} ({self.location})"
+        else:
+            return f"{self.day} {self.start_time} - {self.end_time}"
 
 
 class Section(models.Model):
@@ -154,90 +156,6 @@ class Section(models.Model):
 
         return sections_to_return
 
-    
-    @classmethod
-    def update_from_canvas(
-        cls, 
-        requester, 
-        course, 
-        all_canvas_sections, 
-        enrolled_canvas_sections,
-        only_enrolled_sections=True,
-        add_from_resources=True,
-        ):
-        user = User.objects.get(username=requester)
-        resource_sections = []
-        if add_from_resources:
-            if course.university.university_code == "ufl":
-                resource_sections = cls.get_from_ufsoc(requester, course)
-        has_resources = len(resource_sections) > 0
-        resource_class_numbers = [section['class_number'] for section in resource_sections]
-        enrolled_canvas_section_names = [section['name'] for section in enrolled_canvas_sections]
-        for canvas_section in all_canvas_sections:
-            try:
-                canvas_section_id = canvas_section['id']
-                canvas_section_name = canvas_section['name']
-            except:
-                canvas_section_id = canvas_section.id
-                canvas_section_name = canvas_section.name
-
-            # Skip the default course section 
-            if canvas_section_name == course.name:
-                print(f"Skipping default course section {canvas_section_name}")
-                continue
-            # Skip the any section that has no students enrolled
-            if canvas_section.__dict__.get("students") is None:
-                print(f"Skipping section {canvas_section_name} because it has no students enrolled.")
-                continue
-
-            section = cls.objects.filter(
-                Q(canvas_id=canvas_section_id)
-                | Q(name=canvas_section_name)
-                | Q(class_number__in=re.findall(r'\d+', canvas_section_name))
-                ).first()
-
-            if section:
-                # update
-                print(f"Found db section {section.name} with canvas_id: {section.canvas_id} on Canvas. Updating from Canvas")
-                section.name = canvas_section_name
-            else:
-                # create
-                if (canvas_section_name not in enrolled_canvas_section_names) and only_enrolled_sections:
-                    print(f"Could not find section {canvas_section_name} in the list of enrolled sections. Skipping ...")
-                    continue
-                # check if section is in the intersection of canvas sections and sections found in the extra resource
-                # if it is not, then skip it. Matching by class number.
-                numbers_in_section_name = re.findall(r'\d+', canvas_section_name)
-                matching_resource_idx = None
-                for resource_idx, classNumber in enumerate(resource_class_numbers):
-                    if str(classNumber) in numbers_in_section_name:
-                        matching_resource_idx = resource_idx
-                        break
-                if has_resources:
-                    if matching_resource_idx is None:
-                        print(f"Could not match canvas section {canvas_section_name} in extra resource sections. Skipping ...")
-                        continue
-                    resource = resource_sections[matching_resource_idx]
-                    classNumber = resource_class_numbers[matching_resource_idx]
-                else:
-                    classNumber = numbers_in_section_name[-1]
-
-                print(f"Could not find section {canvas_section_name} in database. Creating new ...")
-                section = cls.objects.create(
-                    name=canvas_section_name,
-                    class_number=classNumber,)
-                
-                if has_resources:
-                    section.recreate_meetings(resource['meetings'])
-
-
-            section.course = course
-            section.canvas_id = canvas_section_id
-            section.teaching_assistant = user
-            
-            section.save()
-            
-        return cls.objects.filter(course=course)
 
     
 

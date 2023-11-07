@@ -36,9 +36,7 @@
 {% endblock styles %}
 
 {% block scripts %}
-    <script src="{% static 'courses/user_list.js' %}" defer>
-        
-    </script>
+    <script type="module" src="{% static 'courses/user_list.js' %}" defer></script>
 {% endblock scripts %}
 
 
@@ -111,15 +109,25 @@
     display: flex; 
     flex-direction: column;
     '>
-        {% if course.image %}
-            <img class="card-img-top" src="{{ course.image.url }}">
-        {% else %}
-            <img class="card-img-top">
-
-        {% endif %}
+        <img class="card-img-top" 
+            {% if course.image %}
+                src="{{ course.image.url }}" 
+            {% endif %}
+            style="object-fit: cover; aspect-ratio: 16/9;">
         
         <div class="card-body">
-            <h5 class="card-title">{{ course.course_code }} ({{course.term}})</h5>
+            <h5 class="card-title">
+                {% if course.course_code %}
+                    {{ course.course_code }} 
+                {% elif course.name %}
+                    {{ course.name }}
+                {% else %}
+                    Course {{ course.pk }}
+                {% endif %}
+                {% if course.term %}  
+                    ({{course.term}})
+                {% endif %}
+            </h5>
             {% if course.description != "" %}
                 <p> {{ course.description|truncatechars:50 }} </p>            
             {% endif %}
@@ -129,52 +137,65 @@
     
 {% endfor %}
 
-<div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+<div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addCourseModalLabel">Add Course</h5>
+                <h5 class="modal-title" id="addCourseModalTitle">Add Course</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form method="POST" id="addCourseForm" class="needs-validation" novalidate>
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="course_code" class="form-label">Course Code</label>
-                        <input type="text" class="form-control" id="course_code" name="course_code" placeholder="e.g. PHY2048">
-                    </div>
-                    <div class="mb-3 has-validation">
-                        <label for="term" class="form-label" for="term">Term</label>
-                        <input type="text" class="form-control" id="term" name="term" aria-describedby="course_code_feedback" placeholder="e.g. Spring 2023">
-                        <div class="expander expanded">
-                            <div class="expander-content" id="termHelpBlock">
-                                <div class="form-text">
-                                    You can find verify the course code and term name on the Settings page of your Canvas course. 
-                                </div>
-                            </div>
+            <div class="modal-body mx-2">
+                <div id="chooseSyncMethodBlock">
+                    <div class="d-flex justify-content-center align-items-center mb-5 mt-5">
+                        <div class="invalid-feedback text-center" id="course_code_feedback">
                         </div>
-                        <div class="invalid-feedback" id="course_code_feedback">
+                        <button type="button" class="btn btn-primary" id="fetchCanvasCoursesBtn">
+                            Sync from Canvas
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-center align-items-center mb-5 mt-5" id="search_divider">
+                        <hr class="flex-grow-1">
+                        <span class="px-2">or</span>
+                        <hr class="flex-grow-1">
+                    </div>
+                    <div class="d-flex justify-content-center align-items-center mb-5">
+                        <button type="button" class="btn btn-primary" id="addCoursesManuallyBtn">
+                            Add manually
+                        </button>
+                    </div>
+                </div>
+                <div id="canvasCourses" class="d-none">
+                </div>
+                <div id="canvasSections" class="d-none">
+                </div>
+                <div id="progressDiv" class="d-none">
+                </div>
+                <div id="manualFormDiv" class="d-none">
+                    <form method="POST" id="manualForm" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <div class="invalid-feedback text-center" id="course_code_feedback">
                         </div>
-                    </div>
-                    <div class="expander">
-                        <div class="expander-content" id="nonSyncInputsBlock">
-                            <div class="mb-3">
-                                <label for="description" class="form-label">Description</label>
-                                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                            </div>
-                            <div class="mb-4">
-                                <label for="image" class="form-label">Image</label>
-                                <input type="file" class="form-control" id="image" name="image">
-                            </div>
+                        <div class="mb-3 mx-1">
+                            <label for="course_code" class="form-label">Course Code</label>
+                            <input type="text" class="form-control" id="course_code" name="course_code" placeholder="e.g. PHY2048" required>
                         </div>
-                    </div>
-                    {% comment %} add a checkmark input to try to sync with canvas {% endcomment %}
-                    <div class="mb-4 form-check form-switch">
-                        <input type="checkbox" class="form-check-input" id="sync" name="sync_with_canvas" checked>
-                        <label for="sync" class="form-check-label">Sync from Canvas</label>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Add Course</button>
-                </form>
+                        <div class="mb-3 mx-1">
+                            <label for="term" class="form-label" for="term">Term</label>
+                            <input type="text" class="form-control" id="term" name="term" aria-describedby="course_code_feedback" placeholder="e.g. Fall 2023" required>
+                        </div>
+                        <div class="mb-3 mx-1">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-4 mx-1">
+                            <label for="imageFileInput" class="form-label">Image</label>
+                            <input type="file" class="form-control" id="imageFileInput" name="image">
+                        </div>
+                        <button type="submit" class="btn btn-primary mx-auto d-block" id="addCourseBtnSubmit">
+                            Add Course
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

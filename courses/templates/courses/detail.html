@@ -9,7 +9,7 @@
 
 {% comment %} add javascript {% endcomment %}
 {% block scripts %}
-    <script src="{% static 'courses/detail.js' %}" defer></script>
+    <script type="module" src="{% static 'courses/detail.js' %}" defer></script>
 {% endblock %}
 
 {% block title %}
@@ -32,13 +32,14 @@
 
 <form method="post" id="syncCourseForm">
     <input type="hidden" name="course_id" value="{{course.pk}}">
+    <input type="hidden" name="course_canvas_id" value="{{course.canvas_id}}">
     {% csrf_token %}
-    <button class="btn btn-primary" name="sync_from_canvas" value="sync" type="submit">
-    {% if course.university.university_code.lower == "ufl" %}
-        Sync from Canvas and UF
-    {% else %}
+    <button class="btn btn-primary" name="sync_from_canvas" value="sync"
+        {% if course.canvas_id == None or course.canvas_id == "" %}
+            disabled
+        {% endif %}
+    >
         Sync from Canvas
-    {% endif %}
     </button>
 </form>
 
@@ -74,7 +75,7 @@
 
     </div>
     <div class="assignments">
-        {% if course.assignments.all %}
+        {% if course.assignments.all and course.get_all_assignment_groups %}
             <div class="pt-3 ps-3 pb-1 assignments-header">
                 <h3>Assignments</h3>
                 {% comment %} create one tab for each assignment group {% endcomment %}
@@ -94,47 +95,45 @@
                 {% for group in course.get_all_assignment_groups %}
                     <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" role="tabpanel" id="assignment_group_{{forloop.counter}}">
                         <ul class="list-group">
-                            {% for assignment in course.assignments.all %}
-                                {% if assignment.assignment_group == group %}
-                                    <a href="assignments/{{assignment.pk}}/" class="list-group-item list-group-item-action">
-                                        <div class="li-header">
-                                            <h5 class="mb-1">{{assignment.name}}
-                                                
-                                            </h5>
-                                            <span class="badge bg-primary rounded-pill me-1">
-                                                <i class="bi bi-file-earmark-text-fill"></i>
-                                                {{assignment.submissions_papersubmission_related.count}}
-                                            </span>
+                            {% for assignment in group.assignments.all %}
+                                <a href="assignments/{{assignment.pk}}/" class="list-group-item list-group-item-action">
+                                    <div class="li-header">
+                                        <h5 class="mb-1">{{assignment.name}}
+                                            
+                                        </h5>
+                                        <span class="badge bg-primary rounded-pill me-1">
+                                            <i class="bi bi-file-earmark-text-fill"></i>
+                                            {{assignment.submissions_papersubmission_related.count}}
+                                        </span>
+                                    </div>
+                                    {% comment %} for each tab create a div with the assignments in that group {% endcomment %}
+                                    <div class="li-body d-flex align-items-center gap-2">
+                                        <div>
+                                        <span class="badge bg-light text-dark">
+                                            Graded {{assignment.get_grading_progress}}%
+                                        </span>
                                         </div>
-                                        {% comment %} for each tab create a div with the assignments in that group {% endcomment %}
-                                        <div class="li-body d-flex align-items-center">
-                                            <div>
-                                            <span class="badge bg-light text-dark">
-                                                Graded {{assignment.get_grading_progress}}%
-                                            </span>
-                                            </div>
-                                            <div>
-                                            <span class="badge bg-light text-dark">
-                                                Average
-                                                {% if assignment.get_grading_progress != 0 %}
-                                                    {{assignment.get_average_grade}} 
-                                                {% else %}
-                                                    -
-                                                {% endif %}
-                                                 / {{assignment.max_score}}
-                                            </span>
-                                            </div>
-                                            {% if assignment.get_canvas_url %}
-                                            <div class="ms-auto me-1">
-                                                <button class="btn btn-outline-light btn-sm assignment-canvas-btn" data-assignment-canvas-url="{{assignment.get_canvas_url}}">
-                                                    <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" 
-                                                    style="width: 16px; height: 16px; filter: grayscale(100%);">
-                                                </button>
-                                            </div>
+                                        <div>
+                                        <span class="badge bg-light text-dark">
+                                            Average
+                                            {% if assignment.get_grading_progress != 0 %}
+                                                {{assignment.get_average_grade}} 
+                                            {% else %}
+                                                -
                                             {% endif %}
+                                                / {{assignment.max_score}}
+                                        </span>
                                         </div>
-                                    </a>
-                                {% endif %}
+                                        {% if assignment.get_canvas_url %}
+                                        <div class="ms-auto me-1">
+                                            <button class="btn btn-outline-light btn-sm assignment-canvas-btn" data-assignment-canvas-url="{{assignment.get_canvas_url}}">
+                                                <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" 
+                                                style="width: 16px; height: 16px; filter: grayscale(100%);">
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </a>
                             {% endfor %}
                         </ul>
                     </div>
@@ -143,7 +142,13 @@
 
                     
         {% else %}
-        <p class="text-muted fs-1 fst-italic d-flex m-auto">No Assignments</p>
+            <p class="text-muted fs-1 fst-italic d-flex m-auto">
+                {% if not course.assignments.all %}
+                    No Assignments
+                {% elif not course.get_all_assignment_groups %}
+                    No Assignment Groups
+                {% endif %}
+            </p>
         {% endif %}
     </div>
     <div class="announcements">
@@ -154,11 +159,11 @@
             <ul class="list-group overflow-auto d-flex" style="margin-bottom:1em">
             {% for announcement in course.announcements.all %}
                 <a href=
-                {% if course.university.university_code.lower == "ufl" %}
-                    "{{course.university.canvas_api_url}}courses/{{course.canvas_id}}/discussion_topics/{{announcement.canvas_id}}"
+                {% if user.profile.get_canvas_object_url and announcement.canvas_id %}
+                    "{{user.profile.get_canvas_object_url}}courses/{{course.canvas_id}}/discussion_topics/{{announcement.canvas_id}}"
                 {% else %}
-                    {{announcement.get_canvas_url}}
-                {% endif %}                
+                    "{{announcement.get_absolute_url}}"
+                {% endif %}
                 
                 class="list-group-item list-group-item-action">
                     <div class="li-header">

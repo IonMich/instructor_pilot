@@ -26,6 +26,7 @@ urlpatterns = [
     path('', include('submissions.urls', namespace='submissions')),
     path('', include('courses.urls', namespace='courses')),
     path('', include('assignments.urls', namespace='assignments')),
+    path('', include('sections.urls', namespace='sections')),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

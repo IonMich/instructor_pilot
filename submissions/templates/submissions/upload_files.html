@@ -55,7 +55,7 @@ grid-gap: 10px;">
             {% comment %} add switch to apply the same grading scheme to all assignments in the same assignment group{% endcomment %}
             <div class="form-check form-switch mt-3">
                 <input class="form-check-input" type="checkbox" role="switch" id="apply_to_all" name="apply_to_all">
-                <label for="apply_to_all" class="">Apply to assignments in "{{assignment.assignment_group}}"</label>
+                <label for="apply_to_all" class="">Apply to assignments in "{{assignment.assignment_group_object}}"</label>
             </div>
             {% comment %} add a hidden input for the assignment_id {% endcomment %}
             <input type="hidden" name="assignment_id" value="{{assignment.pk}}" id="assignment_id">
