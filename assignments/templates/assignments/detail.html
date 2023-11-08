@@ -31,7 +31,7 @@
         <li class="breadcrumb-item active" aria-current="page">{{assignment.name}} 
             <span class="badge bg-dark" title="Average Grade">
                 {% if assignment.get_grading_progress != 0 %}
-                {{assignment.get_average_grade}} 
+                {{assignment.get_average_grade}}
             {% else %}
                 -
             {% endif %}/ {{ assignment.max_score }}

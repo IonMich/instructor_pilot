@@ -377,3 +377,20 @@ animation-fill-mode: forwards;
     background-color: var(--bs-success);
     color: var(--bs-light);
 }
+
+#averageDropdownToggled {
+    background-color: var(--bs-light);
+    color: #000;
+    border-radius: 0.5rem;
+    margin-right: 0.5rem;
+    padding-inline: 0.75rem;
+    padding-block: 0.5rem;
+}
+
+#averageDropdownToggled:hover {
+    background-color: #d3d4d5;
+    color: #000;
+    border-color: #c6c7c8;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    cursor: pointer;
+}
