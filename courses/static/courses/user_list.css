@@ -1,0 +1,37 @@
+.course-card {
+    position: relative;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    border: 1px solid #636262;
+}
+
+.card-img-top {
+    position: relative;
+    cursor: pointer;
+    border-top-left-radius: calc(0.5rem - 1px);
+    border-top-right-radius: calc(0.5rem - 1px);
+}
+
+.course-card:hover::before {
+    opacity: 1;
+}
+
+
+.course-card::before {
+    border-radius: inherit;
+    content: "";
+    height: 100%;
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    z-index: 2;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+    background: radial-gradient(
+        800px circle at var(--mouse-x) var(--mouse-y),
+        rgba(247, 247, 247, 0.08),
+        transparent 40%
+    );
+}

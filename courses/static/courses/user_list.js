@@ -33,152 +33,6 @@ let canvasStudents = [];
 })()
 
 const addCourseForm = document.querySelector("#manualForm");
-const addCourseButton = addCourseForm.querySelector("button[type='submit']");
-
-addCourseForm.addEventListener("submit", (event) => {
-    console.log("prevent default");
-    event.preventDefault();
-
-    // disable the add course button
-    addCourseButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
-    addCourseButton.disabled = true;
-
-    // if was-validated os in the class list of the form, it means that the form is valid
-    // and we can send the fetch request
-
-    console.log(addCourseForm)
-    if (!addCourseForm.checkValidity()) {
-        return;
-    }
-
-    //  form inputs: course code, term, description and image, sync with canvas
-    const courseCode = addCourseForm.querySelector('input[name="course_code"]').value;
-    const term = addCourseForm.querySelector('input[name="term"]').value;
-    const description = addCourseForm.querySelector('textarea[name="description"]').value;
-    const image = addCourseForm.querySelector('input[name="image"]').value;
-    const syncWithCanvas = addCourseForm.querySelector('input[name="sync_with_canvas"]').checked;
-    const canvasCourseRadioButtons = addCourseForm.querySelectorAll('input[name="canvas_courses"]');
-    console.log(canvasCourseRadioButtons)
-    let canvasCourseId = null;
-    for (let i = 0; i < canvasCourseRadioButtons.length; i++) {
-        if (canvasCourseRadioButtons[i].checked) {
-            canvasCourseId = canvasCourseRadioButtons[i].value;
-            break;
-        }
-    }
-
-    const csrfToken = addCourseForm.querySelector('input[name=csrfmiddlewaretoken]').value;
-
-    // REST API endpoint for adding a course
-    const url = '/courses/';
-    const options = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-        },
-        body: JSON.stringify({
-            'course_code': courseCode,
-            'term': term,
-            'description': description,
-            'image': image,
-            'sync_with_canvas': syncWithCanvas,
-            'canvas_id': canvasCourseId,
-        }),
-    };
-
-    fetch(url, options)
-        .then((response) => {
-            return response.json();
-        })
-        .then((data) => {
-            console.log(data);
-            console.log(data.status);
-            // if the course was added successfully, add it to the dom
-            if (data.status === 'success') {
-                // TODO: add the course to the dom
-
-                // close the modal
-                $('#addCourseModal').modal('hide');
-                // redirect to the course detail page
-                window.location.href = `/courses/${data.course_id}/`;
-            } else if (data.status === 'already-exists') {
-                // if this combination of course code and term already exists, show an error message
-                const courseCodeInput = addCourseForm.querySelector('input[name="course_code"]');
-                const termInput = addCourseForm.querySelector('input[name="term"]');
-                const errorDiv = addCourseForm.querySelector('#course_code_feedback');
-                errorDiv.style.display = 'block';
-                errorDiv.classList.remove('d-none');
-                errorDiv.innerHTML = 'This course already exists in the database';
-                courseCodeInput.classList.add('is-invalid');
-                termInput.classList.add('is-invalid');
-                // remove was-validated class from the form
-                addCourseForm.classList.remove('was-validated');
-                // change the button text back to Add Course
-                addCourseButton.innerHTML = 'Add Course';
-                addCourseButton.disabled = false;
-            } else if (data.status === 'not-found-canvas') {
-                // if the course was not found in canvas, show an error message
-                const courseCodeInput = addCourseForm.querySelector('input[name="course_code"]');
-                const termInput = addCourseForm.querySelector('input[name="term"]');
-                const errorDiv = addCourseForm.querySelector('#course_code_feedback');
-                errorDiv.style.display = 'block';
-                errorDiv.innerHTML = 'This course was not found in Canvas';
-                courseCodeInput.classList.add('is-invalid');
-                termInput.classList.add('is-invalid');
-                // remove was-validated class from the form
-                addCourseForm.classList.remove('was-validated');
-                // change the button text back to Add Course
-                addCourseButton.innerHTML = 'Add Course';
-                addCourseButton.disabled = false;
-            } else if (data.status === 'term-required') {
-                // if the course was not found in canvas, show an error message
-                const courseCodeInput = addCourseForm.querySelector('input[name="course_code"]');
-                const termInput = addCourseForm.querySelector('input[name="term"]');
-                const errorDiv = addCourseForm.querySelector('#course_code_feedback');
-                errorDiv.style.display = 'block';
-                errorDiv.innerHTML = 'Invalid option';
-                courseCodeInput.classList.add('is-invalid');
-                termInput.classList.add('is-invalid');
-                // remove was-validated class from the form
-                addCourseForm.classList.remove('was-validated');
-                // change the button text back to Add Course
-                addCourseButton.innerHTML = 'Add Course';
-                addCourseButton.disabled = false;
-            } else if (data.status === 'term-invalid') {
-                // if the course was not found in canvas, show an error message
-                const courseCodeInput = addCourseForm.querySelector('input[name="course_code"]');
-                const termInput = addCourseForm.querySelector('input[name="term"]');
-                const errorDiv = addCourseForm.querySelector('#course_code_feedback');
-                errorDiv.style.display = 'block';
-
-                errorDiv.innerHTML = 'This term is invalid';
-                courseCodeInput.classList.add('is-invalid');
-                termInput.classList.add('is-invalid');
-                // remove was-validated class from the form
-                addCourseForm.classList.remove('was-validated');
-                // change the button text back to Add Course
-                addCourseButton.innerHTML = 'Add Course';
-                addCourseButton.disabled = false;
-            }
-        })
-        .catch((error) => {
-            // if there was an error, show an error message
-            const courseCodeInput = addCourseForm.querySelector('input[name="course_code"]');
-            const termInput = addCourseForm.querySelector('input[name="term"]');
-            const errorDiv = addCourseForm.querySelector('#course_code_feedback');
-            errorDiv.style.display = 'block';
-            errorDiv.innerHTML = 'There was an error adding this course to the database';
-            courseCodeInput.classList.add('is-invalid');
-            termInput.classList.add('is-invalid');
-            // remove was-validated class from the form
-            addCourseForm.classList.remove('was-validated')
-            // change the button text back to Add Course
-            addCourseButton.innerHTML = 'Add Course';
-            addCourseButton.disabled = false;
-            console.log(error);
-        });
-});
 
 // for each course card without a course image, 
 // display a fancy animated gradient background
@@ -291,7 +145,7 @@ async function addAllGradients() {
     console.log(allLoaded);
     courseCards.forEach( (courseCard, index) => {
         const courseImage = courseCard.querySelector('.card-img-top');
-        courseImage.style.height = `${maxHeight}px`;
+        courseImage.style.height = `${maxHeight}px`
         // set to cover
         courseImage.style.objectFit = 'cover';
         if (courseImage.src && imageStatuses[index] === true) {
@@ -307,65 +161,20 @@ async function addAllGradients() {
     });
 }
 
+// update glow origin position on mousemove
+function handleOnMouseMove (event) {
+    const { currentTarget: target } = event;
 
-const syncSwitch = document.querySelector('#sync');
+    const boundingRect = target.getBoundingClientRect();
+    const relX = event.clientX - boundingRect.left;
+    const relY = event.clientY - boundingRect.top;
 
-if (syncSwitch) {
-    // get the one with child .expander-content
-    const expanders = document.querySelectorAll('.expander');
-    var expanded_at_sync_div;
-    var not_expanded_at_sync_div;
-    console.log(expanders);
-    // not expanded at sync div is the one that has child with id nonSyncInputsBlock
-    // expanded at sync div is the one that has child with id termHelpBlock
-    for (var i = 0; i < expanders.length; i++) {
-        if (expanders[i].querySelector('#nonSyncInputsBlock')) {
-            not_expanded_at_sync_div = expanders[i];
-            console.log('found nonSyncInputsBlock');
-        } else if (expanders[i].querySelector('#syncSpecificBlock')) {
-            expanded_at_sync_div = expanders[i];
-            console.log('found syncSpecificBlock');
-        } else {
-            console.log('no div found');
-        }
-    }
-    syncSwitch.addEventListener('change', function(event) {
-        console.log('checkbox changed');
-        if (syncSwitch.checked) {
-            
-            not_expanded_at_sync_div.classList.remove('expanded');
-            expanded_at_sync_div.classList.add('expanded');
-            const courseCodeInputDiv = addCourseForm.querySelector('#course_code').parentElement;
-            const courseTermInputDiv = addCourseForm.querySelector('#term').parentElement;
-            const courseInputHelpDiv = addCourseForm.querySelector('#input_help');
-            const courseSearchDividerDiv = addCourseForm.querySelector('#search_divider');
-            courseCodeInputDiv.classList.remove('d-none');
-            courseTermInputDiv.classList.remove('d-none'); 
-            courseInputHelpDiv.classList.remove('d-none'); 
-            courseSearchDividerDiv.classList.remove('d-none');
-            // set checked to false for the name=canvas_course radio buttons
-            const canvasCourseRadioButtons = addCourseForm.querySelectorAll('input[name="canvas_courses"]');
-            canvasCourseRadioButtons.forEach( (radioButton) => {
-                radioButton.checked = false;
-            });
-        } else {
-            
-            expanded_at_sync_div.classList.remove('expanded');
-            not_expanded_at_sync_div.classList.add('expanded');
-            const courseCodeInputDiv = addCourseForm.querySelector('#course_code').parentElement;
-            const courseTermInputDiv = addCourseForm.querySelector('#term').parentElement;
-            const courseInputHelpDiv = addCourseForm.querySelector('#input_help');
-            const courseSearchDividerDiv = addCourseForm.querySelector('#search_divider');
-            courseCodeInputDiv.classList.remove('d-none');
-            courseTermInputDiv.classList.remove('d-none');
-            courseInputHelpDiv.classList.remove('d-none');
-            courseSearchDividerDiv.classList.remove('d-none');
-            const canvasCourseRadioButtons = addCourseForm.querySelectorAll('input[name="canvas_courses"]');
-            canvasCourseRadioButtons.forEach( (radioButton) => {
-                radioButton.checked = false;
-            });
-        }
-    });
+    target.style.setProperty('--mouse-x', `${relX}px`);
+    target.style.setProperty('--mouse-y', `${relY}px`);
+}
+
+for (const courseCard of courseCards) {
+    courseCard.addEventListener('mousemove', handleOnMouseMove);
 }
 
 const fetchCanvasCoursesButton = document.querySelector('#fetchCanvasCoursesBtn');
