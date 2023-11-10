@@ -16,7 +16,7 @@ from PIL import Image
 from assignments.models import Assignment, Version
 from students.models import Student
 from submissions.digits_classify import (classify, import_students_from_db,
-                                         import_tf_model)
+                                         import_onnx_model)
 from submissions.utils import (CommaSeparatedFloatField, convert_pdf_to_images,
                                get_quiz_pdf_path, open_UploadedFile_as_PDF,
                                submission_image_upload_to,
@@ -347,7 +347,7 @@ class PaperSubmission(Submission):
         use a deep learning model to classify the paper submissions
         """
         DETECTION_PROB_D = 1E-5
-        model_path_h5 = os.path.join(settings.MEDIA_ROOT, "classify/digits_model.h5")
+        model_path_onnx = os.path.join(settings.MEDIA_ROOT, "classify/digits_model.onnx")
         all_imgs, all_sub_pks = PaperSubmission.get_images_for_classify(
             assignment,
             dpi=dpi,
@@ -359,8 +359,12 @@ class PaperSubmission(Submission):
         if len(df_ids) == 0:
             raise ValueError("No students with valid IDs found in the database.")
         # get the model
-        model =  import_tf_model(model_path_h5)
-
+        sess, input_name, output_name =  import_onnx_model(model_path_onnx)
+        model = {
+            "sess": sess,
+            "input_name": input_name,
+            "output_name": output_name,
+        }
         print("dpi is:", dpi)
         # we could skip specifing pages_to_skip here because
         # we already replaced them with None in get_images_for_classify

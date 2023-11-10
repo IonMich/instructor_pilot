@@ -142,6 +142,15 @@ def import_tf_model(model_path):
     model = tf.keras.models.load_model(model_path)
     return model
 
+def import_onnx_model(model_path):
+    import onnxruntime as rt
+    sess = rt.InferenceSession(model_path)
+    input_name = sess.get_inputs()[0].name
+    output_name = sess.get_outputs()[0].name
+    # print(f"ONNX model Input name: {input_name}")
+    # print(f"ONNX model Output name: {output_name}")
+    return sess, input_name, output_name
+
 def apply_scale_rotate(img, scale, angle):
     """Apply scale and rotation to image"""
     width = int(img.shape[1] * scale)
@@ -346,7 +355,6 @@ def preprocess_digit_box(
     
     Following the description in the MNIST dataset website.
     """
-    import tensorflow as tf
 
     # convert to black background and white foreground
     digit_box_inv = 255 - digit_box    
@@ -410,8 +418,14 @@ def preprocess_digit_box(
 
     digit_28 = resize_and_pad_com_center(digit_20, (28,28))
 
-    digit = tf.keras.utils.normalize(digit_28, axis=1)
-    return digit
+    # using np.linalg.norm instead of tf.keras.utils.normalize
+    # from keras/utils/np_utils.py
+    l2 = np.atleast_1d(np.linalg.norm(digit_28, axis=1))
+    l2[l2==0] = 1
+    normed_digit_28 = digit_28 / np.expand_dims(l2, axis=1)
+    normed_digit_28 = normed_digit_28.astype(np.float32)
+
+    return normed_digit_28
 
 def preprocess_digits(digits_img_list, **kwargs):
     """For each digit, find all contours and keep only 
@@ -423,7 +437,13 @@ def preprocess_digits(digits_img_list, **kwargs):
         if digit is None:
             return None
         preprocessed_digit_list.append(digit)
-    return preprocessed_digit_list
+    # convert from a list of N 28x28 arrays to a numpy array of shape (N, 28, 28, 1)
+    stack_axis = 0
+    channels_axis = -1
+    preprocessed_digits = np.stack(preprocessed_digit_list, axis=stack_axis)
+    preprocessed_digits = np.expand_dims(preprocessed_digits, axis=channels_axis)
+    return preprocessed_digits
+
 
 def get_predicted_labels(predictions, df_ids, found_digits):
     max_probability = 0 
@@ -472,10 +492,18 @@ def get_all_ufids(digit_imgs, df_ids, model, len_subs):
             
             if digits_processed is None:
                 continue
-            predictions = model.predict(
-                np.stack(digits_processed)
-                )
             
+            if isinstance(model, dict):
+                sess = model["sess"]
+                input_name = model["input_name"]
+                output_name = model["output_name"]
+                predictions = sess.run(
+                    [output_name], 
+                    {input_name: np.stack(digits_processed)})[0]
+            else:
+                predictions = model.predict(
+                    np.stack(digits_processed)
+                    )
             # for digit_idx in range(len(digits_processed)):
             #     print(predictions[digit_idx])
             #     plt.imshow(digits_processed[digit_idx])
@@ -528,6 +556,10 @@ def get_all_ufids(digit_imgs, df_ids, model, len_subs):
         .drop_duplicates(['doc_idx', 'page_idx'])
         .sort_values(['doc_idx', 'page_idx']))
     df_digits.to_csv("inference_digits.csv", index=False)
+    try:
+        del sess
+    except:
+        pass
     return df_digits
 
 
