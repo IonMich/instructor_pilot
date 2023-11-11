@@ -1,6 +1,7 @@
 channels:
   - conda-forge
 dependencies:
+  - aiohttp
   - llvm-openmp
   - numpy<1.25
   - django=4.1
