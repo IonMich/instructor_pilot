@@ -11,3 +11,4 @@ media/*
 logs/*
 tmp/*
 **/.DS_Store
+venv/*
