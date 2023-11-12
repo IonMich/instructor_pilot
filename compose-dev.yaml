@@ -1,0 +1,11 @@
+version: "3"
+services:
+  web:
+    build: .
+    ports:
+      - '8000:8000'
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      - API_KEY=${API_KEY}
