@@ -115,7 +115,6 @@ def convert_pdf_to_images(filepath, dpi, top_percent=0.25, left_percent=0.5, cro
         if page.number in skip_pages:
             images.append(None)
             continue
-        print(page.number, end="\r")
         rect = page.rect  # the page rectangle
 
         if crop_box is not None and page.number in crop_box:
