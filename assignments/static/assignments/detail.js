@@ -1,3 +1,8 @@
+import { 
+    renderVersionTab,
+    renderVersionContent,
+} from './renderVersionModal.js';
+
 (function () {
     'use strict'
   
@@ -540,7 +545,7 @@ if (selectSyncOption) {
 // on hover of a submission card, show delete button at top right
 // on click of delete button, show confirmation modal
 // the button has an attribute data-pk which is the primary key of the submission
-btnDeleteSub = document.querySelectorAll('.btn-delete-sub');
+const btnDeleteSub = document.querySelectorAll('.btn-delete-sub');
 for (const btn of btnDeleteSub) {
     btn.addEventListener('click', function(event) {
         event.preventDefault();
@@ -870,13 +875,13 @@ if (chart) {
 
     var bins = histGenerator(all_grades);
     console.log(bins);
-    x_axis = []
-    y_axis = []
+    const x_axis = []
+    const y_axis = []
     for (var i = 0; i < bins.length; i++) {
         x_axis.push(bins[i].x0)
         y_axis.push(bins[i].length)
     }
-    data = {
+    const data = {
         labels: x_axis,
         datasets: [{
             label: 'Submission Grades',
@@ -1052,7 +1057,7 @@ if (updateGradingSchemeButton) {
         const gradingSchemeForm = document.getElementById('gradingSchemeForm');
         const csrfToken = gradingSchemeForm.querySelector("input[name='csrfmiddlewaretoken']").value;
 
-        options = {
+        const options = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1104,7 +1109,7 @@ if(versionButton) {
         const versionForm = document.getElementById('versionForm');
         const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
 
-        options = {
+        const options = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1148,200 +1153,186 @@ if(versionButton) {
 
 // add a function to build a modal for the versioning
 function version_modal (data) {
+    console.log(data)
     let modal = document.getElementById('clusterModal');
     $(modal).modal('show');
     // get the modal body
     let clusterInfo = document.getElementById('clusterInfo');
     // change the modal body to display the data from response
-    if (data['message'] == 'success') {
-        // get the number of versions and make it global
-        numVersions = data['cluster_types'];
+    if (data['message'] != 'success') {
+        // raise an error
+        clusterInfo.className = 'alert alert-danger';
+        clusterInfo.innerHTML = 'Versions updated unsuccessfully';
+        throw new Error('Error in versioning');
+    }
+    // get the number of versions and make it global
+    const numVersions = data['cluster_types'];
+    const numOutliers = data['outliers'];
 
-        const outliers = data['outliers'];
-        if (outliers == 0) {
-            clusterInfo.className = 'alert alert-success';
-            clusterInfo.innerHTML = numVersions + ' different Versions found.';
+    let versionNameElement = document.getElementById('versionDetails');
+    versionNameElement.classList.add('modal-body', 'p-2');
+
+    versionNameElement.innerHTML = '';
+
+    //create a ul element with a class name of "list-group"
+    let ul = document.createElement('ul');
+    ul.className = 'nav nav-pills mb-3';
+    ul.id = 'pills-tab';
+    ul.role = 'tablist';
+    // add this element to the modal
+    versionNameElement.appendChild(ul);
+
+    
+    const maxTabIndex = (numOutliers == 0) ? numVersions : numVersions + 1;
+    for (let i = 1; i <= maxTabIndex; i++) {
+        ul.appendChild(renderVersionTab(i, numVersions, Math.floor(Math.random() * 10)));
+    }
+
+    // create a new div to display the tab contents using a for loop
+    let tabContent = document.createElement('div');
+    tabContent.className = 'tab-content';
+    tabContent.id = 'pills-tabContent';
+    // create a new div to display the tab contents using a for loop
+
+    for (let i = 1; i <= numVersions; i++) {
+        tabContent.appendChild(renderVersionContent(i, numVersions, data['cluster_images'][i-1]));
+    }
+    // add outliers tab if numOutliers != 0
+    if (numOutliers != 0) {
+        tabContent.appendChild(renderOutliersContent(data['outlier_images']));
+    }
+    // add the tab content to the modal
+    versionNameElement.appendChild(tabContent);
+
+    for (let i = 1; i <= numVersions; i++) {
+        let newTabContent = document.createElement('div');
+        newTabContent.className = 'tab-pane fade';
+        newTabContent.id = 'pills-home' + i;
+        newTabContent.setAttribute('role', 'tabpanel');
+        newTabContent.setAttribute('aria-labelledby', 'pills-home-tab' + i);
+        // show the first tab content by default
+        if (i == 1) {
+            newTabContent.classList.add('show');
+            newTabContent.classList.add('active');
         }
-        else {
-            clusterInfo.className = 'alert alert-warning';
-            clusterInfo.innerHTML = numVersions + ' different Versions and ' + outliers + ' Outliers found.';
+        // add a field to display an image
+        let newImage = document.createElement('img');
+        newImage.className = 'img-fluid';
+        newImage.src = data['cluster_images'][i-1];
+        newImage.alt = 'Version ' + i + ' image';
+        // add some style to the newImage
+        newImage.style = 'width: 460px; height: 250px; object-fit: cover; object-position: top; border: 3px solid #ddd; border-radius: 16px; margin: 8px;';
+        // add the image to the tab content
+        newTabContent.appendChild(newImage);
+
+        
+        // add a form to the tab content
+        let newForm = document.createElement('form');
+        // make this form a multipart form
+        newForm.enctype = 'multipart/form-data';
+        newForm.id = 'versionForm' + i;
+        newForm.className = 'form-inline';
+        // add csrf token to the form
+        let csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = 'csrfmiddlewaretoken';
+
+        const csrfTokenValue = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        console.log(csrfTokenValue);
+        // add this token to the form
+        newForm.appendChild(csrfToken);
+
+        // add a label to the form
+        let newLabel = document.createElement('label');
+        newLabel.className = 'form-label labels';
+        newLabel.for = 'versionName' + i;
+        newLabel.innerHTML = 'New Version Comment: ';
+        // add the label to the form
+        newForm.appendChild(newLabel);
+
+        // add a text input to the form
+        let newTextInput = document.createElement('textarea');
+        // newTextInput.type = 'text';
+        newTextInput.className = 'form-control mb-2 mr-sm-2';
+        newTextInput.id = 'versionName' + i;
+        newTextInput.placeholder = 'Enter new text comment here';
+        newTextInput.name = 'versionText' + i;
+        // add a file input to the form
+        let newFileInput = document.createElement('input');
+        newFileInput.type = 'file';
+        newFileInput.className = 'form-control mb-2 mr-sm-2';
+        newFileInput.id = 'versionFile' + i;
+        newFileInput.placeholder = 'Version File';
+        newFileInput.name = 'versionFile' + i;
+        // set multiple attribute to true
+        newFileInput.multiple = true;
+
+        // do the following only if the version is not the old one
+        if (data['new_version'] == 'false') {
+            console.log('new version is false')
+
+        // add a div to display the old files and texts
+        let oldFilesDiv = document.createElement('div');
+        oldFilesDiv.className = 'form-group oldFiles';
+        oldFilesDiv.id = 'oldFilesDiv' + i;
+        // add a label to the old files div
+        let oldFilesLabel = document.createElement('label');
+        oldFilesLabel.innerHTML = 'Old Version Comments: ';
+        oldFilesLabel.className = 'form-label labels';
+        oldFilesLabel.for = 'oldFilesDiv' + i;
+        // add the label to the old files div
+        oldFilesDiv.appendChild(oldFilesLabel);
+        // add a div to display the old files and texts
+        let oldFiles = document.createElement('div');
+        oldFiles.className = 'form-group';
+        oldFiles.id = 'oldFiles' + i;
+        // if there are no old files/texts, add display none to the old files div
+        if ((data['version_texts'][i] == undefined) && (data['version_pdfs'][i] == undefined)) {
+            oldFilesDiv.style = 'display: none;';
         }
+        // check if data['version_texts'][i] is not empty
+        if (data['version_texts'][i] != undefined) {
+            for (let j = 0; j < data['version_texts'][i].length; j++) {
+                // create a new div to display the old files and texts
+                let text = document.createElement('div');
+                text.className = 'form-group';
+                text.id = 'oldText' + i + j;
+                text.innerHTML = data['version_texts'][i][j]['text'];
 
-        // display the content of the versions
-        let versionNameElement = document.getElementById('versionDetails');
-        // remove the previous content
-        versionNameElement.innerHTML = '';
-        // add margin to the modal body
-        versionNameElement.style.margin = '8px 8px 8px 8px';
-
-        //create a ul element with a class name of "list-group"
-        let ul = document.createElement('ul');
-        ul.className = 'nav nav-pills mb-3';
-        ul.id = 'pills-tab';
-        ul.role = 'tablist';
-        // add this element to the modal
-        versionNameElement.appendChild(ul);
-        // create a new element to display the version name inside the modal using a for loop
-        for (let i = 1; i <= numVersions; i++) {
-            let newVersionNameElement = document.createElement('li');
-            newVersionNameElement.className = 'nav-item';
-            newVersionNameElement.id = 'pills-home-tab+' + i;
-            newVersionNameElement.role = 'presentation';
-            // create a button element to display the version name
-            let newVersionNameButton = document.createElement('button');
-            newVersionNameButton.className = 'nav-link';
-            newVersionNameButton.id = 'pills-home-tab' + i;
-            newVersionNameButton.setAttribute('data-bs-toggle', 'pill');
-            newVersionNameButton.setAttribute('data-bs-target', '#pills-home' + i);
-            newVersionNameButton.setAttribute('role', 'tab');
-            newVersionNameButton.setAttribute('aria-controls', 'pills-home' + i);
-            newVersionNameButton.setAttribute('aria-selected', 'true');
-            newVersionNameButton.innerHTML = 'Version ' + i;
-            // add a class to the first button
-            if (i == 1) {
-                newVersionNameButton.classList.add('active');
-            }
-            // add the button to the new element
-            newVersionNameElement.appendChild(newVersionNameButton);
-
-            // add this element to the modal
-            ul.appendChild(newVersionNameElement);
-        }
-        // create a new div to display the tab contents using a for loop
-        let tabContent = document.createElement('div');
-        tabContent.className = 'tab-content';
-        tabContent.id = 'pills-tabContent';
-        // create a new div to display the tab contents using a for loop
-        for (let i = 1; i <= numVersions; i++) {
-            let newTabContent = document.createElement('div');
-            newTabContent.className = 'tab-pane fade';
-            newTabContent.id = 'pills-home' + i;
-            newTabContent.setAttribute('role', 'tabpanel');
-            newTabContent.setAttribute('aria-labelledby', 'pills-home-tab' + i);
-            // show the first tab content by default
-            if (i == 1) {
-                newTabContent.classList.add('show');
-                newTabContent.classList.add('active');
-            }
-            // add a field to display an image
-            let newImage = document.createElement('img');
-            newImage.className = 'img-fluid';
-            newImage.src = data['cluster_images'][i-1];
-            newImage.alt = 'Version ' + i + ' image';
-            // add some style to the newImage
-            newImage.style = 'width: 460px; height: 250px; object-fit: cover; object-position: top; border: 3px solid #ddd; border-radius: 16px; margin: 8px;';
-            // add the image to the tab content
-            newTabContent.appendChild(newImage);
-
-            
-            // add a form to the tab content
-            let newForm = document.createElement('form');
-            // make this form a multipart form
-            newForm.enctype = 'multipart/form-data';
-            newForm.id = 'versionForm' + i;
-            newForm.className = 'form-inline';
-            // add csrf token to the form
-            let csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrfmiddlewaretoken';
-            csrfToken.value = '{{ csrf_token }}';
-
-            const csrfTokenValue = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            
-            // add this token to the form
-            newForm.appendChild(csrfToken);
-
-            // add a label to the form
-            let newLabel = document.createElement('label');
-            newLabel.className = 'form-label labels';
-            newLabel.for = 'versionName' + i;
-            newLabel.innerHTML = 'New Version Comment: ';
-            // add the label to the form
-            newForm.appendChild(newLabel);
-
-            // add a text input to the form
-            let newTextInput = document.createElement('textarea');
-            // newTextInput.type = 'text';
-            newTextInput.className = 'form-control mb-2 mr-sm-2';
-            newTextInput.id = 'versionName' + i;
-            newTextInput.placeholder = 'Enter new text comment here';
-            newTextInput.name = 'versionText' + i;
-            // add a file input to the form
-            let newFileInput = document.createElement('input');
-            newFileInput.type = 'file';
-            newFileInput.className = 'form-control mb-2 mr-sm-2';
-            newFileInput.id = 'versionFile' + i;
-            newFileInput.placeholder = 'Version File';
-            newFileInput.name = 'versionFile' + i;
-            // set multiple attribute to true
-            newFileInput.multiple = true;
-
-            // do the following only if the version is not the old one
-            if (data['new_version'] == 'false') {
-                console.log('new version is false')
-
-            // add a div to display the old files and texts
-            let oldFilesDiv = document.createElement('div');
-            oldFilesDiv.className = 'form-group oldFiles';
-            oldFilesDiv.id = 'oldFilesDiv' + i;
-            // add a label to the old files div
-            let oldFilesLabel = document.createElement('label');
-            oldFilesLabel.innerHTML = 'Old Version Comments: ';
-            oldFilesLabel.className = 'form-label labels';
-            oldFilesLabel.for = 'oldFilesDiv' + i;
-            // add the label to the old files div
-            oldFilesDiv.appendChild(oldFilesLabel);
-            // add a div to display the old files and texts
-            let oldFiles = document.createElement('div');
-            oldFiles.className = 'form-group';
-            oldFiles.id = 'oldFiles' + i;
-            // if there are no old files/texts, add display none to the old files div
-            if ((data['version_texts'][i] == undefined) && (data['version_pdfs'][i] == undefined)) {
-                oldFilesDiv.style = 'display: none;';
-            }
-            // check if data['version_texts'][i] is not empty
-            if (data['version_texts'][i] != undefined) {
-                for (let j = 0; j < data['version_texts'][i].length; j++) {
-                    // create a new div to display the old files and texts
-                    let text = document.createElement('div');
-                    text.className = 'form-group';
-                    text.id = 'oldText' + i + j;
-                    text.innerHTML = data['version_texts'][i][j]['text'];
-
-                    // create a new button to delete the old files and texts
-                    let deleteButton = document.createElement('button');
-                    deleteButton.className = 'btn btn-outline-danger';
-                    deleteButton.id = 'deleteButtonText' + i + j;
-                    deleteButton.innerHTML = '<i class="bi bi-trash"></i>';
-                    // make its size smaller
-                    deleteButton.style = 'font-size: 12px; padding: 0px 4px; margin-left: 8px; border-radius: 4px;';
-                    deleteButton.addEventListener('click', function() {
-                        idText = 'oldText' + i + j;
-                        text_id = data['version_texts'][i][j]['id'];
-                        deleteComment(csrfTokenValue, 'text', idText, text_id);
-                    }
-                    );
-
-                    // add the delete button to the text
-                    text.appendChild(deleteButton);
-
-                    // add author
-                    let authorArea = document.createElement('div');
-                    let authorName = document.createElement('small');
-                    authorName.className = 'text-muted';
-                    authorName.innerHTML = data['version_texts'][i][j]['author'];
-                    authorArea.appendChild(authorName);
-
-                    // add authorArea to text
-                    text.appendChild(authorArea);
-                    // add the old text to the old files div
-                    oldFiles.appendChild(text);
-
-
+                // create a new button to delete the old files and texts
+                let deleteButton = document.createElement('button');
+                deleteButton.className = 'btn btn-outline-danger';
+                deleteButton.id = 'deleteButtonText' + i + j;
+                deleteButton.innerHTML = '<i class="bi bi-trash"></i>';
+                // make its size smaller
+                deleteButton.style = 'font-size: 12px; padding: 0px 4px; margin-left: 8px; border-radius: 4px;';
+                deleteButton.addEventListener('click', function() {
+                    idText = 'oldText' + i + j;
+                    text_id = data['version_texts'][i][j]['id'];
+                    deleteComment(csrfTokenValue, 'text', idText, text_id);
                 }
+                );
+
+                // add the delete button to the text
+                text.appendChild(deleteButton);
+
+                // add author
+                let authorArea = document.createElement('div');
+                let authorName = document.createElement('small');
+                authorName.className = 'text-muted';
+                authorName.innerHTML = data['version_texts'][i][j]['author'];
+                authorArea.appendChild(authorName);
+
+                // add authorArea to text
+                text.appendChild(authorArea);
+                // add the old text to the old files div
+                oldFiles.appendChild(text);
+
+
             }
-            // add the old files to the old files div
-            if (data['version_pdfs'][i] != undefined) {
+        }
+        // add the old files to the old files div
+        if (data['version_pdfs'][i] != undefined) {
             for (let j = 0; j < data['version_pdfs'][i].length; j++) {
                 // create a new div to display the old files and texts
                 let file = document.createElement('div');
@@ -1386,31 +1377,22 @@ function version_modal (data) {
                 oldFiles.appendChild(file);
             }
         }
-            // add the old files div to the old files div
-            oldFilesDiv.appendChild(oldFiles);
-            // add the old files div to the tab content
-            newTabContent.appendChild(oldFilesDiv);
-            }
-            
-            
-
-            
-            // append the text and file inputs to the form
-            newForm.appendChild(newTextInput);
-            newForm.appendChild(newFileInput);
-            // append the form to the tab content
-            newTabContent.appendChild(newForm);
-
-            // add this element to the modal
-            tabContent.appendChild(newTabContent);
+        // add the old files div to the old files div
+        oldFilesDiv.appendChild(oldFiles);
+        // add the old files div to the tab content
+        newTabContent.appendChild(oldFilesDiv);
         }
-        // add this element to the modal
-        versionNameElement.appendChild(tabContent);
+        // append the text and file inputs to the form
+        newForm.appendChild(newTextInput);
+        newForm.appendChild(newFileInput);
+        // append the form to the tab content
+        newTabContent.appendChild(newForm);
 
-    } else {
-        clusterInfo.className = 'alert alert-danger';
-        clusterInfo.innerHTML = 'Versions updated unsuccessfully';
+        // add this element to the modal
+        tabContent.appendChild(newTabContent);
     }
+    // add this element to the modal
+    versionNameElement.appendChild(tabContent);
 }
 
 // define a function to delete a comment
@@ -1485,7 +1467,7 @@ if(updateVersion) {
         const versionForm = document.getElementById('versionForm');
         const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
 
-        options = {
+        const options = {
             method: 'POST',
             headers: {
                 // 'Content-Type': 'application/json',
@@ -1550,7 +1532,7 @@ if (btnClusterV) {
         const versionForm = document.getElementById('versionForm');
         const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
 
-        options = {
+        const options = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1601,7 +1583,7 @@ if(resetClusterBtn) {
         const versionForm = document.getElementById('versionForm');
         const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
 
-        options = {
+        const options = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

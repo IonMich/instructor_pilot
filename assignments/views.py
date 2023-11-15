@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from courses.models import Course
-from submissions.cluster import (crop_and_ocr, crop_images_to_text,
+from submissions.cluster import (images_to_text,
                                  perform_dbscan_clustering,
                                  plot_clusters_dbscan, vectorize_texts)
 from submissions.forms import (StudentClassifyForm, SubmissionFilesUploadForm,
@@ -202,9 +202,8 @@ def version_view(request, course_pk, assignment_pk):
         for submission in submissions:
             submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=page)
             images.append(submission_image[0].image.path)
-
-        # use the crop_images_to_text function to get the text from the images
-        texts = crop_images_to_text(images)
+            
+        texts = images_to_text(images)
 
         # vectorize the text
         print("vectorizing texts")

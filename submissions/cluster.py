@@ -1,16 +1,17 @@
-import cv2
-import pytesseract
+
 import subprocess
 import io
-import pandas as pd
+from string import ascii_letters, digits
+
 import numpy as np
+import pandas as pd
+
+import cv2
+import pytesseract
 
 from sklearn.cluster import KMeans
 from sklearn.cluster import DBSCAN
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import PCA
-
-from django.conf import settings
 
 
 def crop_and_ocr(image_path):
@@ -38,9 +39,9 @@ def crop_and_ocr(image_path):
     return text
 
 
-def crop_images_to_text(image_paths):
+def images_to_text(image_paths):
     """
-    Crop the images inside a folder, use OCR to extract the text and save the texts in a list
+    Use OCR to extract the text and save the texts in a list
     Input:
         image_list : list of paths to the images
     Output:
@@ -48,31 +49,37 @@ def crop_images_to_text(image_paths):
         counts: list of number of images in each version
     """    
     print(f"Extracting text from {len(image_paths)} images. This may take a while...")
-
+    
+    char_set = ascii_letters + digits + ' '
     text_tsv = subprocess.run(
-        ['tesseract', '-', '-', 'tsv', '--dpi', '150', '--psm', '1',],
+        [
+            'tesseract', 
+            '-', '-', # stdin/stdout
+            'tsv', 
+            '--dpi', '150',
+            '-c', f'tessedit_char_whitelist={char_set}',
+        ],
         input="\n".join(image_paths),
         capture_output=True, 
         text=True,
     )
-    # convert to a dataframe
-    
-    print(text_tsv.stdout)
+
     df = pd.read_csv(
         io.StringIO(text_tsv.stdout), 
         sep='\t',
+        quotechar='"',
         engine='python',
         keep_default_na=False,
-        on_bad_lines='skip',
     )
 
-    df = df[df.conf > 10]
-    df = df[df.text != '']
-    df = df[df.text != ' ']
+    # keep only the text with confidence > 70
+    df = df[df.conf > 70]
+    # remove empty texts
+    df = df[(df.text != '') & (df.text != ' ')]
+    # convert the page_num from 1-indexed to 0-indexed
     if df.page_num.max() > 0 and df.page_num.min() > 0:
         df.page_num = df.page_num - 1
-    print(df.head())
-    print(df.tail())
+
     texts_grouped = df[['text','page_num']].groupby('page_num')
     texts_grouped = texts_grouped.agg({'text': ' '.join})["text"]
     texts = []
@@ -81,7 +88,6 @@ def crop_images_to_text(image_paths):
             texts.append(texts_grouped[i])
         else:
             texts.append("")
-    print(texts)
     return texts
 
 
@@ -93,7 +99,6 @@ def vectorize_texts(texts):
     Output:
         X: vectorized texts
     """
-    # vectorize the text
     vectorizer = TfidfVectorizer(
         max_df=1.0,
         min_df=0.1,
@@ -111,16 +116,14 @@ def perform_dbscan_clustering(X):
         Output:
         cluster_labels: labels of the clusters
     """
-    # perform DBSCAN clustering
     dbscan = DBSCAN(eps=0.5, min_samples=2)
     dbscan.fit(X)
-
-    # Get the cluster labels for each image
+    
     cluster_labels = dbscan.labels_
 
     return dbscan, cluster_labels
 
-def plot_clusters_dbscan(X, cluster_labels, dbscan):
+def plot_clusters_dbscan(X, cluster_labels):
     """
     Plot the clusters
     Input:
@@ -128,6 +131,7 @@ def plot_clusters_dbscan(X, cluster_labels, dbscan):
         cluster_labels: labels of the clusters
     """
     import matplotlib.pyplot as plt
+    from sklearn.decomposition import PCA
     # Reduce the dimensionality of the data using PCA
     pca = PCA(n_components=2)
     X_reduced = pca.fit_transform(X.toarray())
@@ -150,7 +154,7 @@ def plot_clusters_dbscan(X, cluster_labels, dbscan):
 
     plt.title('Estimated number of clusters: %d' % len(unique_labels))
     # save the plot
-    plt.savefig(f'cluster_dbscan.png')
+    plt.savefig('cluster_dbscan.png')
 
 def perform_kmeans_clustering(X, num_of_clusters):
     """
@@ -179,6 +183,7 @@ def plot_clusters(X, cluster_labels, num_of_clusters, quiz_num, kmeans):
         num_of_clusters: number of clusters
     """
     import matplotlib.pyplot as plt
+    from sklearn.decomposition import PCA
     # Reduce the dimensionality of the data using PCA
     pca = PCA(n_components=2).fit(X.toarray())
     datapoint = pca.transform(X.toarray())
