@@ -1,9 +1,10 @@
-import os
 import cv2
 import pytesseract
-import multiprocessing
+import subprocess
+import io
+import pandas as pd
 import numpy as np
-# from pdf2image import convert_from_path
+
 from sklearn.cluster import KMeans
 from sklearn.cluster import DBSCAN
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -12,24 +13,7 @@ from sklearn.decomposition import PCA
 from django.conf import settings
 
 
-# def convert_pdf_to_image(pdf_path, version, quiz_num, dpi=150):
-#     """Convert pdf to image using pdf2image
-#     Input:
-#         pdf_path: path to pdf file
-#         dpi: dpi of the output image
-#     Output:
-#         num_of_images: number of images generated
-#     Note: 
-#         The output image will be saved inside the images folder
-#     """
-#     images = convert_from_path(pdf_path, dpi=dpi, output_folder='images/images'+str(quiz_num), fmt='ppm')
-#     # convert ppm to png
-#     num_of_images = len(images)
-#     for i in range(num_of_images):
-#         images[i].save('images/'+'images'+str(quiz_num)+'/'+'version_'+ str(version) +'page_' + str(i) + '.png', 'PNG')
-#     return num_of_images
-
-def crop_and_ocr(image):
+def crop_and_ocr(image_path):
     """
     Crop the image and extract the text using OCR
     Input:
@@ -37,6 +21,8 @@ def crop_and_ocr(image):
     Output:
         text: text extracted from the image
     """
+    # read the image
+    image = cv2.imread(image_path)
     # Get the height and width of the image
     height, width = image.shape[:2]
     # set the starting point of the cropping rectangle
@@ -52,7 +38,7 @@ def crop_and_ocr(image):
     return text
 
 
-def crop_images_to_text(image_list):
+def crop_images_to_text(image_paths):
     """
     Crop the images inside a folder, use OCR to extract the text and save the texts in a list
     Input:
@@ -60,28 +46,42 @@ def crop_images_to_text(image_list):
     Output:
         texts: list of texts extracted from the images
         counts: list of number of images in each version
-    """
-    # run over all the images in the folder
-    images = []
+    """    
+    print(f"Extracting text from {len(image_paths)} images. This may take a while...")
+
+    text_tsv = subprocess.run(
+        ['tesseract', '-', '-', 'tsv', '--dpi', '150', '--psm', '1',],
+        input="\n".join(image_paths),
+        capture_output=True, 
+        text=True,
+    )
+    # convert to a dataframe
+    
+    print(text_tsv.stdout)
+    df = pd.read_csv(
+        io.StringIO(text_tsv.stdout), 
+        sep='\t',
+        engine='python',
+        keep_default_na=False,
+        on_bad_lines='skip',
+    )
+
+    df = df[df.conf > 10]
+    df = df[df.text != '']
+    df = df[df.text != ' ']
+    if df.page_num.max() > 0 and df.page_num.min() > 0:
+        df.page_num = df.page_num - 1
+    print(df.head())
+    print(df.tail())
+    texts_grouped = df[['text','page_num']].groupby('page_num')
+    texts_grouped = texts_grouped.agg({'text': ' '.join})["text"]
     texts = []
-    print(f"Loading images...")
-    for path in image_list:
-        # if path is a string like '/media/submissions/course_1/assignment_2/img/submission-22-batch-1-page-3-195AFJGL.png'
-        # read the image from the path
-        image_url = os.path.join(settings.MEDIA_ROOT, path.removeprefix('/media/'))
-        # Read the image
-        image = cv2.imread(image_url)
-        # append the image to the list
-        images.append(image)
-    # for image in images:
-    #     text = crop_and_ocr(image)
-    #     texts.append(text)
-    # crop the image and extract the text using multiprocessing
-    print("Cropping images and extracting text...")
-    pool = multiprocessing.Pool()
-    texts = pool.map(crop_and_ocr, images)
-    pool.close()
-    pool.join()
+    for i in range(len(image_paths)):
+        if i in texts_grouped.index:
+            texts.append(texts_grouped[i])
+        else:
+            texts.append("")
+    print(texts)
     return texts
 
 
