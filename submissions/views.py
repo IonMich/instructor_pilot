@@ -2,6 +2,7 @@ import random
 from itertools import zip_longest
 
 import pandas as pd
+from django.apps import apps
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models.query_utils import Q
@@ -350,3 +351,98 @@ def submission_comment_modify_view(request, course_pk, assignment_pk, submission
             return JsonResponse({'message': 'failure'}, status=400)
     else:
         return JsonResponse({'message': 'failure'})
+    
+@login_required
+def api_submission_manual_version_view(request, submission_pk):
+    if request.method != 'POST':
+        return JsonResponse({
+            'message': 'This view only accepts POST requests',
+            'success': False,
+            'submission': submission_pk,
+            'version': None,
+        })
+    Version = apps.get_model('assignments', 'Version')
+    # get form data in request.body as json
+    import json
+    data = json.loads(request.body)
+    version_pk = data.get('version_id')
+    print(data)
+    try:
+        submission = PaperSubmission.objects.get(pk=submission_pk)
+    except PaperSubmission.DoesNotExist:
+        return JsonResponse({
+            'message': 'Submission does not exist',
+            'success': False,
+            'submission': submission_pk,
+            'version': None,
+        })
+    try:
+        version = Version.objects.get(
+            assignment=submission.assignment,
+            pk=version_pk,
+        )
+    except Version.DoesNotExist:
+        return JsonResponse({
+            'message': 'Version does not exist',
+            'success': False,
+            'submission': submission_pk,
+            'version': None,
+        })
+
+    # set the version of the submission
+    submission.version = version
+    submission.save()
+    # send a success message
+    assignment = submission.assignment
+    submissions = PaperSubmission.objects.filter(assignment=assignment)
+    submissions_serialized = []
+    for submission in submissions:
+        images_urls = submission.submissions_papersubmissionimage_related.all()
+        # .map(lambda x: (x.page, x.image.url))
+        images_urls = {image.page: image.image.url for image in images_urls}
+        submission_serialized = dict()
+        submission_serialized['id'] = submission.pk
+        submission_serialized['images'] = images_urls
+        if submission.version:
+            submission_serialized['version'] = dict()
+            submission_serialized['version']['id'] = submission.version.pk
+            submission_serialized['version']['name'] = submission.version.name
+        else:
+            submission_serialized['version'] = None
+        submissions_serialized.append(submission_serialized)
+    response = {
+        'message': 'Submission version updated',
+        'submissions': submissions_serialized,
+        'version': version.pk,
+        'success': True,
+    }
+    return JsonResponse(response)
+
+@login_required
+def api_submissions_list_view(request, assignment_pk):
+    """
+    This view returns a list of submissions for an assignment
+    """
+    # get the assignment object
+    assignment = get_object_or_404(Assignment, pk=assignment_pk)
+    # get the submissions for the assignment
+    submissions = PaperSubmission.objects.filter(assignment=assignment)
+    submissions_serialized = []
+    for submission in submissions:
+        images_urls = submission.submissions_papersubmissionimage_related.all()
+        # .map(lambda x: (x.page, x.image.url))
+        images_urls = {image.page: image.image.url for image in images_urls}
+        submission_serialized = dict()
+        submission_serialized['id'] = submission.pk
+        submission_serialized['images'] = images_urls
+        if submission.version:
+            submission_serialized['version'] = dict()
+            submission_serialized['version']['id'] = submission.version.pk
+            submission_serialized['version']['name'] = submission.version.name
+        else:
+            submission_serialized['version'] = None
+        submissions_serialized.append(submission_serialized)
+    return JsonResponse({
+        'message': 'success',
+        'submissions': submissions_serialized,
+    })
