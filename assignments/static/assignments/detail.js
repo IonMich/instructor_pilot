@@ -1042,7 +1042,6 @@ if (updateGradingSchemeButton) {
         const equalGrades = document.getElementById('equal_grades').checked;
         const maxGrades = document.getElementById('max_grades').value;
         const applyToAll = document.getElementById('apply_to_all').checked;
-        const assignmentId = document.getElementById('assignment_id').value;
         
         const courseId = JSON.parse(document.getElementById('course_id').textContent);
 
