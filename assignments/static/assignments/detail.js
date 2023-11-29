@@ -406,8 +406,6 @@ function createToastElement (message, message_type) {
     return toast;
 }
 
-
-
 function syncSubsFromCanvas(event) {
     event.preventDefault();
     // get parent form
@@ -498,7 +496,9 @@ function appendSuccessMsg(form, subs) {
             notSyncedCount++;
         }
     }
-    closeBtn = `<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+    const closeBtn = `<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+    let msg;
+    let msgType;
     if (notSyncedCount === 0) {
         msg = `All ${syncedCount} submissions have been synced from Canvas!`;
         msgType = "success";
@@ -511,10 +511,10 @@ function appendSuccessMsg(form, subs) {
     }
     // append "Reloading page..." to msg
     msg += ` Reloading page...`;
-    alertHtml = `<div class="alert alert-${msgType} alert-dismissible fade show mt-1" role="alert">
-                ${msg}
-                ${closeBtn}
-            </div>`;
+    const alertHtml = `<div class="alert alert-${msgType} alert-dismissible fade show mt-1" role="alert">
+            ${msg}
+            ${closeBtn}
+        </div>`;
     form.insertAdjacentHTML('beforeend', alertHtml);
 }
 
@@ -1508,8 +1508,9 @@ if(updateCropBtn) {
 
 async function handleUpdateCrop(event) {
     // get the crop box data
+    const rounded = true;
     const cropper = document.getElementById('cropDetails').querySelector('img').cropper;
-    const newData = cropper.getData(rounded=true);
+    const newData = cropper.getData(rounded);
     console.log(newData);
     // keep only the top, left, width and height
     // delete newData['rotate'];
