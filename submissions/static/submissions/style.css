@@ -205,9 +205,6 @@ animation-fill-mode: forwards;
     position: relative;
 }
 
-
-
-
 .search-bar__input {
     box-sizing: border-box;
     border: 3px solid #ccc;
@@ -224,7 +221,7 @@ animation-fill-mode: forwards;
     padding:  0 1.1em 0 1em;
     opacity: 0;
     cursor: pointer;
-    color:rgba(255, 255, 255, 0);
+    /* color:rgba(255, 255, 255, 0); */
 
     transition: 
         z-index var(--duration) ease-out,
@@ -241,7 +238,7 @@ animation-fill-mode: forwards;
     width: var(--toolbar-button-size);
     height: var(--toolbar-button-size);
     border-radius: 5px;
-    background-color: white;
+    /* background-color: var(--bs-body-color); */
     margin-left: auto;
     z-index: 2;
     transition: border-radius var(--duration) ease-in-out;
@@ -249,25 +246,12 @@ animation-fill-mode: forwards;
 
 .search-bar__button:hover {
     color: var(--bs-success);
-    background-color: #fff;
+    background-color: var(--bs-body-color);
 }
 
 .search-bar__button:active {
     color: var(--bs-success);
-    background-color: #fff;
-}
-
-.add-subs-button {
-    width: var(--toolbar-button-size);
-    height: var(--toolbar-button-size);
-    border-radius: 5px;
-}
-
-.delete-subs-button {
-    width: var(--toolbar-button-size);
-    height: var(--toolbar-button-size);
-    border-radius: 5px;
-    background-color: #fff;
+    background-color: var(--bs-body-color);
 }
 
 .search-bar__input:focus {
@@ -279,11 +263,11 @@ animation-fill-mode: forwards;
     border-color: rgba(53, 83, 47, 0.8);
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(49, 79, 44, 0.6);
     outline: 0 none;
-    color:rgba(0,0,0, 1);
+    /* color:rgba(0,0,0, 1); */
 }
 
 .search-bar__input:focus + .search-bar__button {
-    background-color: #fff;
+    background-color: var(--bs-body-color);
     border-radius: calc(var(--toolbar-button-size)/2);
 }
 
@@ -314,6 +298,19 @@ animation-fill-mode: forwards;
 .btn-canvas:hover, .btn-canvas:focus, .btn-canvas:active {
     border-color: black;
     background-color: rgb(255, 255, 255);
+}
+
+.add-subs-button {
+    width: var(--toolbar-button-size);
+    height: var(--toolbar-button-size);
+    border-radius: 5px;
+}
+
+.delete-subs-button {
+    width: var(--toolbar-button-size);
+    height: var(--toolbar-button-size);
+    border-radius: 5px;
+    background-color: #fff;
 }
 
 .draggable-saved-comment {
