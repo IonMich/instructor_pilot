@@ -5,7 +5,9 @@ from .views import (home_view, redirect_to_next, redirect_to_previous,
                     submission_comment_modify_view, submission_delete_all_view,
                     submission_delete_view, submission_detail_view,
                     api_submission_patch_view,
-                    submission_list_view)
+                    api_submission_manual_version_view,
+                    api_submissions_list_view,
+                    )
 
 app_name = 'submissions'
 
@@ -21,4 +23,6 @@ urlpatterns = [
     path('assignments/<assignment_pk>/submissions/<submission_pk>/', api_submission_patch_view, name='api-submission-patch'),
     path('courses/<course_pk>/assignments/<assignment_pk>/submissions/<submission_pk>/comments/<comment_pk>/delete/', submission_comment_delete_view, name='delete-comment'),
     path('courses/<course_pk>/assignments/<assignment_pk>/submissions/<submission_pk>/comments/<comment_pk>/modify/', submission_comment_modify_view, name='modify-comment'),
+    path('submissions/<submission_pk>/version/', api_submission_manual_version_view, name='manual-version'),
+    path('assignments/<assignment_pk>/submissions/', api_submissions_list_view, name='api-submissions-list'),
 ]

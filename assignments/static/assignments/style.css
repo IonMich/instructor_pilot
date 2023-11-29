@@ -65,3 +65,19 @@
     display: block;
     max-width: 100%;
 }
+
+.versionContentElements ~ .carousel-control-prev[disabled] > .carousel-control-prev-icon {
+    display: none;
+}
+
+.versionContentElements ~ .carousel-control-prev > .carousel-control-prev-icon {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.versionContentElements ~ .carousel-control-next[disabled] > .carousel-control-next-icon {
+    display: none;
+}
+
+.versionContentElements ~ .carousel-control-next > .carousel-control-next-icon {
+    background-color: rgba(0, 0, 0, 0.5);
+}

@@ -558,7 +558,7 @@ def get_all_ufids(digit_imgs, df_ids, model, len_subs):
     df_digits.to_csv("inference_digits.csv", index=False)
     try:
         del sess
-    except:
+    except Exception:
         pass
     return df_digits
 

@@ -1,3 +1,8 @@
+import { 
+    render_version_modal,
+    getVersionsFromSubmissions,
+} from './renderVersionModal.js';
+
 (function () {
     'use strict'
   
@@ -128,21 +133,22 @@ async function getIdentifyPages() {
     return identifyPages;
 }
 
+const courseId = JSON.parse(document.getElementById('course_id').textContent);
+const assignmentId = JSON.parse(document.getElementById('assignment_id').textContent);
+
 // function to set grade inputs step size from checked_pages
 async function initializeCheckedPages() {
     let checked_pages = await getIdentifyPages();
     console.log("checked_pages", checked_pages);
-    const course_id = document.getElementById('course_num').value;
-    const assignment_id = document.getElementById('assignment_num').value;
-    console.log("course_id", course_id, "assignment_id", assignment_id);
+    console.log("course_id", courseId, "assignment_id", assignmentId);
     let checkedPages;
     let default_type;
-    if (checked_pages && checked_pages[course_id] && checked_pages[course_id][assignment_id]) {
-        checkedPages = checked_pages[course_id][assignment_id];
+    if (checked_pages && checked_pages[courseId] && checked_pages[courseId][assignmentId]) {
+        checkedPages = checked_pages[courseId][assignmentId];
         default_type = null;
     } else {
-        if (checked_pages && checked_pages[course_id] && checked_pages[course_id]["default"]) {
-            checkedPages = checked_pages[course_id]["default"];
+        if (checked_pages && checked_pages[courseId] && checked_pages[courseId]["default"]) {
+            checkedPages = checked_pages[courseId]["default"];
             default_type = "course";
         } else if (checked_pages && checked_pages["default"]) {
             checkedPages = checked_pages["default"];
@@ -540,7 +546,7 @@ if (selectSyncOption) {
 // on hover of a submission card, show delete button at top right
 // on click of delete button, show confirmation modal
 // the button has an attribute data-pk which is the primary key of the submission
-btnDeleteSub = document.querySelectorAll('.btn-delete-sub');
+const btnDeleteSub = document.querySelectorAll('.btn-delete-sub');
 for (const btn of btnDeleteSub) {
     btn.addEventListener('click', function(event) {
         event.preventDefault();
@@ -870,13 +876,13 @@ if (chart) {
 
     var bins = histGenerator(all_grades);
     console.log(bins);
-    x_axis = []
-    y_axis = []
+    const x_axis = []
+    const y_axis = []
     for (var i = 0; i < bins.length; i++) {
         x_axis.push(bins[i].x0)
         y_axis.push(bins[i].length)
     }
-    data = {
+    const data = {
         labels: x_axis,
         datasets: [{
             label: 'Submission Grades',
@@ -1052,7 +1058,7 @@ if (updateGradingSchemeButton) {
         const gradingSchemeForm = document.getElementById('gradingSchemeForm');
         const csrfToken = gradingSchemeForm.querySelector("input[name='csrfmiddlewaretoken']").value;
 
-        options = {
+        const options = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1078,33 +1084,26 @@ if (updateGradingSchemeButton) {
     });
 }
 
-
 // Clustering/versioning changes made here
-const versionButton = document.getElementById('btnCluster');
-let numVersions;
+const versionButton = document.getElementById('initiateVersioningBtn');
 if(versionButton) {
-    versionButton.addEventListener('click', function(event) {
+    versionButton.addEventListener('click', async (event) => {
         // change the button text to a spinner
+        // store the original text of the button
+        const buttonText = versionButton.textContent;
         versionButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Versioning...';
         // disable the button
         versionButton.disabled = true;
-        
-        // get the assignment id
-        const assignmentId = document.getElementById('assignment_num').value;
-        // courseId = JSON.parse(document.getElementById('course_id').textContent);
-        // get the course id
-        const courseId = document.getElementById('course_num').value;
-        
 
-        const url = '/courses/' + courseId + '/assignments/' + assignmentId + '/version/';
+        const url = `/courses/${courseId}/assignments/${assignmentId}/version/`
         const data = {
             assignment_id: assignmentId
         };
 
-        const versionForm = document.getElementById('versionForm');
+        const versionForm = document.getElementById('initiateVersioningForm');
         const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
 
-        options = {
+        const options = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1113,502 +1112,134 @@ if(versionButton) {
             },
             body: JSON.stringify(data)
         };
-
-        fetch(url, options)
-        .then(response => response.json())
-        .then(data => {
-            console.log(data); 
+        try {
+            const response = await fetch(url, options)
+            const data = await response.json();
             // call the function to display the message
-            version_modal(data);
-            // // change the button text back to "Cluster"
-            // versionButton.innerHTML = `Update Versions <i class="bi bi-box-arrow-up-right"></i>`;
-            // // enable the button
-            // versionButton.disabled = false; 
-            // remove the button and replace it with another button with id "btnClusterV"
-            let btnCluster = document.getElementById('btnCluster');
-            // make another button with id "btnClusterV"
-            const btnClusterV = document.createElement('button');
-            btnClusterV.className = 'btn btn-primary';
-            btnClusterV.id = 'btnClusterV';
-            btnClusterV.innerHTML = 'Update Versions <i class="bi bi-box-arrow-up-right"></i>';
-            // replace btnCluster with btnClusterV
-            btnCluster.replaceWith(btnClusterV);
-            // add event listener to the new button
-            btnClusterV.addEventListener('click', function(event) {
-                // do not reload the page
-                event.preventDefault();
-                version_modal(data);
-            });
-            
+            render_version_modal(data["submissions"], [], [], 0);
+            console.log(data);
+        } catch (error) {
+            console.log(error);
         }
-        
-        );
+        versionButton.innerHTML = buttonText;
+        versionButton.disabled = false;
     });
 }
 
-// add a function to build a modal for the versioning
-function version_modal (data) {
-    let modal = document.getElementById('clusterModal');
-    $(modal).modal('show');
-    // get the modal body
-    let clusterInfo = document.getElementById('clusterInfo');
-    // change the modal body to display the data from response
-    if (data['message'] == 'success') {
-        // get the number of versions and make it global
-        numVersions = data['cluster_types'];
-
-        const outliers = data['outliers'];
-        if (outliers == 0) {
-            clusterInfo.className = 'alert alert-success';
-            clusterInfo.innerHTML = numVersions + ' different Versions found.';
-        }
-        else {
-            clusterInfo.className = 'alert alert-warning';
-            clusterInfo.innerHTML = numVersions + ' different Versions and ' + outliers + ' Outliers found.';
-        }
-
-        // display the content of the versions
-        let versionNameElement = document.getElementById('versionDetails');
-        // remove the previous content
-        versionNameElement.innerHTML = '';
-        // add margin to the modal body
-        versionNameElement.style.margin = '8px 8px 8px 8px';
-
-        //create a ul element with a class name of "list-group"
-        let ul = document.createElement('ul');
-        ul.className = 'nav nav-pills mb-3';
-        ul.id = 'pills-tab';
-        ul.role = 'tablist';
-        // add this element to the modal
-        versionNameElement.appendChild(ul);
-        // create a new element to display the version name inside the modal using a for loop
-        for (let i = 1; i <= numVersions; i++) {
-            let newVersionNameElement = document.createElement('li');
-            newVersionNameElement.className = 'nav-item';
-            newVersionNameElement.id = 'pills-home-tab+' + i;
-            newVersionNameElement.role = 'presentation';
-            // create a button element to display the version name
-            let newVersionNameButton = document.createElement('button');
-            newVersionNameButton.className = 'nav-link';
-            newVersionNameButton.id = 'pills-home-tab' + i;
-            newVersionNameButton.setAttribute('data-bs-toggle', 'pill');
-            newVersionNameButton.setAttribute('data-bs-target', '#pills-home' + i);
-            newVersionNameButton.setAttribute('role', 'tab');
-            newVersionNameButton.setAttribute('aria-controls', 'pills-home' + i);
-            newVersionNameButton.setAttribute('aria-selected', 'true');
-            newVersionNameButton.innerHTML = 'Version ' + i;
-            // add a class to the first button
-            if (i == 1) {
-                newVersionNameButton.classList.add('active');
-            }
-            // add the button to the new element
-            newVersionNameElement.appendChild(newVersionNameButton);
-
-            // add this element to the modal
-            ul.appendChild(newVersionNameElement);
-        }
-        // create a new div to display the tab contents using a for loop
-        let tabContent = document.createElement('div');
-        tabContent.className = 'tab-content';
-        tabContent.id = 'pills-tabContent';
-        // create a new div to display the tab contents using a for loop
-        for (let i = 1; i <= numVersions; i++) {
-            let newTabContent = document.createElement('div');
-            newTabContent.className = 'tab-pane fade';
-            newTabContent.id = 'pills-home' + i;
-            newTabContent.setAttribute('role', 'tabpanel');
-            newTabContent.setAttribute('aria-labelledby', 'pills-home-tab' + i);
-            // show the first tab content by default
-            if (i == 1) {
-                newTabContent.classList.add('show');
-                newTabContent.classList.add('active');
-            }
-            // add a field to display an image
-            let newImage = document.createElement('img');
-            newImage.className = 'img-fluid';
-            newImage.src = data['cluster_images'][i-1];
-            newImage.alt = 'Version ' + i + ' image';
-            // add some style to the newImage
-            newImage.style = 'width: 460px; height: 250px; object-fit: cover; object-position: top; border: 3px solid #ddd; border-radius: 16px; margin: 8px;';
-            // add the image to the tab content
-            newTabContent.appendChild(newImage);
-
-            
-            // add a form to the tab content
-            let newForm = document.createElement('form');
-            // make this form a multipart form
-            newForm.enctype = 'multipart/form-data';
-            newForm.id = 'versionForm' + i;
-            newForm.className = 'form-inline';
-            // add csrf token to the form
-            let csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = 'csrfmiddlewaretoken';
-            csrfToken.value = '{{ csrf_token }}';
-
-            const csrfTokenValue = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            
-            // add this token to the form
-            newForm.appendChild(csrfToken);
-
-            // add a label to the form
-            let newLabel = document.createElement('label');
-            newLabel.className = 'form-label labels';
-            newLabel.for = 'versionName' + i;
-            newLabel.innerHTML = 'New Version Comment: ';
-            // add the label to the form
-            newForm.appendChild(newLabel);
-
-            // add a text input to the form
-            let newTextInput = document.createElement('textarea');
-            // newTextInput.type = 'text';
-            newTextInput.className = 'form-control mb-2 mr-sm-2';
-            newTextInput.id = 'versionName' + i;
-            newTextInput.placeholder = 'Enter new text comment here';
-            newTextInput.name = 'versionText' + i;
-            // add a file input to the form
-            let newFileInput = document.createElement('input');
-            newFileInput.type = 'file';
-            newFileInput.className = 'form-control mb-2 mr-sm-2';
-            newFileInput.id = 'versionFile' + i;
-            newFileInput.placeholder = 'Version File';
-            newFileInput.name = 'versionFile' + i;
-            // set multiple attribute to true
-            newFileInput.multiple = true;
-
-            // do the following only if the version is not the old one
-            if (data['new_version'] == 'false') {
-                console.log('new version is false')
-
-            // add a div to display the old files and texts
-            let oldFilesDiv = document.createElement('div');
-            oldFilesDiv.className = 'form-group oldFiles';
-            oldFilesDiv.id = 'oldFilesDiv' + i;
-            // add a label to the old files div
-            let oldFilesLabel = document.createElement('label');
-            oldFilesLabel.innerHTML = 'Old Version Comments: ';
-            oldFilesLabel.className = 'form-label labels';
-            oldFilesLabel.for = 'oldFilesDiv' + i;
-            // add the label to the old files div
-            oldFilesDiv.appendChild(oldFilesLabel);
-            // add a div to display the old files and texts
-            let oldFiles = document.createElement('div');
-            oldFiles.className = 'form-group';
-            oldFiles.id = 'oldFiles' + i;
-            // if there are no old files/texts, add display none to the old files div
-            if ((data['version_texts'][i] == undefined) && (data['version_pdfs'][i] == undefined)) {
-                oldFilesDiv.style = 'display: none;';
-            }
-            // check if data['version_texts'][i] is not empty
-            if (data['version_texts'][i] != undefined) {
-                for (let j = 0; j < data['version_texts'][i].length; j++) {
-                    // create a new div to display the old files and texts
-                    let text = document.createElement('div');
-                    text.className = 'form-group';
-                    text.id = 'oldText' + i + j;
-                    text.innerHTML = data['version_texts'][i][j]['text'];
-
-                    // create a new button to delete the old files and texts
-                    let deleteButton = document.createElement('button');
-                    deleteButton.className = 'btn btn-outline-danger';
-                    deleteButton.id = 'deleteButtonText' + i + j;
-                    deleteButton.innerHTML = '<i class="bi bi-trash"></i>';
-                    // make its size smaller
-                    deleteButton.style = 'font-size: 12px; padding: 0px 4px; margin-left: 8px; border-radius: 4px;';
-                    deleteButton.addEventListener('click', function() {
-                        idText = 'oldText' + i + j;
-                        text_id = data['version_texts'][i][j]['id'];
-                        deleteComment(csrfTokenValue, 'text', idText, text_id);
-                    }
-                    );
-
-                    // add the delete button to the text
-                    text.appendChild(deleteButton);
-
-                    // add author
-                    let authorArea = document.createElement('div');
-                    let authorName = document.createElement('small');
-                    authorName.className = 'text-muted';
-                    authorName.innerHTML = data['version_texts'][i][j]['author'];
-                    authorArea.appendChild(authorName);
-
-                    // add authorArea to text
-                    text.appendChild(authorArea);
-                    // add the old text to the old files div
-                    oldFiles.appendChild(text);
-
-
-                }
-            }
-            // add the old files to the old files div
-            if (data['version_pdfs'][i] != undefined) {
-            for (let j = 0; j < data['version_pdfs'][i].length; j++) {
-                // create a new div to display the old files and texts
-                let file = document.createElement('div');
-                file.className = 'form-group';
-                file.id = 'oldFile' + i + j;
-                // create a new link to display the old files and texts
-                let fileLink = document.createElement('a');
-                fileLink.href = data['version_pdfs'][i][j]['url'];
-                fileLink.innerHTML = data['version_pdfs'][i][j]['name'];
-                // create a new button to delete the old files and texts
-                let deleteButton = document.createElement('button');
-                deleteButton.className = 'btn btn-outline-danger';
-                deleteButton.id = 'deleteButtonFile' + i + j;
-                deleteButton.innerHTML = '<i class="bi bi-trash"></i>';
-                
-
-                // make its size smaller
-                deleteButton.style = 'font-size: 12px; padding: 0px 4px; margin-left: 8px; border-radius: 4px;';
-                // add an event listener to the delete button
-                deleteButton.addEventListener('click', function() {
-                    idFile = 'oldFile' + i + j;
-                    pdf_id = data['version_pdfs'][i][j]['id'];
-                    deleteComment(csrfTokenValue, 'pdf', idFile, pdf_id);
-                }
-                );
-                
-                // add the author name
-                let authorArea = document.createElement('div');
-                let authorName = document.createElement('small');
-                authorName.className = 'text-muted';
-                authorName.innerHTML = data['version_pdfs'][i][j]['author'];
-                // add author name to the author area
-                authorArea.appendChild(authorName);
-                
-                
-
-                // add the old file to the old files div
-                file.appendChild(fileLink);
-                // add the delete button to the file link
-                file.appendChild(deleteButton);
-                file.appendChild(authorArea);
-                oldFiles.appendChild(file);
+const saveVersionCommentsBtn = document.getElementById('updateClusterBtn');
+if(saveVersionCommentsBtn) {
+    saveVersionCommentsBtn.addEventListener('click', async (event) => {
+        const url = `/assignments/${assignmentId}/versioncomments/`
+        const versionCommentsForm = document.getElementById('newVersionCommentsForm');
+        const formData = new FormData(versionCommentsForm);
+        console.log([...formData.entries()]);
+        formData.delete('csrfmiddlewaretoken');
+        
+        for (const [key, value] of Array.from(formData.entries())) {
+            console.log(key, value);
+            // remove files of size 0 and empty strings
+            if (value instanceof File && value.size == 0) {
+                formData.delete(key);
+                console.log([...formData.entries()]);
+            } else if (value == "") {
+                formData.delete(key);
             }
         }
-            // add the old files div to the old files div
-            oldFilesDiv.appendChild(oldFiles);
-            // add the old files div to the tab content
-            newTabContent.appendChild(oldFilesDiv);
-            }
-            
-            
+        
+        console.log([...formData.entries()]);
 
-            
-            // append the text and file inputs to the form
-            newForm.appendChild(newTextInput);
-            newForm.appendChild(newFileInput);
-            // append the form to the tab content
-            newTabContent.appendChild(newForm);
-
-            // add this element to the modal
-            tabContent.appendChild(newTabContent);
-        }
-        // add this element to the modal
-        versionNameElement.appendChild(tabContent);
-
-    } else {
-        clusterInfo.className = 'alert alert-danger';
-        clusterInfo.innerHTML = 'Versions updated unsuccessfully';
-    }
-}
-
-// define a function to delete a comment
-function deleteComment(token, type, divId, versionId) {
-    // get the assignment id
-    const assignmentId = document.getElementById('assignment_num').value;
-    // get the course id
-    const courseId = document.getElementById('course_num').value;
-    // make a data
-    const data = {
-        'assignment_id': assignmentId,
-        'course_id': courseId,
-        'comment_id': versionId,
-        'comment_type': type
-    }
-    console.log(data)
-    
-    // make a request to delete the comment
-    fetch('/courses/' + courseId + '/assignments/' + assignmentId + '/deletecomment/', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': token,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data['message'] == 'success') {
-        // delete the comment
-        let comment = document.getElementById(divId);
-        comment.remove();
-        } else {
-        console.log('error')
-        }
-    })
-}
-
-const updateVersion = document.getElementById('updateClusterBtn');
-if(updateVersion) {
-    updateVersion.addEventListener('click', function(event) {
-        // close the modal
-        let modal = document.getElementById('clusterModal');
-        $(modal).modal('hide');
-        console.log('update version button clicked')
-        // get the number of versions
-
-
-        // get the assignment id
-        const assignmentId = document.getElementById('assignment_num').value;
-        // courseId = JSON.parse(document.getElementById('course_id').textContent);
-        // get the course id
-        const courseId = document.getElementById('course_num').value;     
-
-        const url = '/courses/' + courseId + '/assignments/' + assignmentId + '/versionsubmission/';
-
-        const formData = new FormData();
-        formData.append('assignment_id', assignmentId);
-        formData.append('course_id', courseId);
-        for (let i = 0; i < numVersions; i++) {
-            formData.append('versionTexts', document.getElementById('versionName' + (i+1)).value);
-            // add a formdata object to the formdata object with name versionFiles1, versionFiles2, etc.
-            // formData.append('versionFiles' + (i+1), document.getElementById('versionFile' + (i+1)).files[0]);
-            //NOTE: Supports only one file per version
-            // add multiple files to the formdata object
-            for (let j = 0; j < document.getElementById('versionFile' + (i+1)).files.length; j++) {
-                 formData.append('versionFiles' + (i+1), document.getElementById('versionFile' + (i+1)).files[j]);
-             }
-
-        }
-
-        const versionForm = document.getElementById('versionForm');
-        const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
-
-        options = {
+        const csrfToken = versionCommentsForm.querySelector("input[name='csrfmiddlewaretoken']").value;
+        const options = {
             method: 'POST',
             headers: {
                 // 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
-                
             },
-            // body: JSON.stringify(data)
             body: formData
         };
-
-        fetch(url, options)
-        .then(response => response.json())
-        .then(data => {
-            console.log(data);
-            // if the message is success
-            if (data['message'] == 'success') {
-                // display the success message in the div with id clusterMessage
-                let clusterMessage = document.getElementById('clusterMessage');
-                clusterMessage.className = 'alert alert-success';
-                clusterMessage.innerHTML = 'Version comments added successfully.';
-
-            }
-            // if the message is failure
-            else {
-                // display the failure message in the div with id clusterMessage
-                let clusterMessage = document.getElementById('clusterMessage');
-                clusterMessage.className = 'alert alert-danger';
-                clusterMessage.innerHTML = 'Version comments could not be added.';
-            }
-        })
-        .catch(error => {
-            console.log(error);
-        });
+    try {
+        const response = await fetch(url, options)
+        const data = await response.json();
+        console.log(data);
+        if (data["success"]) {
+            const modal = document.getElementById('clusterModal');
+            $(modal).modal('hide');
+        } else {
+            console.log("error");
+        }
+    } catch (error) {
+        console.log(error);
+    }
 
     });
 }
 
 // add an event listener to update version button
-const btnClusterV = document.getElementById('btnClusterV');
-if (btnClusterV) {
-    btnClusterV.addEventListener('click', function(event) {
-        // stop the default action of the button
-        event.preventDefault();
+const versioningModal = document.getElementById('clusterModal');
+if (versioningModal) {
+    versioningModal.addEventListener('show.bs.modal', async (event) => {
+        console.log('versioning modal shown');
+        const url = `/assignments/${assignmentId}/versions/`
 
-        // change the button text to a spinner
-        btnClusterV.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
-        // disable the button
-        btnClusterV.disabled = true;
-        
-        // get the assignment id
-        const assignmentId = document.getElementById('assignment_num').value;
-        // courseId = JSON.parse(document.getElementById('course_id').textContent);
-        // get the course id
-        const courseId = document.getElementById('course_num').value;
-        
-
-        const url = '/courses/' + courseId + '/assignments/' + assignmentId + '/versionchange/';
-        const data = {
-            assignment_id: assignmentId
-        };
-
-        const versionForm = document.getElementById('versionForm');
-        const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
-
-        options = {
-            method: 'POST',
+        const options = {
+            method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                
             },
-            body: JSON.stringify(data)
         };
-
-        fetch(url, options)
-        .then(response => response.json())
-        .then(data => {
+        let data;
+        try {
+            const response = await fetch(url, options)
+            data = await response.json();
             console.log(data);
-            // run the function to update the modal
-            version_modal(data);
-            // change the button text back to the original text
-            btnClusterV.innerHTML = 'Update Versions <i class="bi bi-box-arrow-up-right"></i>';
-            // enable the button
-            btnClusterV.disabled = false;
-
-
-        });
-
+        } catch (error) {
+            console.log(error);
+        }
+        if (data["success"]) {
+            const versions = getVersionsFromSubmissions(data["submissions"]);
+            if (versions.length > 0) {
+                render_version_modal(
+                    data["submissions"],
+                    data["version_texts"], 
+                    data["version_pdfs"],
+                );
+            } else {
+                console.log("No submissions are versioned");
+                // set clusterModalFooter d-none
+                const clusterModalFooter = document.getElementById('clusterModalFooter');
+                clusterModalFooter.classList.add('d-none');
+                // remove initiateVersioningDiv d-none
+                const initiateVersioningDiv = document.getElementById('initiateVersioningDiv');
+                initiateVersioningDiv.classList.remove('d-none');
+                // set versionsDetails innerHTML to ""
+                const versionsDetails = document.getElementById('versionsDetails');
+                versionsDetails.innerHTML = "";
+            }
+        } else {
+            console.log("error");
+        }
     });
-
 }
+
 
 const resetClusterBtn = document.getElementById('resetClusterBtn');
 if(resetClusterBtn) {
-    resetClusterBtn.addEventListener('click', function(event) {
+    resetClusterBtn.addEventListener('click', (event) => {
         // close the modal
         let modal = document.getElementById('clusterModal');
         $(modal).modal('hide');
         console.log('reset cluster button clicked')
-        // get the assignment id
-        const assignmentId = document.getElementById('assignment_num').value;
-        // courseId = JSON.parse(document.getElementById('course_id').textContent);
-        // get the course id
-        const courseId = document.getElementById('course_num').value;     
+            
+        const url = `/assignments/${assignmentId}/versionreset/`
 
-        const url = '/courses/' + courseId + '/assignments/' + assignmentId + '/versionreset/';
+        const csrfToken = document.querySelector("input[name='csrfmiddlewaretoken']").value;
 
-        const data = {
-            'assignment_id': assignmentId,
-            'course_id': courseId
-        };
-
-        const versionForm = document.getElementById('versionForm');
-        const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
-
-        options = {
+        const options = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
-                
             },
-            body: JSON.stringify(data)
         };
 
         fetch(url, options)
@@ -1616,21 +1247,11 @@ if(resetClusterBtn) {
         .then(data => {
             console.log(data);
             // if the message is success
-            if (data['message'] == 'success') {
-                // display the success message in the div with id clusterMessage
-                let clusterMessage = document.getElementById('clusterMessage');
-                clusterMessage.className = 'alert alert-success';
-                clusterMessage.innerHTML = 'Cluster reset successfully.';
-                // reload the entire page
-                location.reload();
-
-            }
-            // if the message is failure
-            else {
-                // display the failure message in the div with id clusterMessage
-                let clusterMessage = document.getElementById('clusterMessage');
-                clusterMessage.className = 'alert alert-danger';
-                clusterMessage.innerHTML = 'Cluster reset unsuccessfully.';
+            if (data['success']) {
+                const modal = document.getElementById('clusterModal');
+                $(modal).modal('hide');
+            } else {
+                console.log('Error while resetting versions');
             }
         });
 
@@ -1646,11 +1267,6 @@ if(btnDefaultIdentifyPages) {
 async function handleDefaultIdentifyPages(event) {
     // stop the default action of the button
     event.preventDefault();
-
-    // get the assignment id
-    const assignmentId = document.getElementById('assignment_num').value;
-    // get the course id
-    const courseId = document.getElementById('course_num').value;
 
     const identifyForm = document.getElementById('identifyStudentsForm');
     const csrfToken = identifyForm.querySelector("input[name='csrfmiddlewaretoken']").value;

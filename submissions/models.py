@@ -2,6 +2,7 @@ import os
 import random
 import string
 import uuid
+from multiprocessing import Pool, cpu_count, set_start_method
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -22,7 +23,19 @@ from submissions.utils import (CommaSeparatedFloatField, convert_pdf_to_images,
                                submission_image_upload_to,
                                submission_upload_to)
 
-# Create your models here.
+
+def convert_pdf_to_images_multi(i, cpu, submissions_pdfs, dpi, top_percent, left_percent, crop_box, skip_pages):
+    images = []
+    segment_size = len(submissions_pdfs) // cpu
+    start = i * segment_size
+    end = (i + 1) * segment_size
+    if i == cpu - 1:
+        end = len(submissions_pdfs)
+    print(f"Process {i}: {start} to {end-1}")
+    for j in range(start, end):
+        images.append(convert_pdf_to_images(submissions_pdfs[j], dpi, top_percent, left_percent, crop_box, skip_pages))
+
+    return images
 
 class Submission(models.Model):
     id = models.UUIDField(
@@ -251,13 +264,48 @@ class PaperSubmission(Submission):
         images = []
         image_sub_pks = []
         for submission in submissions:
-            images.append(convert_pdf_to_images(submission.pdf.path, dpi, top_percent, left_percent, crop_box, skip_pages))
-            image_sub_pks.append([submission.pk for i in range(len(images[-1]))])
+            new_images = convert_pdf_to_images(submission.pdf.path, dpi, top_percent, left_percent, crop_box, skip_pages)
+            images.append(new_images)
+            image_sub_pks.append([submission.pk for i in range(len(new_images))])
         return images, image_sub_pks
     
+    # from line_profiler import LineProfiler
+    # import atexit
+    # profile = LineProfiler()
+    # atexit.register(profile.print_stats)
+
+    # @profile
+    @classmethod
+    def get_images_for_classify_multi(cls, assignment, dpi, top_percent=0.25, left_percent=0.5, crop_box=None, skip_pages=(0,1,3)):
+        
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+
+        try:
+            #TODO: verify that this is ok on all platforms
+            set_start_method('fork')
+        except RuntimeError:
+            pass
+        cpu = cpu_count()
+        submissions_pdfs = [sub.pdf.path for sub in submissions]
+        vectors = [(i, cpu, submissions_pdfs, dpi, top_percent, left_percent, crop_box, skip_pages) for i in range(cpu)]
+        print("Starting %i processes for %i subs..." % (cpu, len(submissions)))
+        pool = Pool()
+        results = pool.starmap(convert_pdf_to_images_multi, vectors)
+        pool.close()
+        pool.join()
+        print("Done")
+
+        images = []
+        for result in results:
+            images.extend(result)
+
+        len_images = [len(imgs) for imgs in images]
+        image_sub_pks = [[sub.pk for i in range(len_imgs_sub)] for sub, len_imgs_sub in zip(submissions, len_images)]
+
+        return images, image_sub_pks
+
     def get_num_pages(self):
         return PaperSubmissionImage.objects.filter(submission=self).count()
-
 
     @classmethod
     def add_papersubmissions_to_db(cls,
@@ -348,13 +396,15 @@ class PaperSubmission(Submission):
         """
         DETECTION_PROB_D = 1E-5
         model_path_onnx = os.path.join(settings.MEDIA_ROOT, "classify/digits_model.onnx")
-        all_imgs, all_sub_pks = PaperSubmission.get_images_for_classify(
+        print("Retrieving images for classification...", end="", flush=True)
+        all_imgs, all_sub_pks = PaperSubmission.get_images_for_classify_multi(
             assignment,
             dpi=dpi,
             top_percent=top_percent,
             left_percent=left_percent,
             crop_box=crop_box,
             skip_pages=skip_pages)
+        print("\tDONE")
         df_ids = import_students_from_db(assignment.course)
         if len(df_ids) == 0:
             raise ValueError("No students with valid IDs found in the database.")

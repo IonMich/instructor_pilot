@@ -1,35 +1,20 @@
-import os
+
+import subprocess
+import io
+from string import ascii_letters, digits
+
+import numpy as np
+import pandas as pd
+
 import cv2
 import pytesseract
-import multiprocessing
-import numpy as np
-# from pdf2image import convert_from_path
+
 from sklearn.cluster import KMeans
 from sklearn.cluster import DBSCAN
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import PCA
-
-from django.conf import settings
 
 
-# def convert_pdf_to_image(pdf_path, version, quiz_num, dpi=150):
-#     """Convert pdf to image using pdf2image
-#     Input:
-#         pdf_path: path to pdf file
-#         dpi: dpi of the output image
-#     Output:
-#         num_of_images: number of images generated
-#     Note: 
-#         The output image will be saved inside the images folder
-#     """
-#     images = convert_from_path(pdf_path, dpi=dpi, output_folder='images/images'+str(quiz_num), fmt='ppm')
-#     # convert ppm to png
-#     num_of_images = len(images)
-#     for i in range(num_of_images):
-#         images[i].save('images/'+'images'+str(quiz_num)+'/'+'version_'+ str(version) +'page_' + str(i) + '.png', 'PNG')
-#     return num_of_images
-
-def crop_and_ocr(image):
+def crop_and_ocr(image_path):
     """
     Crop the image and extract the text using OCR
     Input:
@@ -37,6 +22,8 @@ def crop_and_ocr(image):
     Output:
         text: text extracted from the image
     """
+    # read the image
+    image = cv2.imread(image_path)
     # Get the height and width of the image
     height, width = image.shape[:2]
     # set the starting point of the cropping rectangle
@@ -52,36 +39,55 @@ def crop_and_ocr(image):
     return text
 
 
-def crop_images_to_text(image_list):
+def images_to_text(image_paths):
     """
-    Crop the images inside a folder, use OCR to extract the text and save the texts in a list
+    Use OCR to extract the text and save the texts in a list
     Input:
         image_list : list of paths to the images
     Output:
         texts: list of texts extracted from the images
         counts: list of number of images in each version
-    """
-    # run over all the images in the folder
-    images = []
+    """    
+    print(f"Extracting text from {len(image_paths)} images. This may take a while...")
+    
+    char_set = ascii_letters + digits + ' '
+    text_tsv = subprocess.run(
+        [
+            'tesseract', 
+            '-', '-', # stdin/stdout
+            'tsv', 
+            '--dpi', '150',
+            '-c', f'tessedit_char_whitelist={char_set}',
+        ],
+        input="\n".join(image_paths),
+        capture_output=True, 
+        text=True,
+    )
+
+    df = pd.read_csv(
+        io.StringIO(text_tsv.stdout), 
+        sep='\t',
+        quotechar='"',
+        engine='python',
+        keep_default_na=False,
+    )
+
+    # keep only the text with confidence > 70
+    df = df[df.conf > 70]
+    # remove empty texts
+    df = df[(df.text != '') & (df.text != ' ')]
+    # convert the page_num from 1-indexed to 0-indexed
+    if df.page_num.max() > 0 and df.page_num.min() > 0:
+        df.page_num = df.page_num - 1
+
+    texts_grouped = df[['text','page_num']].groupby('page_num')
+    texts_grouped = texts_grouped.agg({'text': ' '.join})["text"]
     texts = []
-    print(f"Loading images...")
-    for path in image_list:
-        # if path is a string like '/media/submissions/course_1/assignment_2/img/submission-22-batch-1-page-3-195AFJGL.png'
-        # read the image from the path
-        image_url = os.path.join(settings.MEDIA_ROOT, path.removeprefix('/media/'))
-        # Read the image
-        image = cv2.imread(image_url)
-        # append the image to the list
-        images.append(image)
-    # for image in images:
-    #     text = crop_and_ocr(image)
-    #     texts.append(text)
-    # crop the image and extract the text using multiprocessing
-    print("Cropping images and extracting text...")
-    pool = multiprocessing.Pool()
-    texts = pool.map(crop_and_ocr, images)
-    pool.close()
-    pool.join()
+    for i in range(len(image_paths)):
+        if i in texts_grouped.index:
+            texts.append(texts_grouped[i])
+        else:
+            texts.append("")
     return texts
 
 
@@ -93,7 +99,6 @@ def vectorize_texts(texts):
     Output:
         X: vectorized texts
     """
-    # vectorize the text
     vectorizer = TfidfVectorizer(
         max_df=1.0,
         min_df=0.1,
@@ -111,16 +116,14 @@ def perform_dbscan_clustering(X):
         Output:
         cluster_labels: labels of the clusters
     """
-    # perform DBSCAN clustering
     dbscan = DBSCAN(eps=0.5, min_samples=2)
     dbscan.fit(X)
-
-    # Get the cluster labels for each image
+    
     cluster_labels = dbscan.labels_
 
     return dbscan, cluster_labels
 
-def plot_clusters_dbscan(X, cluster_labels, dbscan):
+def plot_clusters_dbscan(X, cluster_labels):
     """
     Plot the clusters
     Input:
@@ -128,6 +131,7 @@ def plot_clusters_dbscan(X, cluster_labels, dbscan):
         cluster_labels: labels of the clusters
     """
     import matplotlib.pyplot as plt
+    from sklearn.decomposition import PCA
     # Reduce the dimensionality of the data using PCA
     pca = PCA(n_components=2)
     X_reduced = pca.fit_transform(X.toarray())
@@ -150,7 +154,7 @@ def plot_clusters_dbscan(X, cluster_labels, dbscan):
 
     plt.title('Estimated number of clusters: %d' % len(unique_labels))
     # save the plot
-    plt.savefig(f'cluster_dbscan.png')
+    plt.savefig('cluster_dbscan.png')
 
 def perform_kmeans_clustering(X, num_of_clusters):
     """
@@ -179,6 +183,7 @@ def plot_clusters(X, cluster_labels, num_of_clusters, quiz_num, kmeans):
         num_of_clusters: number of clusters
     """
     import matplotlib.pyplot as plt
+    from sklearn.decomposition import PCA
     # Reduce the dimensionality of the data using PCA
     pca = PCA(n_components=2).fit(X.toarray())
     datapoint = pca.transform(X.toarray())

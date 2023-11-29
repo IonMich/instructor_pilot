@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from courses.models import Course
-from submissions.cluster import (crop_and_ocr, crop_images_to_text,
+from submissions.cluster import (images_to_text,
                                  perform_dbscan_clustering,
                                  plot_clusters_dbscan, vectorize_texts)
 from submissions.forms import (StudentClassifyForm, SubmissionFilesUploadForm,
@@ -201,10 +201,9 @@ def version_view(request, course_pk, assignment_pk):
         images = []
         for submission in submissions:
             submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=page)
-            images.append(submission_image[0].image.url)
-
-        # use the crop_images_to_text function to get the text from the images
-        texts = crop_images_to_text(images)
+            images.append(submission_image[0].image.path)
+            
+        texts = images_to_text(images)
 
         # vectorize the text
         print("vectorizing texts")
@@ -258,17 +257,32 @@ def version_view(request, course_pk, assignment_pk):
         
         # Serialize the data
         assignment = model_to_dict(assignment)
-        submissions = serializers.serialize('json', submissions)
+        submissions_serialized = []
+        for submission in submissions:
+            images_urls = submission.submissions_papersubmissionimage_related.all()
+            # .map(lambda x: (x.page, x.image.url))
+            images_urls = {image.page: image.image.url for image in images_urls}
+            submission_serialized = dict()
+            submission_serialized['id'] = submission.pk
+            submission_serialized['images'] = images_urls
+            if submission.version:
+                submission_serialized['version'] = dict()
+                submission_serialized['version']['id'] = submission.version.pk
+                submission_serialized['version']['name'] = submission.version.name
+            else:
+                submission_serialized['version'] = None
+            submissions_serialized.append(submission_serialized)
         # context
-        context = {'assignment': assignment,
-        'cluster_types' : len_cluster_types,
-        'outliers': outliers,
-        'submissions': submissions, 
-        # 'cluster_labels': cluster_labels, 
-        'cluster_images': cluster_images, 
-        # 'course_pk': course_pk, 'assignment_pk': assignment_pk
-        'message': 'success',
-        'new_version': 'true'
+        context = {
+            'assignment': assignment,
+            'cluster_types' : len_cluster_types,
+            'outliers': outliers,
+            'submissions': submissions_serialized, 
+            # 'cluster_labels': cluster_labels, 
+            'cluster_images': cluster_images,
+            # 'course_pk': course_pk, 'assignment_pk': assignment_pk
+            'message': 'success',
+            'new_version': 'true'
         }
 
         # send a JsonResponse to the frontend with the context
@@ -279,154 +293,211 @@ def version_view(request, course_pk, assignment_pk):
 
 
 @login_required
-def version_submission(request, course_pk, assignment_pk):
-    print("version_submission called")
-    # if the request is POST
-    if request.method == 'POST':
-        print("request was POST")
-        # get the assignment
-        assignment = get_object_or_404(Assignment, pk=assignment_pk)
-        # get all the data from the POST request
-        # Get the data from the form
-        version_texts = request.POST.getlist('versionTexts')
-        
-    
+def api_version_comments(request, assignment_pk):
+    if request.method != 'POST':
+        return JsonResponse(
+            {'message': 'Only POST requests are allowed',
+            'success': False,
+             })
+    # get all the data from the POST request
+    # Get the data from the formdata
+    data = request.POST
+    for key, value in data.items():
+        print(f"{key}: {value}")
+    files = request.FILES
+    print(files)
 
-        # find all the versions for this assignment
-        versions = Version.objects.filter(assignment=assignment)
-        # for each version, put the text and files into the version
-        for version in versions:
-            # get the text for this version
-            text = version_texts[int(version.name) - 1].strip()
-            if text != "":
-                # create a new version comment
-                new_version_text = VersionText(version=version, text=text, author=request.user)
-                new_version_text.save()
-            # get the files for this version
-            if request.FILES.get('versionFiles' + str(version.name)):
-                # add this as comment file for this submission
-                files = request.FILES.getlist('versionFiles' + str(version.name))
-                for file in files:
-                    file_bytes = file.read()
-                    file_name = file.name
-                    django_file = ContentFile(file_bytes, name=file_name)
-                    new_version_file = VersionFile.objects.create(
-                        version=version,
-                        version_file=django_file,
-                        author=request.user,
-                        )
-                    print(f"File {new_version_file} added to media for version {version}")
-                    
-                
+    # extract the pk from versionText_{pk}
+    for key, value in data.items():
+        if not key.startswith('versionText'):
+            continue
+        version_pk = key.split('_')[1]
+        try:
+            version = Version.objects.get(pk=version_pk)
+        except Version.DoesNotExist:
+            return JsonResponse(
+                {'message': 'Version does not exist',
+                'success': False,
+                 })
+        # create a new version comment
+        new_version_text = VersionText(version=version, text=value, author=request.user)
+        new_version_text.save()
+        print(f"new version text: {new_version_text}")
         
-    return JsonResponse({'message': 'success'})
+    # get the files for this version
+    for key, value in dict(files).items():
+        if not key.startswith('versionFile'):
+            print(f"key {key} does not start with versionFiles")
+            continue
+        version_pk = key.split('_')[1]
+
+        try:
+            version = Version.objects.get(pk=version_pk)
+        except Version.DoesNotExist:
+            return JsonResponse(
+                {'message': 'Version does not exist',
+                'success': False,
+                 })
+        for file in value:
+            # create a new version file
+            new_version_file = VersionFile(version=version, version_file=file, author=request.user)
+            new_version_file.save()
+            print(f"new version file: {new_version_file}")
+    return JsonResponse(
+        {'message': 'success',
+        'success': True,
+         })
 
 @login_required
-def version_reset(request, course_pk, assignment_pk):
+def version_reset(request, assignment_pk):
     # if the request is POST
-    if request.method == 'POST':
+    if request.method != 'POST':
+        return JsonResponse(
+            {'message': 'Only POST requests are allowed',
+            'success': False,
+             })
+    try:
         # get the assignment
         assignment = get_object_or_404(Assignment, pk=assignment_pk)
         # get all the versions for this assignment and delete them
         delete_versions(assignment)
         # send a JsonResponse to the frontend with the context
 
-        return JsonResponse({'message': 'success'})
-    # send the user to the assignment detail page
-    return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
-
+        return JsonResponse(
+            {'message': 'Successfully reset versions',
+            'success': True,
+            })
+    except Exception as e:
+        print(e)
+        return JsonResponse(
+            {'message': 'Error while resetting versions',
+            'success': False,
+             })
 
 @login_required
-def version_change(request, course_pk, assignment_pk):
-    # if the request is POST
-    if request.method == 'POST':
-        # get the assignment
-        assignment = get_object_or_404(Assignment, pk=assignment_pk)
-        # get the submissions for this assignment
-        submissions = PaperSubmission.objects.filter(assignment=assignment)
-        # get all the versions for this assignment
-        versions = Version.objects.filter(assignment=assignment)
-        # get the cluster_images
-        cluster_images = []
-        for version in versions:
-            cluster_images.append(version.version_image.url)
-        # get the cluster_types
-        cluster_types = len(versions)
-        # get the outliers by getting the submissions with their version set to 0
-        outliers = PaperSubmission.objects.filter(assignment=assignment, version=None)
-        outliers = len(outliers)
-        # get the version_texts for each version
-        from collections import defaultdict
-        version_texts = defaultdict(list)
-        for version in versions:
-            version_text_query = version.versiontext_set.all()
-            # add text from each query
-            for version_text in version_text_query:
-                version_texts[version.name].append({'text': version_text.text, 
-                                                    'author': version_text.author.first_name, 'date': version_text.created_at,
-                                                    'id': version_text.id
-                                                    })
-        # serialize the version_texts
-        # print(version_texts)
-        # get the version_pdfs for each version
-        version_files = defaultdict(list)
-        for version in versions:
-            version_file_query = version.versionfile_set.all()
-            # add text from each query
-            for version_file in version_file_query:
-                version_files[version.name].append({'name': version_file.get_filename(),'url': version_file.version_file.url,
-                                                    'author': version_file.author.first_name, 'date': version_file.created_at,
-                                                    'size': version_file.get_filesize(),
-                                                    'id': version_file.id
-                                                    })
-            
+def api_versions_get(request, assignment_pk):
+    if request.method != 'GET':
+        return JsonResponse(
+            {'message': 'error',
+            'success': False,
+             }
+        )
+    
+    assignment = get_object_or_404(Assignment, pk=assignment_pk)
+    submissions = PaperSubmission.objects.filter(assignment=assignment)
+    versions = Version.objects.filter(assignment=assignment)
+    
+    from collections import defaultdict
+    version_texts = defaultdict(list)
+    for version in versions:
+        version_text_query = version.versiontext_set.all()
+        # add text from each query
+        for version_text in version_text_query:
+            version_texts[str(version.pk)].append(
+                {'text': version_text.text, 
+                 'author': version_text.author.first_name, 
+                 'date': version_text.created_at,
+                 'id': version_text.id
+                 })
+    # serialize the version_texts
+    # print(version_texts)
+    # get the version_pdfs for each version
+    version_files = defaultdict(list)
+    for version in versions:
+        version_file_query = version.versionfile_set.all()
+        # add text from each query
+        for version_file in version_file_query:
+            version_files[str(version.pk)].append(
+                {'name': version_file.get_filename(),
+                 'url': version_file.version_file.url,
+                'author': version_file.author.first_name, 
+                'date': version_file.created_at,
+                'size': version_file.get_filesize(),
+                'id': version_file.id
+                })
+        
+    assignment = model_to_dict(assignment)
 
+    submissions_serialized = []
+    for submission in submissions:
+        images_urls = submission.submissions_papersubmissionimage_related.all()
+        # .map(lambda x: (x.page, x.image.url))
+        images_urls = {image.page: image.image.url for image in images_urls}
+        submission_serialized = dict()
+        submission_serialized['id'] = submission.pk
+        submission_serialized['images'] = images_urls
+        if submission.version:
+            submission_serialized['version'] = dict()
+            submission_serialized['version']['id'] = submission.version.pk
+            submission_serialized['version']['name'] = submission.version.name
+        else:
+            submission_serialized['version'] = None
+        submissions_serialized.append(submission_serialized)
 
-        assignment = model_to_dict(assignment)
-
-        submissions = serializers.serialize('json', submissions)
-
-        context = {'assignment': assignment,
-        'cluster_types' : cluster_types,
-        'outliers': outliers,
-        'submissions': submissions,  
-        'cluster_images': list(cluster_images), 
+    context = {'assignment': assignment,
+        'submissions': submissions_serialized,
         'message': 'success',
-        'new_version': 'false',
+        'success': True,
         'version_texts': version_texts,
         'version_pdfs': version_files
-        }
+    }
 
-        # send a JsonResponse to the frontend with the context
-        return JsonResponse(context, safe=False)
-    # send the user to the assignment detail page
-    return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
+    # send a JsonResponse to the frontend with the context
+    return JsonResponse(context, safe=False)
+
 
 
 @login_required
-def delete_comment(request, course_pk, assignment_pk):
-    if request.method == 'POST':
-        # get all the data from the request
-        data = json.loads(request.body)
-        # get the type of comment
-        comment_type = data['comment_type']
+def api_delete_versiontextcomment(request, comment_pk):
+    if request.method != 'DELETE':
+        return JsonResponse(
+            {'message': 'error',
+            'success': False,
+             }
+        )
+    try:
+        comment = VersionText.objects.get(pk=comment_pk)
+    except VersionText.DoesNotExist:
+        return JsonResponse(
+            {'message': 'VersionText does not exist',
+            'success': False,
+             }
+        )
+    comment.delete()
+    return JsonResponse(
+        {'message': 'success',
+        'success': True,
+         })
 
-        # get the comment id
-        comment_id = data['comment_id']
-        # get the comment
-        if comment_type == 'text':
-            comment = get_object_or_404(VersionText, pk=comment_id)
-            # delete the comment from the database
-            comment.delete()
-        elif comment_type == 'pdf':
-            comment = get_object_or_404(VersionFile, pk=comment_id)
-            # delete the associated file
-            os.remove(os.path.join(settings.MEDIA_ROOT, comment.version_file.name))
-            # delete the comment
-            comment.delete()
-        
-        return JsonResponse({'message': 'success'})
-    return JsonResponse({'message': 'error'})
+@login_required
+def api_delete_versionfilecomment(request, comment_pk):
+    if request.method != 'DELETE':
+        return JsonResponse(
+            {'message': 'error',
+            'success': False,
+             }
+        )
+    try:
+        comment = VersionFile.objects.get(pk=comment_pk)
+        comment.delete()
+    except VersionFile.DoesNotExist:
+        return JsonResponse(
+            {'message': 'VersionFile does not exist',
+            'success': False,
+             }
+        )
+    except Exception as e:
+        print(e)
+        return JsonResponse(
+            {'message': 'Error while deleting VersionFile',
+            'success': False,
+             }
+        )
+    
+    return JsonResponse(
+        {'message': 'success',
+        'success': True,
+         })
 
 @login_required
 def api_savedcomment_list_view(request, assignment_pk):

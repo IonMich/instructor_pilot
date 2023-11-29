@@ -7,8 +7,7 @@ def delete_versions(assignment):
     try:
         assignment.version_set.all().delete()
     except Exception as e:
-        print("No versions to delete")
-        pass
+        print("Handling: ", e)
     finally:
         assignment.versioned = False
         assignment.save()
