@@ -369,6 +369,9 @@ const nextBtn = document.getElementById("btnNext");
 const offcanvas = document.querySelector("#offcanvasExample");
 const offcanvasGradeStepInput = offcanvas.querySelector("#id_grade_step");
 const url_this = new URL(window.location.href);
+// remove the #page-${number} part from the url
+const regex = /#page-\d+/;
+url_this.href = url_this.href.replace(regex, "");
 // add previous to the end of the url
 const prev_url = url_this.href + "previous/";
 // add next to the end of the url
