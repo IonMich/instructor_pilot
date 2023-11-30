@@ -120,8 +120,8 @@
                 visibility: hidden;
             }
         </style>
-        <button class="btn dropdown-toggle px-0" type="button" id="list-pages-dropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #ced4da; position:relative;">
-            Page <span class="value" style="position:absolute; bottom:6px; opacity:1;">1</span>
+        <button class="btn dropdown-toggle" type="button" id="list-pages-dropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #ced4da; position:relative; font-size:0.7rem;">
+            Page <span class="value" style="width:1ch;display:inline-block;">1</span><span class="value"> of {{submission.submissions_papersubmissionimage_related.all|length}}</span>
         </button>
         <ul class="dropdown-menu" style="max-height: 50vh; overflow-y: scroll;" aria-labelledby="list-pages-dropdown">
             {% for image in submission.submissions_papersubmissionimage_related.all%} 
@@ -158,6 +158,7 @@
                     try {
                         // set the dropdown text to the active page selector text
                         //dropdownToggle.textContent = activePageSelectorText;
+                        const totalPages = document.querySelectorAll('.page-selector').length;
                         const regex_text = /Page\s+(\d+)/;
                         // get the matching group of the regex
                         const new_page_number = activePageSelectorText.match(regex_text)[1];
@@ -168,14 +169,17 @@
                         animateValue(parseInt(old_page_number), parseInt(new_page_number), 100, dropdownToggle);
                     } catch (error) {
                         console.log(error);
-                        dropdownToggle.innerHTML = `Page <span class="value">${activePageSelectorText}</span>`
+                        dropdownToggle.innerHTML = `Page <span class="value" style="width:${numdigits}ch;">${activePageSelectorText}</span>
+                        <span class="value">of ${totalPages}</span>
+                        `
                     }
                 });
                 function animateValue(start, end, duration, element) {
                     element.style.position = 'relative';
                     element.style.overflow = 'hidden';
                     const elPadding = parseInt(window.getComputedStyle(element).getPropertyValue('padding-bottom').replace('px', ''));
-
+                    const numdigits = end.toString().length;
+                    console.log(`numdigits: ${numdigits}`);
 
                     // make the text appear to scroll up/down by changing its vertical position
                     let startTimestamp = null;
@@ -188,8 +192,11 @@
                     console.log(positionBeforeNumber);
                     console.log(positionAfterNumber);
                     element.innerHTML = `Page 
-                        <span class="value" style="position:absolute; bottom:${positionBeforeNumber}px; opacity:1;">${start}</span>
-                        <span class="value" style="position:absolute; bottom:${positionAfterNumber}px; opacity:0;">${end}</span>`;
+                        <span class="value" style="position:absolute; bottom:${positionBeforeNumber}px; opacity:1;width:${numdigits}ch;">${start}</span>
+                        <span class="value" style="position:absolute; bottom:${positionAfterNumber}px; opacity:0;width:${numdigits}ch;">${end}</span>
+                        <span class="value" style="opacity:0;width:1ch;display: inline-block;">${end}</span>
+                        <span class="value"> of ${document.querySelectorAll('.page-selector').length}</span>
+                        `;
                     const step = (timestamp) => {
                         if (!startTimestamp) startTimestamp = timestamp;
                         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
@@ -206,7 +213,8 @@
                         if (progress < 1) {
                             window.requestAnimationFrame(step);
                         } else {
-                            element.innerHTML = `Page <span class="value" style="position:absolute; bottom:${elPadding}px;">${end}</span>`;
+                            element.innerHTML = `Page <span class="value" style="width:${numdigits}ch;">${end}<\span><span class="value"> of ${document.querySelectorAll('.page-selector').length}</span>
+                            `;
                         }
                     };
                     window.requestAnimationFrame(step);
