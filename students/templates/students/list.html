@@ -38,8 +38,6 @@
                     <img class="card-img-top rounded-circle mt-2 mx-auto d-block" src="{{ student.avatar_url }}" alt="{{ student.name }}" style="max-width:128px; align:center">
                     {% comment %} card body {% endcomment %}
                     <div class="card-body">
-                        
-                        
                         {% comment %} name {% endcomment %}
                         <h5 class="card-title">{{ student.name }} ({{student.uni_id}})</h5>
                         {% if student.bio is not None %}
