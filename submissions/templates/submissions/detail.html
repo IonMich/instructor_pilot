@@ -113,25 +113,46 @@
             <h5 class="text-muted">Attempt {{submission.attempt}}</h5>
         </div>
     {% endif %}
-        
-    <div id="list-pages" class="col-sm-1 list-group mb-4">
-        {% for image in submission.submissions_papersubmissionimage_related.all%} 
-            <a class="list-group-item list-group-item-action" href="#page-{{forloop.counter}}">Page {{forloop.counter}}</a>
-        {% endfor %}
+
+    <div id="list-pages" class="dropdown col-md-1 list-group mb-4">
+        <button class="btn dropdown-toggle px-0" type="button" id="list-pages-dropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #ced4da;">
+            Page
+        </button>
+        <ul class="dropdown-menu" style="max-height: 50vh; overflow-y: scroll;" aria-labelledby="list-pages-dropdown">
+            {% for image in submission.submissions_papersubmissionimage_related.all%} 
+                <li><a class="dropdown-item page-selector" href="#page-{{forloop.counter}}">Page {{forloop.counter}}</a></li>
+            {% endfor %}
+        </ul>
     </div>
         
-    <div class="col-sm-8">    
+    <div class="col-md-8">
         <figure>
-            <div data-bs-spy="scroll" id="div-imgs" data-bs-target="#list-pages" style="height:80vh; position:relative; overflow-y:scroll;" data-bs-offset="200" class="scrollspy-example"  tabindex="0">
+            <div class="rounded-3 border border-1" data-bs-spy="scroll" id="div-imgs" data-bs-target="#list-pages" style="height:80vh; position:relative; overflow-y:scroll;" data-bs-offset="200" class="scrollspy-example"  tabindex="0">
             {% for image in submission.submissions_papersubmissionimage_related.all%}  
                 <h4 id="page-{{forloop.counter}}"></h4>
                 {% comment %} if data-bs-theme is set to dark, the images will be inverted {% endcomment %}
-                <img id="img-{{forloop.counter}}" src="{{ image.image.url }}" class="img-fluid" alt="{{ image.image.name }}" style="max-width:95%;">
+                <img id="img-{{forloop.counter}}" src="{{ image.image.url }}" class="img-fluid" alt="{{ image.image.name }}" style="max-width:95%; margin: 0 auto; display: block; scrollbar-gutter: stable;">
             {% endfor %}
             </div> 
+            {% comment %} display active page {% endcomment %}
+            <script>
+                const pageSelectors = document.querySelectorAll('.page-selector');
+                const dropdownToggle = document.querySelector('.dropdown-toggle');
+                // when any page selector toggles its active state, update the dropdown text
+                //fire on activate.bs.scrollspy event on id="div-imgs"
+                document.querySelector('#div-imgs').addEventListener('activate.bs.scrollspy', function (e) {
+                    // get the active page selector
+                    const activePageSelector = document.querySelector('.page-selector.active');
+                    // get the text of the active page selector
+                    const activePageSelectorText = activePageSelector.textContent;
+                    // set the dropdown text to the active page selector text
+                    dropdownToggle.textContent = activePageSelectorText;
+                });
+                
+            </script>
         </figure>
 
-        <div class="row justify-content-center">
+        <div class="row justify-content-center mb-3">
             <div class="col-sm-4 btn-group w-auto">
                 {% comment %} go to previous submission {% endcomment %}
                 <button class="btn btn-outline-primary" id="btnPrev">Previous</button>
@@ -145,7 +166,7 @@
         </div>
     </div>
 
-    <div class="col-sm-3">
+    <div class="col-md-3">
         <form action='{% url "submissions:detail" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}' method="post" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="row" >                    
