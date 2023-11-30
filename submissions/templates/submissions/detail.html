@@ -115,14 +115,22 @@
     {% endif %}
 
     <div id="list-pages" class="dropdown col-md-1 list-group mb-4">
-        <button class="btn dropdown-toggle px-0" type="button" id="list-pages-dropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #ced4da;">
-            Page 1
+        <style>
+            #list-pages-dropdown::after {
+                visibility: hidden;
+            }
+        </style>
+        <button class="btn dropdown-toggle px-0" type="button" id="list-pages-dropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #ced4da; position:relative;">
+            Page <span class="value" style="position:absolute; bottom:6px; opacity:1;">1</span>
         </button>
         <ul class="dropdown-menu" style="max-height: 50vh; overflow-y: scroll;" aria-labelledby="list-pages-dropdown">
             {% for image in submission.submissions_papersubmissionimage_related.all%} 
-                <li><a class="dropdown-item page-selector" href="#page-{{forloop.counter}}">Page {{forloop.counter}}</a></li>
+                <li><a class="dropdown-item page-selector" href="#page-{{forloop.counter}}" style="position:relative;">
+                    Page {{forloop.counter}}
+                </a></li>
             {% endfor %}
         </ul>
+        
     </div>
         
     <div class="col-md-8">
@@ -145,10 +153,65 @@
                     const activePageSelector = document.querySelector('.page-selector.active');
                     // get the text of the active page selector
                     const activePageSelectorText = activePageSelector.textContent;
-                    // set the dropdown text to the active page selector text
-                    dropdownToggle.textContent = activePageSelectorText;
+                    
+                    // animate the page number change
+                    try {
+                        // set the dropdown text to the active page selector text
+                        //dropdownToggle.textContent = activePageSelectorText;
+                        const regex_text = /Page\s+(\d+)/;
+                        // get the matching group of the regex
+                        const new_page_number = activePageSelectorText.match(regex_text)[1];
+                        const old_page_number = dropdownToggle.textContent.match(regex_text)[1];
+                        if (new_page_number == old_page_number) {
+                            return;
+                        }
+                        animateValue(parseInt(old_page_number), parseInt(new_page_number), 100, dropdownToggle);
+                    } catch (error) {
+                        console.log(error);
+                        dropdownToggle.innerHTML = `Page <span class="value">${activePageSelectorText}</span>`
+                    }
                 });
-                
+                function animateValue(start, end, duration, element) {
+                    element.style.position = 'relative';
+                    element.style.overflow = 'hidden';
+                    const elPadding = parseInt(window.getComputedStyle(element).getPropertyValue('padding-bottom').replace('px', ''));
+
+
+                    // make the text appear to scroll up/down by changing its vertical position
+                    let startTimestamp = null;
+                    console.log(start);
+                    console.log(end);
+                    let totalMovement = 10 * Math.sign(end - start);
+                    console.log(totalMovement);
+                    let positionBeforeNumber = elPadding;
+                    let positionAfterNumber = elPadding - totalMovement;
+                    console.log(positionBeforeNumber);
+                    console.log(positionAfterNumber);
+                    element.innerHTML = `Page 
+                        <span class="value" style="position:absolute; bottom:${positionBeforeNumber}px; opacity:1;">${start}</span>
+                        <span class="value" style="position:absolute; bottom:${positionAfterNumber}px; opacity:0;">${end}</span>`;
+                    const step = (timestamp) => {
+                        if (!startTimestamp) startTimestamp = timestamp;
+                        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                        positionBeforeNumber = progress * totalMovement + elPadding;
+                        positionAfterNumber = positionBeforeNumber - totalMovement;
+                        element.children[0].style.bottom = `${positionBeforeNumber}px`;
+                        element.children[0].style.opacity = 1 - progress;
+                        try {
+                            element.children[1].style.bottom = `${positionAfterNumber}px`;
+                            element.children[1].style.opacity = progress;
+                        } catch (error) {
+                            console.log(error);
+                        }
+                        if (progress < 1) {
+                            window.requestAnimationFrame(step);
+                        } else {
+                            element.innerHTML = `Page <span class="value" style="position:absolute; bottom:${elPadding}px;">${end}</span>`;
+                        }
+                    };
+                    window.requestAnimationFrame(step);
+                }
+
             </script>
         </figure>
 
