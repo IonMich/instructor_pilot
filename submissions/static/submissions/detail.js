@@ -406,6 +406,14 @@ const firstPk = JSON.parse(
 const lastPk = JSON.parse(
     document.getElementById("last-sub-pk").textContent
     );
+const collectionPks = JSON.parse(
+    document.getElementById("collection-pks").textContent
+    );
+const currentSub = collectionPks.indexOf(pk);
+console.log("currentSub", currentSub);
+// set span#sub-pagination-current
+const subPaginationCurrent = document.querySelector("#sub-pagination-current");
+subPaginationCurrent.textContent = currentSub + 1;
 console.log(scroll_height_factors, course_id, assignment_id);
 console.log(pk, firstPk, lastPk);
 if (pk === lastPk) {

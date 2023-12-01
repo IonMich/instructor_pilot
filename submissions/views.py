@@ -129,6 +129,9 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         submission.get_question_grades(), 
         submission.assignment.get_max_question_scores())
     )
+    collection_pks = PaperSubmission.objects.filter(
+        assignment=submission.assignment).values_list('pk', flat=True)
+    collection_pks = list(collection_pks)
     print(submission.assignment)
     print("request.user: ", request.user)
     if request.method == 'POST':
@@ -201,7 +204,9 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
                 'submissions/detail.html', 
                 {'submission': submission,
                 'grading_form': grading_form,
-                'grades_zipped': grades_zipped,})
+                'grades_zipped': grades_zipped,
+                'collection_pks': collection_pks,
+                })
         else:
             print("form is not valid")
     else:
@@ -212,7 +217,9 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         'submissions/detail.html', 
         {'submission': submission,
         'grading_form': grading_form, 
-        'grades_zipped': grades_zipped})
+        'grades_zipped': grades_zipped,
+        'collection_pks': collection_pks,
+        })
 
 @login_required
 def api_submission_patch_view(request, assignment_pk, submission_pk):
