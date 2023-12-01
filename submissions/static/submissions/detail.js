@@ -1754,30 +1754,31 @@ if (gradingProgressBar) {
     }
 }
 const pageSelectorToggleBtn = document.querySelector(".dropdown-toggle");
+let currentActivePage = 1;
 // its parent is #list-pages
 const listPages = document.querySelector("#list-pages");
 if (pageSelectorToggleBtn) {
-    eventListeners = ["resize"];
+    eventListeners = ["resize", "DOMContentLoaded",];
     eventListeners.forEach(eventListener => {
         window.addEventListener(eventListener, 
-            debouncerDecorator(adjustPageSelectorToggleContent, 10)
+            adjustPageSelectorToggleContent,
         );
     });
 }
 
-function debouncerDecorator( func , timeout ) {
-    //https://stackoverflow.com/a/4298672/10119867
-    var timeoutID , timeout = timeout || 100;
-    return function () {
-       var scope = this , args = arguments;
-       clearTimeout( timeoutID );
-       timeoutID = setTimeout( function () {
-           func.apply( scope , Array.prototype.slice.call( args ) );
-       } , timeout );
-    }
-}
+// function debouncerDecorator( func , timeout ) {
+//     //https://stackoverflow.com/a/4298672/10119867
+//     var timeoutID , timeout = timeout || 100;
+//     return function () {
+//        var scope = this , args = arguments;
+//        clearTimeout( timeoutID );
+//        timeoutID = setTimeout( function () {
+//            func.apply( scope , Array.prototype.slice.call( args ) );
+//        } , timeout );
+//     }
+// }
 
-function adjustPageSelectorToggleContent () {
+function adjustPageSelectorToggleContent (event) {
     console.log("window resized or loaded");
     const listPagesWidth = listPages.offsetWidth;
     // if listPagesWidth is greater than 5 characters, set the textContent of pageSelectorToggleBtn to "Page x of y"
@@ -1800,6 +1801,9 @@ function adjustPageSelectorToggleContent () {
         const currentPageElText = currentPageEl.textContent;
         currentPage = parseInt(currentPageElText.match(/\d+/)[0]);
     }
+    if (event && event.type === "DOMContentLoaded") {
+        currentPage = 1;
+    }
     
     const totalPages = document.querySelectorAll(".page-selector").length;
     const totalDigitsWidth = totalPages.toString().length + currentPage.toString().length;
@@ -1821,6 +1825,7 @@ function adjustPageSelectorToggleContent () {
         pageSelectorToggleBtn.innerHTML = `${createPageSpan(currentPage, numDigits).outerHTML}/${totalPages}`;
     }
 }
+
 function createPageSpan(digits, charLength) {
     if (charLength === undefined || charLength === null) {
         charLength = digits.toString().length;
@@ -1833,7 +1838,6 @@ function createPageSpan(digits, charLength) {
     return span;
 }
 
-let currentActivePage = 1;
 // when any page selector toggles its active state, update the dropdown text
 //fire on activate.bs.scrollspy event on id="div-imgs"
 document.querySelector('#div-imgs').addEventListener(
