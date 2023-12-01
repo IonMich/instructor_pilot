@@ -125,7 +125,7 @@
         </button>
         <ul class="dropdown-menu" style="max-height: 50vh; overflow-y: scroll;" aria-labelledby="list-pages-dropdown">
             {% for image in submission.submissions_papersubmissionimage_related.all%} 
-                <li><a class="dropdown-item page-selector" href="#page-{{forloop.counter}}" style="position:relative;">
+                <li><a class="dropdown-item page-selector" href="#img-{{forloop.counter}}" style="position:relative;">
                     Page {{forloop.counter}}
                 </a></li>
             {% endfor %}
@@ -139,7 +139,7 @@
             {% for image in submission.submissions_papersubmissionimage_related.all%}  
                 <h4 id="page-{{forloop.counter}}"></h4>
                 {% comment %} if data-bs-theme is set to dark, the images will be inverted {% endcomment %}
-                <img id="img-{{forloop.counter}}" src="{{ image.image.url }}" class="img-fluid" alt="{{ image.image.name }}" style="max-width:95%; margin: 0 auto; display: block; scrollbar-gutter: stable;">
+                <img id="img-{{forloop.counter}}" src="{{ image.image.url }}" class="img-fluid sub-img" alt="{{ image.image.name }}" style="max-width:95%; margin: 0 auto; display: block; scrollbar-gutter: stable;">
             {% endfor %}
             </div>
         </figure>
