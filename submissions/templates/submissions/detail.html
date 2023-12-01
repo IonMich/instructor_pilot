@@ -117,11 +117,11 @@
     <div id="list-pages" class="dropdown col-md-1 list-group mb-4">
         <style>
             #list-pages-dropdown::after {
-                visibility: hidden;
+                display: none;
             }
         </style>
-        <button class="btn dropdown-toggle" type="button" id="list-pages-dropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #ced4da; position:relative; font-size:0.7rem;">
-            Page <span class="value" style="width:1ch;display:inline-block;">1</span><span class="value"> of {{submission.submissions_papersubmissionimage_related.all|length}}</span>
+        <button class="btn dropdown-toggle px-0" type="button" id="list-pages-dropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border: 1px solid #ced4da; position:relative; font-size:0.8rem;">
+            Page <span class="value" style="width:1ch;display:inline-block;">1</span><span> of {{submission.submissions_papersubmissionimage_related.all|length}}</span>
         </button>
         <ul class="dropdown-menu" style="max-height: 50vh; overflow-y: scroll;" aria-labelledby="list-pages-dropdown">
             {% for image in submission.submissions_papersubmissionimage_related.all%} 
@@ -141,86 +141,7 @@
                 {% comment %} if data-bs-theme is set to dark, the images will be inverted {% endcomment %}
                 <img id="img-{{forloop.counter}}" src="{{ image.image.url }}" class="img-fluid" alt="{{ image.image.name }}" style="max-width:95%; margin: 0 auto; display: block; scrollbar-gutter: stable;">
             {% endfor %}
-            </div> 
-            {% comment %} display active page {% endcomment %}
-            <script>
-                const pageSelectors = document.querySelectorAll('.page-selector');
-                const dropdownToggle = document.querySelector('.dropdown-toggle');
-                // when any page selector toggles its active state, update the dropdown text
-                //fire on activate.bs.scrollspy event on id="div-imgs"
-                document.querySelector('#div-imgs').addEventListener('activate.bs.scrollspy', function (e) {
-                    // get the active page selector
-                    const activePageSelector = document.querySelector('.page-selector.active');
-                    // get the text of the active page selector
-                    const activePageSelectorText = activePageSelector.textContent;
-                    
-                    // animate the page number change
-                    try {
-                        // set the dropdown text to the active page selector text
-                        //dropdownToggle.textContent = activePageSelectorText;
-                        const totalPages = document.querySelectorAll('.page-selector').length;
-                        const regex_text = /Page\s+(\d+)/;
-                        // get the matching group of the regex
-                        const new_page_number = activePageSelectorText.match(regex_text)[1];
-                        const old_page_number = dropdownToggle.textContent.match(regex_text)[1];
-                        if (new_page_number == old_page_number) {
-                            return;
-                        }
-                        animateValue(parseInt(old_page_number), parseInt(new_page_number), 100, dropdownToggle);
-                    } catch (error) {
-                        console.log(error);
-                        dropdownToggle.innerHTML = `Page <span class="value" style="width:${numdigits}ch;">${activePageSelectorText}</span>
-                        <span class="value">of ${totalPages}</span>
-                        `
-                    }
-                });
-                function animateValue(start, end, duration, element) {
-                    element.style.position = 'relative';
-                    element.style.overflow = 'hidden';
-                    const elPadding = parseInt(window.getComputedStyle(element).getPropertyValue('padding-bottom').replace('px', ''));
-                    const numdigits = end.toString().length;
-                    console.log(`numdigits: ${numdigits}`);
-
-                    // make the text appear to scroll up/down by changing its vertical position
-                    let startTimestamp = null;
-                    console.log(start);
-                    console.log(end);
-                    let totalMovement = 10 * Math.sign(end - start);
-                    console.log(totalMovement);
-                    let positionBeforeNumber = elPadding;
-                    let positionAfterNumber = elPadding - totalMovement;
-                    console.log(positionBeforeNumber);
-                    console.log(positionAfterNumber);
-                    element.innerHTML = `Page 
-                        <span class="value" style="position:absolute; bottom:${positionBeforeNumber}px; opacity:1;width:${numdigits}ch;">${start}</span>
-                        <span class="value" style="position:absolute; bottom:${positionAfterNumber}px; opacity:0;width:${numdigits}ch;">${end}</span>
-                        <span class="value" style="opacity:0;width:1ch;display: inline-block;">${end}</span>
-                        <span class="value"> of ${document.querySelectorAll('.page-selector').length}</span>
-                        `;
-                    const step = (timestamp) => {
-                        if (!startTimestamp) startTimestamp = timestamp;
-                        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                        positionBeforeNumber = progress * totalMovement + elPadding;
-                        positionAfterNumber = positionBeforeNumber - totalMovement;
-                        element.children[0].style.bottom = `${positionBeforeNumber}px`;
-                        element.children[0].style.opacity = 1 - progress;
-                        try {
-                            element.children[1].style.bottom = `${positionAfterNumber}px`;
-                            element.children[1].style.opacity = progress;
-                        } catch (error) {
-                            console.log(error);
-                        }
-                        if (progress < 1) {
-                            window.requestAnimationFrame(step);
-                        } else {
-                            element.innerHTML = `Page <span class="value" style="width:${numdigits}ch;">${end}<\span><span class="value"> of ${document.querySelectorAll('.page-selector').length}</span>
-                            `;
-                        }
-                    };
-                    window.requestAnimationFrame(step);
-                }
-
-            </script>
+            </div>
         </figure>
 
         <div class="row justify-content-center mb-3">

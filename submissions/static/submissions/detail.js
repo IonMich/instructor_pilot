@@ -1753,3 +1753,201 @@ if (gradingProgressBar) {
         gradingProgressBar.classList.add("bg-warning");
     }
 }
+const pageSelectorToggleBtn = document.querySelector(".dropdown-toggle");
+// its parent is #list-pages
+const listPages = document.querySelector("#list-pages");
+if (pageSelectorToggleBtn) {
+    eventListeners = ["resize"];
+    eventListeners.forEach(eventListener => {
+        window.addEventListener(eventListener, 
+            debouncerDecorator(adjustPageSelectorToggleContent, 10)
+        );
+    });
+}
+
+function debouncerDecorator( func , timeout ) {
+    //https://stackoverflow.com/a/4298672/10119867
+    var timeoutID , timeout = timeout || 100;
+    return function () {
+       var scope = this , args = arguments;
+       clearTimeout( timeoutID );
+       timeoutID = setTimeout( function () {
+           func.apply( scope , Array.prototype.slice.call( args ) );
+       } , timeout );
+    }
+}
+
+function adjustPageSelectorToggleContent () {
+    console.log("window resized or loaded");
+    const listPagesWidth = listPages.offsetWidth;
+    // if listPagesWidth is greater than 5 characters, set the textContent of pageSelectorToggleBtn to "Page x of y"
+    // if listPagesWidth is less than 5 characters, set the textContent of pageSelectorToggleBtn to "x / y"
+    function ch(num) {
+        // calculate the width of the character "0" in pixels
+        const zeroWidth = document.createElement("span");
+        zeroWidth.textContent = "0";
+        zeroWidth.style.visibility = "hidden";
+        document.body.appendChild(zeroWidth);
+        const zeroWidthPx = zeroWidth.offsetWidth;
+        zeroWidth.remove();
+        return zeroWidthPx * num;
+    }
+    const currentPageEl = document.querySelector(".page-selector.active");
+    let currentPage;
+    if (!currentPageEl) {
+        currentPage = "-";
+    } else {
+        const currentPageElText = currentPageEl.textContent;
+        currentPage = parseInt(currentPageElText.match(/\d+/)[0]);
+    }
+    
+    const totalPages = document.querySelectorAll(".page-selector").length;
+    const totalDigitsWidth = totalPages.toString().length + currentPage.toString().length;
+    const charsLg = 9
+    const charsMd = 7
+    const charsSm = 4
+    const chars = [charsLg, charsMd, charsSm];
+    // add two times padding left
+    const paddingInline = parseInt(window.getComputedStyle(pageSelectorToggleBtn).paddingInline);
+    const calculatedWidths = chars.map(char => ch(char) + 2 * paddingInline + totalDigitsWidth);
+    const numDigits = totalPages.toString().length;
+    if (listPagesWidth > calculatedWidths[0]) {
+        pageSelectorToggleBtn.innerHTML = `Page ${createPageSpan(currentPage, numDigits).outerHTML} of ${totalPages}`;
+    } else if (listPagesWidth > calculatedWidths[1]) {
+        pageSelectorToggleBtn.innerHTML = `Pg ${createPageSpan(currentPage, numDigits).outerHTML} of ${totalPages}`;
+    } else if (listPagesWidth > calculatedWidths[2]) {
+        pageSelectorToggleBtn.innerHTML = `Pg ${createPageSpan(currentPage, numDigits).outerHTML}/${totalPages}`;
+    } else {
+        pageSelectorToggleBtn.innerHTML = `${createPageSpan(currentPage, numDigits).outerHTML}/${totalPages}`;
+    }
+}
+function createPageSpan(digits, charLength) {
+    if (charLength === undefined || charLength === null) {
+        charLength = digits.toString().length;
+    }
+    const span = document.createElement("span");
+    span.classList.add("value");
+    span.style.width = `${charLength}ch`;
+    span.style.display = "inline-block";
+    span.textContent = digits;
+    return span;
+}
+
+let currentActivePage = 1;
+// when any page selector toggles its active state, update the dropdown text
+//fire on activate.bs.scrollspy event on id="div-imgs"
+document.querySelector('#div-imgs').addEventListener(
+    'activate.bs.scrollspy', 
+    updatePageSelectorToggleContent
+);
+
+function updatePageSelectorToggleContent () {
+    const regex_text_selector = /Page\s+(\d+)/;
+    // get the active page selector
+    const activePageSelector = document.querySelector('.page-selector.active');
+    if (!activePageSelector) {
+        return;
+    }
+    // get the text of the active page selector
+    const activePageSelectorText = activePageSelector.textContent;
+    const new_page_number = activePageSelectorText.match(regex_text_selector)[1];
+    currentActivePage = parseInt(new_page_number);
+    console.log(`currentActivePage: ${currentActivePage}`);
+    
+    
+    try {
+        console.log(pageSelectorToggleBtn.innerHTML);
+        const old_page_number = pageSelectorToggleBtn.querySelector(".value").textContent;
+        console.log(`old_page_number: ${old_page_number}`);
+        if (new_page_number == old_page_number) {
+            return;
+        }
+        adjustPageSelectorToggleContent();
+        animateValue(parseInt(old_page_number), currentActivePage, 100, pageSelectorToggleBtn);
+    } catch (error) {
+        console.log(error);
+        pageSelectorToggleBtn.textContent = activePageSelectorText;
+    }
+}
+
+
+
+
+function animateValue(start, end, duration, element) {
+    element.style.position = 'relative';
+    element.style.overflow = 'hidden';
+    const elPadding = parseInt(window.getComputedStyle(element).getPropertyValue('padding-bottom').replace('px', ''));
+    const numdigits = end.toString().length;
+    console.log(`numdigits: ${numdigits}`);
+
+    // make the text appear to scroll up/down by changing its vertical position
+    let startTimestamp = null;
+    console.log(start);
+    console.log(end);
+    let totalMovement = 10 * Math.sign(end - start);
+    console.log(totalMovement);
+    let positionBeforeNumber = elPadding;
+    let positionAfterNumber = elPadding - totalMovement;
+    console.log(positionBeforeNumber);
+    console.log(positionAfterNumber);
+    // element.innerHTML = `Page 
+    //     <span class="value" style="position:absolute; bottom:${positionBeforeNumber}px; opacity:1;width:${numdigits}ch;">${start}</span>
+    //     <span class="value" style="position:absolute; bottom:${positionAfterNumber}px; opacity:0;width:${numdigits}ch;">${end}</span>
+    //     <span class="value" style="opacity:0;width:1ch;display: inline-block;">${end}</span>
+    //     <span class="value"> of ${document.querySelectorAll('.page-selector').length}</span>
+    //     `;
+    const oldPageNumberSpan = element.querySelector(`.value`);
+    // remove all but the last span
+    while (element.children.length > 1) {
+        element.children[0].remove();
+    }
+    oldPageNumberSpan.style.opacity = 0;
+    // create two new spans with the old page number and the new page number
+    const pageNumberAnimationSpan1 = document.createElement("span");
+    pageNumberAnimationSpan1.classList.add("animatedValue");
+    pageNumberAnimationSpan1.style.position = "absolute";
+    pageNumberAnimationSpan1.style.bottom = `${positionBeforeNumber}px`;
+    pageNumberAnimationSpan1.style.opacity = 1;
+    pageNumberAnimationSpan1.style.width = `${numdigits}ch`;
+    pageNumberAnimationSpan1.textContent = start;
+    const pageNumberAnimationSpan2 = document.createElement("span");
+    pageNumberAnimationSpan2.classList.add("animatedValue");
+    pageNumberAnimationSpan2.style.position = "absolute";
+    pageNumberAnimationSpan2.style.bottom = `${positionAfterNumber}px`;
+    pageNumberAnimationSpan2.style.opacity = 0;
+    pageNumberAnimationSpan2.style.width = `${numdigits}ch`;
+    pageNumberAnimationSpan2.textContent = end;
+    // insert the two new spans after the old page number span
+    oldPageNumberSpan.insertAdjacentElement("beforebegin", pageNumberAnimationSpan1);
+    pageNumberAnimationSpan1.insertAdjacentElement("afterend", pageNumberAnimationSpan2);
+
+    // throw new Error("stop");
+
+    const step = (timestamp) => {
+
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        positionBeforeNumber = progress * totalMovement + elPadding;
+        positionAfterNumber = positionBeforeNumber - totalMovement;
+        element.children[0].style.bottom = `${positionBeforeNumber}px`;
+        element.children[0].style.opacity = 1 - progress;
+        try {
+            element.children[1].style.bottom = `${positionAfterNumber}px`;
+            element.children[1].style.opacity = progress;
+        } catch (error) {
+            console.log(error);
+        }
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            // delete the two new spans
+            pageNumberAnimationSpan1.remove();
+            pageNumberAnimationSpan2.remove();
+            oldPageNumberSpan.textContent = end;
+            oldPageNumberSpan.style.opacity = 1;
+            oldPageNumberSpan.style.width = `${numdigits}ch`;
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
