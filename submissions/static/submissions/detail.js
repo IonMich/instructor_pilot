@@ -368,14 +368,10 @@ const prevBtn = document.getElementById("btnPrev");
 const nextBtn = document.getElementById("btnNext");
 const offcanvas = document.querySelector("#offcanvasExample");
 const offcanvasGradeStepInput = offcanvas.querySelector("#id_grade_step");
-const url_this = new URL(window.location.href);
-// remove the #page-${number} part from the url
-const regex = /#page-\d+/;
-url_this.href = url_this.href.replace(regex, "");
-// add previous to the end of the url
-const prev_url = url_this.href + "previous/";
-// add next to the end of the url
-const next_url = url_this.href + "next/";
+const url_this = location.href.replace(location.search, '')
+
+const prev_url = url_this + "previous/" + location.search;
+const next_url = url_this + "next/" + location.search;
 let scrollFactors = [];
 let gradeStep = null;
 
@@ -400,20 +396,33 @@ const initial_grades = JSON.parse(
 const pk = JSON.parse(
     document.getElementById("sub-pk").textContent
     );
-const firstPk = JSON.parse(
+let firstPk = JSON.parse(
     document.getElementById("first-sub-pk").textContent
     );
-const lastPk = JSON.parse(
+let lastPk = JSON.parse(
     document.getElementById("last-sub-pk").textContent
     );
 const collectionPks = JSON.parse(
     document.getElementById("collection-pks").textContent
     );
+const filterPks = JSON.parse(
+    document.getElementById("filter-pks").textContent
+    );
 const currentSub = collectionPks.indexOf(pk);
+const currentSubInFilter = filterPks.indexOf(pk);
 console.log("currentSub", currentSub);
 // set span#sub-pagination-current
 const subPaginationCurrent = document.querySelector("#sub-pagination-current");
 subPaginationCurrent.textContent = currentSub + 1;
+if (filterPks.length === 0) {
+    // if there are no filtered submissions, hide the filter pagination
+    document.querySelector("#sub-pagination-filter-position").classList.add("d-none");
+    firstPk = collectionPks[0];
+    lastPk = collectionPks[collectionPks.length - 1];
+} else {
+    const subPaginationFilterCurrent = document.querySelector("#sub-pagination-filter-current");
+    subPaginationFilterCurrent.textContent = currentSubInFilter + 1;
+}
 console.log(scroll_height_factors, course_id, assignment_id);
 console.log(pk, firstPk, lastPk);
 if (pk === lastPk) {

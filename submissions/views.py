@@ -46,7 +46,7 @@ def home_view(request, course_pk, assignment_pk=None):
         message = f"Submissions for {assignment.name}"
     else:
         assignment = None
-        message = f"Submissions"
+        message = "Submissions"
     print(f"{assignment=}")
 
     qs=None
@@ -129,8 +129,22 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         submission.get_question_grades(), 
         submission.assignment.get_max_question_scores())
     )
-    collection_pks = PaperSubmission.objects.filter(
-        assignment=submission.assignment).values_list('pk', flat=True)
+    # get the section filter from the request GET parameters
+    print(request.GET)
+    section_filter = request.GET.get('section_filter')
+    # allow only submissions whose student is enrolled in the section
+    # to be displayed
+    collection = PaperSubmission.objects.filter(
+        assignment=submission.assignment
+        )
+    filter_pks = []
+    if section_filter:
+        filtered_collection = collection.filter(
+            Q(student__sections__id=section_filter)
+        )
+        filter_pks = filtered_collection.values_list('pk', flat=True)
+        filter_pks = list(filter_pks)
+    collection_pks = collection.values_list('pk', flat=True)
     collection_pks = list(collection_pks)
     print(submission.assignment)
     print("request.user: ", request.user)
@@ -206,6 +220,8 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
                 'grading_form': grading_form,
                 'grades_zipped': grades_zipped,
                 'collection_pks': collection_pks,
+                'filter_pks': filter_pks,
+                'query_params': request.GET.urlencode(),
                 })
         else:
             print("form is not valid")
@@ -219,6 +235,8 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         'grading_form': grading_form, 
         'grades_zipped': grades_zipped,
         'collection_pks': collection_pks,
+        'filter_pks': filter_pks,
+        'query_params': request.GET.urlencode(),
         })
 
 @login_required
@@ -261,7 +279,10 @@ def api_submission_patch_view(request, assignment_pk, submission_pk):
 
 @login_required
 def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
-    
+    section_filter = request.GET.get('section_filter')
+    extra_params = ''
+    if section_filter:
+        extra_params = f'?section_filter={section_filter}'
     # first find the object corresponding to the pk
     submission = get_object_or_404(PaperSubmission, pk=submission_pk)
     # then find the previous object
@@ -270,22 +291,27 @@ def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
         created__lt=submission.created).order_by('-created')
     if len(qs) > 0:
         print("found previous")
-        return redirect(
-            reverse('submissions:detail', 
-        kwargs={'course_pk': course_pk,
-        'assignment_pk': assignment_pk,
-        'submission_pk': qs[0].pk}))
+        new_url = reverse(
+            'submissions:detail', 
+            kwargs={'course_pk': course_pk,
+            'assignment_pk': assignment_pk,
+            'submission_pk': qs[0].pk})
+        return redirect(new_url + extra_params)
     else:
-        return redirect(
-            reverse('submissions:detail', 
-        kwargs={'course_pk': course_pk,
-        'assignment_pk': assignment_pk,
-        'submission_pk': submission_pk}))
+        new_url = reverse(
+            'submissions:detail', 
+            kwargs={'course_pk': submission.assignment.course.pk,
+            'assignment_pk': submission.assignment.pk,
+            'submission_pk': submission.pk})
+        return redirect(new_url + extra_params)
 
 
 @login_required
 def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
-    from django.shortcuts import redirect
+    section_filter = request.GET.get('section_filter')
+    extra_params = ''
+    if section_filter:
+        extra_params = f'?section_filter={section_filter}'
 
     # first find the object corresponding to the pk
     submission = get_object_or_404(PaperSubmission, pk=submission_pk)
@@ -296,17 +322,19 @@ def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
         ).order_by('created')
     if len(qs) > 0:
         print("found next")
-        return redirect(
-            reverse('submissions:detail', 
-        kwargs={'course_pk': course_pk,
-        'assignment_pk': assignment_pk,
-        'submission_pk': qs[0].pk}))
-    else:
-        return redirect(
-            reverse('submissions:detail', 
-        kwargs={'course_pk': submission.assignment.course.pk,
-        'assignment_pk': submission.assignment.pk,
-        'submission_pk': submission.pk}))
+        new_url = reverse(
+            'submissions:detail', 
+            kwargs={'course_pk': course_pk,
+            'assignment_pk': assignment_pk,
+            'submission_pk': qs[0].pk})
+        return redirect(new_url + extra_params)
+    else: 
+        new_url = reverse(
+            'submissions:detail', 
+            kwargs={'course_pk': submission.assignment.course.pk,
+            'assignment_pk': submission.assignment.pk,
+            'submission_pk': submission.pk})
+        return redirect(new_url + extra_params)
     
 # The delete view deletes the submission and returns a JsonResponse
 # with a message (success or failure)

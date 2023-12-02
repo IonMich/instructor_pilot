@@ -14,9 +14,10 @@
     {{ submission.assignment.pk|json_script:"assignment_id"}}
     {{ submission.assignment.course.pk|json_script:"course_id"}}
     {{ submission.pk|json_script:"sub-pk" }}
+    {{ filter_pks|json_script:"filter-pks" }}
     {{ collection_pks|json_script:"collection-pks" }}
-    {{ collection_pks|first|json_script:"first-sub-pk" }}
-    {{ collection_pks|last|json_script:"last-sub-pk" }}
+    {{ filter_pks|first|json_script:"first-sub-pk" }}
+    {{ filter_pks|last|json_script:"last-sub-pk" }}
     <script src="{% static 'submissions/detail.js' %}" defer></script>
 {% endblock scripts %}
 
@@ -152,7 +153,17 @@
                 <button class="btn btn-outline-primary" id="btnPrev">Previous</button>
                 <button class="btn btn-outline-primary me-auto" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasExample" aria-controls="offcanvasExample">
                     <i class="bi bi-gear"></i>
-                </button>                
+                </button> 
+                <button 
+                    class="btn btn-secondary {% if filter_pks|length == 0 %}d-none{% endif %}"
+                    id="sub-pagination-filter-position">
+                    {% with charWidth=filter_pks|length|slugify|length %}
+                        {% comment %} get num digits of charWidth {% endcomment %}
+                    <span id="sub-pagination-filter-current" style="width:{{charWidth}}ch;display:inline-block;"></span>
+                    <span id="sub-pagination-filter-separator">/</span>
+                    <span id="sub-pagination-filter-total" style="width:{{charWidth}}ch;display:inline-block;">{{filter_pks|length}}</span>
+                    {% endwith %}
+                </button>          
                 <button class="btn btn-outline-primary" id="sub-pagination-position">
                     {% with charWidth=collection_pks|length|slugify|length %}
                         {% comment %} get num digits of charWidth {% endcomment %}
@@ -160,6 +171,8 @@
                     <span id="sub-pagination-separator">/</span>
                     <span id="sub-pagination-total" style="width:{{charWidth}}ch;display:inline-block;">{{collection_pks|length}}</span>
                     {% endwith %}
+                </button>
+                
                 {% comment %} next submission {% endcomment %}
                 <button class="btn btn-outline-primary" id="btnNext">Next</button>
             </div>
