@@ -119,9 +119,16 @@ async function handleScroll () {
     });
 
     // focus on the grade input with data-position=0
-    const firstGradeInput = document.querySelector(`input[data-position="0"]`);
-    console.log("focusing on first grade input");
-    firstGradeInput.focus();
+    const gradeInput = document.querySelector(`input[data-position="${initialFocusQuestionIndex}"]`);
+    console.log(`trying input[data-position="${initialFocusQuestionIndex}"]`);
+    if (gradeInput) {
+        gradeInput.focus();
+        console.log(`focusing on input[data-position="${initialFocusQuestionIndex}"]`);
+    } else {
+        const firstGradeInput = document.querySelector(`input[data-position="0"]`);
+        console.log(`Failed. Focusing on first grade input because input[data-position="${initialFocusQuestionIndex}"] does not exist`);
+        firstGradeInput.focus();
+    }
 };
 
 async function allImgsFullyLoaded () {
@@ -421,7 +428,7 @@ if (filterPks.length === 0) {
     lastPk = collectionPks[collectionPks.length - 1];
 } else {
     const subPaginationFilterCurrent = document.querySelector("#sub-pagination-filter-current");
-    subPaginationFilterCurrent.textContent = currentSubInFilter + 1;
+    subPaginationFilterCurrent.textContent = currentSubInFilter >= 0 ? currentSubInFilter + 1 : "-";
 }
 console.log(scroll_height_factors, course_id, assignment_id);
 console.log(pk, firstPk, lastPk);
@@ -431,6 +438,78 @@ if (pk === lastPk) {
 if (pk === firstPk) {
     prevBtn.disabled = true;
 }
+
+// try to get the initial focus question index from the url question_focus parameter
+let initialFocusQuestionIndex = 0;
+try {
+    const urlParams = new URLSearchParams(location.search);
+    const questionFocus = urlParams.get("question_focus");
+    if (questionFocus) {
+        initialFocusQuestionIndex = parseInt(questionFocus);
+    }
+} catch (error) {
+    console.log(`No question_focus parameter in url`);
+}
+
+// apply navigation filter when the selectpicker element with id "id_filter_question" changes
+const filterQuestionSelect = document.querySelector("#id_filter_question");
+filterQuestionSelect.addEventListener("change", () => {
+    const selectedOption = filterQuestionSelect.options[filterQuestionSelect.selectedIndex];
+    const selectedOptionValue = selectedOption.value;
+    const url = location.href;
+    const urlWithoutQueryString = url.split("?")[0];
+    const urlSearch = url.split("?")[1];
+    let urlSearchWithoutQuestionFilter = "";
+    try {
+        urlSearchWithoutQuestionFilter = urlSearch.split("&").filter(param => !param.startsWith("question_focus")).join("&");
+    } catch (error) {
+        urlSearchWithoutQuestionFilter = "";
+    }
+    const newQuestionFilterStr = selectedOptionValue === "" ? "" : "question_focus=" + selectedOptionValue;
+    const urlWithFilter = urlWithoutQueryString + "?" + newQuestionFilterStr + (urlSearchWithoutQuestionFilter ? "&" + urlSearchWithoutQuestionFilter : "");
+
+    handleChangesAndNavigate(urlWithFilter);
+});
+
+// apply navigation filter when the selectpicker element with id "id_filter_section" changes
+const filterSectionSelect = document.querySelector("#id_filter_section");
+filterSectionSelect.addEventListener("change", () => {
+    const selectedOption = filterSectionSelect.options[filterSectionSelect.selectedIndex];
+    const selectedOptionValue = selectedOption.value;
+    const url = location.href;
+    const urlWithoutQueryString = url.split("?")[0];
+    const urlSearch = url.split("?")[1];
+    let urlSearchWithoutSectionFilter = "";
+    try {
+        urlSearchWithoutSectionFilter = urlSearch.split("&").filter(param => !param.startsWith("section_filter")).join("&");
+    } catch (error) {
+        urlSearchWithoutSectionFilter = "";
+    }
+    const newSectionFilterStr = selectedOptionValue === "" ? "" : "section_filter=" + selectedOptionValue;
+    const urlWithFilter = urlWithoutQueryString + "?" + newSectionFilterStr + (urlSearchWithoutSectionFilter ? "&" + urlSearchWithoutSectionFilter : "");
+    
+    handleChangesAndNavigate(urlWithFilter);
+});
+
+// apply navigation filter when the selectpicker element with id "id_filter_section" changes
+const filterVersionSelect = document.querySelector("#id_filter_version");
+filterVersionSelect.addEventListener("change", () => {
+    const selectedOption = filterVersionSelect.options[filterVersionSelect.selectedIndex];
+    const selectedOptionValue = selectedOption.value;
+    const url = location.href;
+    const urlWithoutQueryString = url.split("?")[0];
+    const urlSearch = url.split("?")[1];
+    let urlSearchWithoutVersionFilter = "";
+    try {
+        urlSearchWithoutVersionFilter = urlSearch.split("&").filter(param => !param.startsWith("version_filter")).join("&");
+    } catch (error) {
+        urlSearchWithoutVersionFilter = "";
+    }
+    const newVersionFilterStr = selectedOptionValue === "" ? "" : "version_filter=" + selectedOptionValue;
+    const urlWithFilter = urlWithoutQueryString + "?" + newVersionFilterStr + (urlSearchWithoutVersionFilter ? "&" + urlSearchWithoutVersionFilter : "");
+    handleChangesAndNavigate(urlWithFilter);
+});
+
 
 prevBtn.addEventListener("click", () => {
     handleChangesAndNavigate(prev_url);
@@ -450,6 +529,79 @@ setInitialGradeStep();
 handleOffcanvasGradeStepInput();
 
 document.addEventListener('keydown', navigatorHandler);
+
+graderUpdatesForm = document.querySelector("#grader-updates-form");
+graderUpdatesForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    console.log("submit at url", graderUpdatesForm.action);
+    const options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": graderUpdatesForm.querySelector("input[name='csrfmiddlewaretoken']").value
+        },
+        body: new URLSearchParams(new FormData(graderUpdatesForm))
+    };
+    try {
+        const response = await fetch(graderUpdatesForm.action, options);
+        const data = await response.json();
+        console.log(data);
+        // if the response is success, show a toast
+        if (data.success) {
+            // update the initial_grades variable
+            const gradeInputs = document.querySelectorAll(".grade-input");
+            for (const [index, input] of gradeInputs.entries()) {
+                initial_grades[index][0] = input.value === "" ? null : input.value;
+            };
+            const toastDiv = document.createElement("div");
+            toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-success", "border-0");
+            toastDiv.setAttribute("role", "alert");
+            toastDiv.setAttribute("aria-live", "assertive");
+            toastDiv.setAttribute("aria-atomic", "true");
+            toastDiv.innerHTML = `<div class="d-flex">
+                                    <div class="toast-body">
+                                        Grader updates saved successfully!
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                    </div>`;
+            document.querySelector(".toast-container").appendChild(toastDiv);
+            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+            toastBootstrap.show();
+        } else {
+            const toastDiv = document.createElement("div");
+            toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-danger", "border-0");
+            toastDiv.setAttribute("role", "alert");
+            toastDiv.setAttribute("aria-live", "assertive");
+            toastDiv.setAttribute("aria-atomic", "true");
+            toastDiv.innerHTML = `<div class="d-flex">
+                                    <div class="toast-body">
+                                        Something went wrong. Please try again.
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                    </div>`;
+            document.querySelector(".toast-container").appendChild(toastDiv);
+            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+            toastBootstrap.show();
+        }
+    } catch (error) {
+        console.log(error);
+        const toastDiv = document.createElement("div");
+        toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-danger", "border-0");
+        toastDiv.setAttribute("role", "alert");
+        toastDiv.setAttribute("aria-live", "assertive");
+        toastDiv.setAttribute("aria-atomic", "true");
+        toastDiv.innerHTML = `<div class="d-flex">
+                                <div class="toast-body">
+                                    Something went wrong. Please try again.
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                </div>`;
+        document.querySelector(".toast-container").appendChild(toastDiv);
+        const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+        toastBootstrap.show();
+
+    }
+});
 
 // API call to get the starred comments for the current user and the current assignment
 const url_saved_comments_list = `/assignments/${assignment_id}/starcomments/`;
