@@ -64,11 +64,17 @@ function checkIfChanges() {
     const grade_inputs = document.querySelectorAll(".grade-input");
     for (const [index, input] of grade_inputs.entries()) {
         // if input value is empty string, set it to null
+        let inputValue;
         if (input.value === "") {
             inputValue = null;
         } else {
             inputValue = input.value;
         }
+        // if both of them are null or "" consider no changes
+        if ([inputValue, initial_grades[index][0]].every(value => value === null || value === "")) {
+            continue;
+        }
+
         if (inputValue !== initial_grades[index][0]) {
             unsavedChanges = true;
             console.log("changes");
@@ -83,17 +89,32 @@ function checkIfChanges() {
 }
 
 function handleChangesAndNavigate(url) {
-    unsavedChanges = checkIfChanges();
+    const unsavedChanges = checkIfChanges();
     if (unsavedChanges) {
         withConfirm = confirm("You are navigating out of the page. Do you want to save the changes?");
         if (withConfirm) {
-            saveChanges();
-            navigate(url)
+            const saved = false;
+            try {
+                saved = saveChanges();
+            } catch (error) {
+                console.log(error);
+                alert("An error occured while saving the changes. Please try again.");
+            }
+            if (saved) {
+                navigate(url);
+            } else {
+                alert("Saving partial grades is not implemented yet.");
+            }
         }
     }
     else {
         navigate(url);
     }
+}
+
+function saveChanges() {
+    console.log("Not Implemented: saving changes");
+    return false;
 }
 
 function navigate(url) {
@@ -533,6 +554,10 @@ document.addEventListener('keydown', navigatorHandler);
 graderUpdatesForm = document.querySelector("#grader-updates-form");
 graderUpdatesForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const hasChanges = checkIfChanges();
+    if (!hasChanges) {
+        return;
+    }
     console.log("submit at url", graderUpdatesForm.action);
     const options = {
         method: "POST",
@@ -553,8 +578,29 @@ graderUpdatesForm.addEventListener("submit", async (event) => {
             for (const [index, input] of gradeInputs.entries()) {
                 initial_grades[index][0] = input.value === "" ? null : input.value;
             };
+            // change the #total-grade-badge span
+            const totalGradeBadge = document.querySelector("#total-grade-current");
+            if (data.total_grade === null) {
+                totalGradeBadge.parentElement.classList.remove("border-success-subtle");
+                totalGradeBadge.parentElement.classList.add("border-warning-subtle");
+                if (data.question_grades === null) {
+                    totalGradeBadge.textContent = "-";
+                    totalGradeBadge.parentElement.classList.add("d-none");
+                } else {
+                    totalGradeBadge.textContent = data.question_grades;
+                    totalGradeBadge.parentElement.classList.remove("d-none");
+                }
+            } else {
+                totalGradeBadge.parentElement.classList.remove("border-warning-subtle");
+                totalGradeBadge.parentElement.classList.add("border-success-subtle");
+                totalGradeBadge.textContent = data.total_grade;
+                totalGradeBadge.parentElement.classList.remove("d-none");
+            }
+            // empty the text area
+            text_area.value = "";
+            // show a toast
             const toastDiv = document.createElement("div");
-            toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-success", "border-0");
+            toastDiv.classList.add("toast", "align-items-center", "text-bg-success", "border-0");
             toastDiv.setAttribute("role", "alert");
             toastDiv.setAttribute("aria-live", "assertive");
             toastDiv.setAttribute("aria-atomic", "true");
@@ -569,7 +615,7 @@ graderUpdatesForm.addEventListener("submit", async (event) => {
             toastBootstrap.show();
         } else {
             const toastDiv = document.createElement("div");
-            toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-danger", "border-0");
+            toastDiv.classList.add("toast", "align-items-center", "text-bg-danger", "border-0");
             toastDiv.setAttribute("role", "alert");
             toastDiv.setAttribute("aria-live", "assertive");
             toastDiv.setAttribute("aria-atomic", "true");
@@ -586,7 +632,7 @@ graderUpdatesForm.addEventListener("submit", async (event) => {
     } catch (error) {
         console.log(error);
         const toastDiv = document.createElement("div");
-        toastDiv.classList.add("toast", "align-items-center", "text-white", "bg-danger", "border-0");
+        toastDiv.classList.add("toast", "align-items-center", "text-bg-danger", "border-0");
         toastDiv.setAttribute("role", "alert");
         toastDiv.setAttribute("aria-live", "assertive");
         toastDiv.setAttribute("aria-atomic", "true");

@@ -204,34 +204,53 @@
                         </select>
                         {% if submission.student is not None %}
                             {% if submission.classification_type == "D"%}
-                            <span class="badge bg-primary" title="Classified using University ID">{{submission.classification_type}}</span> 
+                            <span class="badge bg-primary border border-2 border-primary-subtle" title="Classified using University ID">{{submission.classification_type}}</span> 
                             
                             {% elif submission.classification_type == "M"%}
-                            <span class="badge bg-warning" title="Classified manually">{{submission.classification_type}}</span> 
+                            <span class="badge text-bg-warning border border-2 border-warning-subtle" title="Classified manually">{{submission.classification_type}}</span> 
         
                             {% elif submission.classification_type == "W"%}
-                            <span class="badge bg-info text-dark" title="Classified using Name">{{submission.classification_type}}</span> 
+                            <span class="badge text-bg-info border border-2 border-warning-subtle" title="Classified using Name">{{submission.classification_type}}</span> 
                             
                             {% else %}
                             <span class="badge bg-danger">?</span> 
                             {% endif %}
-                        {% endif %}
-
-
-                            <!-- label showing the clustering status -->
-
-                        
-                            {% if submission.version %}
-                            <span class="badge rounded-pill bg-success" title="Version {{submission.version.name}}">V{{submission.version.name}}</span> 
-                            {% else %}
+                        {% endif %} 
+                        {% if submission.version %}
+                            <span class="badge text-bg-light border border-2 border-success" title="Version {{submission.version.name}}">V{{submission.version.name}}</span> 
+                        {% else %}
                             {% if submission.assignment.versioned %}
-                                <span class="badge rounded-pill bg-danger" title="Outlier">V0</span> 
+                                <span class="badge text-bg-light border border-2 border-danger" title="Outlier">V?</span> 
                             {% endif %}
-                            {% endif %}
-                            
-
-                            <!-- End of changes made-->
-
+                        {% endif %}
+                        
+                        <span 
+                        class="
+                        {% if not submission.grade and not submission.question_grades %}
+                            d-none
+                        {% endif %}
+                        badge text-bg-light border border-2
+                        {% if submission.grade %}
+                            border-primary-subtle 
+                        {% else %}
+                            border-warning-subtle 
+                        {% endif %}
+                        position-relative"
+                        id="total-grade-badge"
+                        title="Saved Total Grade">
+                            <span id="total-grade-current">
+                                {% if submission.grade %}
+                                    {{submission.grade}}
+                                {% else %}
+                                    {{submission.question_grades}}
+                                {% endif %}
+                            </span> 
+                            <span id="total-grade-separator">/</span>
+                            <span id="total-grade-max">{{submission.assignment.max_score}}</span>
+                            <span class="d-none grade-update-indicator position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                                <span class="visually-hidden">Updated Grade</span>
+                            </span>
+                        </span>
                     </div>
                     <div class="form-outline">
                         {% for q_grade, q_max_grade in grades_zipped %} 
@@ -250,7 +269,8 @@
                                         value="{{q_grade}}" 
                                     {% endif %}
                                     style="max-width:80px;"
-                                    required>
+                                    >
+                                    {% comment %} required> {% endcomment %}
                                 <span class="input-group-text mt"> / {{ q_max_grade }}</span>
                             </div>
                         {% endfor %}

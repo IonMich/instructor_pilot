@@ -144,18 +144,20 @@ class Submission(models.Model):
             q_grades = self.get_question_grades()
             for g in q_grades:
                 if g == "":
-                    raise ValidationError("Question grades must be non-empty.")
+                    pass
+                    # raise ValidationError("Question grades must be non-empty.")
                 else:
                     try:
                         g = float(g)
                     except ValueError:
-                        raise ValidationError("Question grades must be floats.")
-            q_grades = [float(g) for g in q_grades]
+                        raise ValidationError("Question grades must be floats or empty strings.")
+                    
+            q_grades = [g if g == "" else float(g) for g in q_grades]
             
             q_max_grades = self.assignment.get_max_question_scores()
             q_max_grades = [float(g) for g in q_max_grades]
             for q_grade, q_max_grade in zip(q_grades, q_max_grades):
-                if q_grade < 0 or q_grade > q_max_grade:
+                if (q_grade != "") and (q_grade < 0 or q_grade > q_max_grade):
                     raise ValidationError("Question grades must be between 0 and the maximum question grade.")
             if len(q_grades) != self.assignment.number_of_questions:
                 raise ValidationError("Question grades must be the same length as the number of questions in the assignment.")        
@@ -182,7 +184,7 @@ class Submission(models.Model):
         
     def save(self, *args, **kwargs):
         s_grades = self.get_question_grades()
-        if not all(g is None for g in s_grades):
+        if s_grades and all(g not in [None, ""] for g in s_grades):
             self.grade = sum(map(float, s_grades))
         else:
             self.grade = None

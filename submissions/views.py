@@ -286,9 +286,12 @@ def api_grade_update_view(request, submission_pk):
     if q_grades:
         _mutable = request.POST._mutable
         request.POST._mutable = True
-        request.POST['question_grades'] = ",".join(q_grades)
+        if all([q_grade == '' for q_grade in q_grades]):
+            request.POST['question_grades'] = ''
+        else:
+            request.POST['question_grades'] = ",".join(q_grades)
         request.POST._mutable = _mutable
-
+    print(request.POST['question_grades'].__repr__())
     form = GradingForm(
         request.POST,
         request.FILES,
@@ -304,6 +307,8 @@ def api_grade_update_view(request, submission_pk):
             'message': 'Grade updated',
             'success': True,
             'submission': submission_pk,
+            'total_grade': submission.grade,
+            'question_grades': submission.question_grades,
         })
     else:
         print("form is not valid")
@@ -311,6 +316,8 @@ def api_grade_update_view(request, submission_pk):
             'message': 'Form is not valid',
             'success': False,
             'submission': submission_pk,
+            'total_grade': submission.grade,
+            'question_grades': submission.question_grades,
         })
 
 @login_required
