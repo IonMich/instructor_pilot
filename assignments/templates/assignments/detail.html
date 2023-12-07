@@ -90,7 +90,8 @@
                             {% if assignment.get_all_question_grades%}
                                 
                                 <div class="alert alert-secondary d-flex align-items-center" role="alert">
-                                    <i class="bi bi-exclamation-triangle-fill" style='font-size:26px;'></i>
+                                    {% comment %} info icon {% endcomment %}
+                                    <i class="bi bi-info-circle-fill" style='font-size:26px;'></i>
                                     <div class="ms-2">
                                         <p>There are already graded questions for this assignment. Please delete
                                             all grades before changing the grading scheme.</p>

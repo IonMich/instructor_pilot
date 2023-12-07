@@ -103,30 +103,21 @@ function checkIfChanges() {
 function handleChangesAndNavigate(url) {
     const unsavedChanges = checkIfChanges();
     if (unsavedChanges) {
-        withConfirm = confirm("You are navigating out of the page. Do you want to save the changes?");
+        withConfirm = confirm("You are navigating out of the page. Do you want to save the changes and try again?");
         if (withConfirm) {
-            const saved = false;
+            let saved = false;
             try {
-                saved = saveChanges();
+                graderUpdatesForm.dispatchEvent(new Event("submit"));
+                return;
             } catch (error) {
                 console.log(error);
                 alert("An error occured while saving the changes. Please try again.");
-            }
-            if (saved) {
-                navigate(url);
-            } else {
-                alert("Saving partial grades is not implemented yet.");
             }
         }
     }
     else {
         navigate(url);
     }
-}
-
-function saveChanges() {
-    console.log("Not Implemented: saving changes");
-    return false;
 }
 
 function navigate(url) {
