@@ -20,6 +20,7 @@
 
 function navigatorHandler (event) {
     // if any textareas are focused and their value is not empty, do not navigate
+    console.log("key pressed. Navigator handler");
     const element_focused = document.activeElement;
     if (element_focused.tagName === "TEXTAREA" && element_focused.value !== "") {
         return;
@@ -33,7 +34,10 @@ function navigatorHandler (event) {
     }
     // if any text inputs are focused and their value is not empty, do not navigate
     // only exception is the grade input.
-    if (element_focused.tagName === "INPUT" && element_focused.value !== "" && !element_focused.classList.contains("grade-input")) {
+    if (element_focused.tagName === "INPUT" 
+    && element_focused.value !== "" 
+    && !element_focused.classList.contains("grade-input")
+    && element_focused.value !== "Update") {
         return;
     }
     
@@ -60,6 +64,18 @@ function navigatorHandler (event) {
 
 function checkIfChanges() {
     let unsavedChanges = false;
+    // check if the comment area has changed
+    if (text_area.value !== "") {
+        unsavedChanges = true;
+        console.log("unsaved changes: ", unsavedChanges);
+        return unsavedChanges;
+    }
+    // check if the file input has changed
+    if (fileInput.files.length !== 0) {
+        unsavedChanges = true;
+        console.log("unsaved changes: ", unsavedChanges);
+        return unsavedChanges;
+    }
     // check if the grades have changed
     const grade_inputs = document.querySelectorAll(".grade-input");
     for (const [index, input] of grade_inputs.entries()) {
@@ -77,14 +93,10 @@ function checkIfChanges() {
 
         if (inputValue !== initial_grades[index][0]) {
             unsavedChanges = true;
-            console.log("changes");
             break;
         }
     };
-    // check if the comment area has changed
-    if (text_area.value !== "") {
-        unsavedChanges = true;
-    }
+    console.log("unsaved changes: ", unsavedChanges);
     return unsavedChanges
 }
 
@@ -392,6 +404,15 @@ function setInitialGradeStep() {
 
 
 const text_area = document.getElementById("newCommentTextArea");
+text_area.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && event.ctrlKey) {
+        event.preventDefault();
+        graderUpdatesForm.dispatchEvent(new Event("submit"));
+    }
+});
+
+const fileInput = document.querySelector("[name='comment_files']");
+
 const prevBtn = document.getElementById("btnPrev");
 const nextBtn = document.getElementById("btnNext");
 const offcanvas = document.querySelector("#offcanvasExample");
@@ -551,7 +572,7 @@ handleOffcanvasGradeStepInput();
 
 document.addEventListener('keydown', navigatorHandler);
 
-graderUpdatesForm = document.querySelector("#grader-updates-form");
+const graderUpdatesForm = document.querySelector("#grader-updates-form");
 graderUpdatesForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const hasChanges = checkIfChanges();
@@ -562,10 +583,10 @@ graderUpdatesForm.addEventListener("submit", async (event) => {
     const options = {
         method: "POST",
         headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
+            // "Content-Type": "application/x-www-form-urlencoded",
             "X-CSRFToken": graderUpdatesForm.querySelector("input[name='csrfmiddlewaretoken']").value
         },
-        body: new URLSearchParams(new FormData(graderUpdatesForm))
+        body: new FormData(graderUpdatesForm),
     };
     try {
         const response = await fetch(graderUpdatesForm.action, options);
@@ -596,8 +617,56 @@ graderUpdatesForm.addEventListener("submit", async (event) => {
                 totalGradeBadge.textContent = data.total_grade;
                 totalGradeBadge.parentElement.classList.remove("d-none");
             }
-            // empty the text area
             text_area.value = "";
+            fileInput.value = "";
+            const newComments = JSON.parse(data.new_comments);
+            console.log(newComments);
+            const commentsDiv = document.querySelector("#old-comments");
+            const lenOldComments = commentsDiv.querySelectorAll(".old-comment").length;
+            if (lenOldComments === 0 && newComments.length !== 0) {
+                // remove d-none class from the old-comments div and its label
+                commentsDiv.classList.remove("d-none");
+                document.querySelector("#old-comments-label").classList.remove("d-none");
+            }
+            newComments.forEach((comment, i) => {
+                const commentCounter = lenOldComments + i + 1;
+                const commentDiv = document.createElement("div");
+                commentDiv.classList.add("form-outline", "old-comment", "mb-2");
+                commentDiv.setAttribute("id", `old-comment-${commentCounter}`);
+                commentDiv.setAttribute("style", "position:relative;");
+                const commentText = comment.text;
+                const commentPk = comment.pk;
+                const commentAuthorFirstName = comment.author.first_name;
+                const commentCreationDate = comment.created;
+                commentDiv.innerHTML = `
+                    <div class="comment-tools btn-group-sm d-none">
+                        <button type="button" class="btn btn-edit-comment" aria-label="Edit" data-bs-pk=${commentPk} title="Edit comment" tabindex="-1">
+                            <i class="bi bi-pencil-fill"></i>
+                        </button>
+                        <button type="button" class="btn btn-star-comment" aria-label="Star" data-bs-pk=${commentPk} title="Create reusable comment" tabindex="-1">
+                            <i class="bi bi-star-fill"></i>
+                        </button>
+                        <button type="button" class="btn btn-delete-comment" aria-label="Close" data-bs-pk=${commentPk} title="Delete comment" tabindex="-1">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </div>
+                    ${comment.file_name ? `<p class="comment-text"><a href="${comment.file_url}" target="_blank">${comment.file_name}</a></p>` : ""}
+                    ${commentText ? `<p class="comment-text">${commentText}</p>` : ""}
+                    <div class="d-flex">
+                        <small class="ms-auto comment-info text-muted">
+                            <span class="comment-author">${commentAuthorFirstName} - </span>
+                            <span class="comment-date">${commentCreationDate}</span>
+                            ${comment.file_size ? `<span class="comment-filesize"> - ${comment.file_size}</span>` : ""}
+                        </small>
+                    </div>
+                `;
+                commentsDiv.appendChild(commentDiv);
+                const newCommentDiv = document.querySelector(`#old-comment-${commentCounter}`);
+                oldCommentHoverStyles(newCommentDiv);
+                addDeleteBtnListener(newCommentDiv);
+                addStarBtnListener(newCommentDiv);
+                addEditBtnListener(newCommentDiv);
+            });
             // show a toast
             const toastDiv = document.createElement("div");
             toastDiv.classList.add("toast", "align-items-center", "text-bg-success", "border-0");
@@ -741,15 +810,22 @@ function handleOffcanvasGradeStepInput() {
 // submit enterkey event when the input is focused and simply unfocus the
 // input when the enterkey is pressed, instead of submitting the form.
 offcanvasGradeStepInput.addEventListener("keydown", (event) => {
+    console.log("blurring gradeform");
     if (event.key === "Enter") {
         offcanvasGradeStepInput.blur();
     }
 });
 
-// for each old comment, add a hover event listener for the div containing the comment
 
 const oldComments = document.querySelectorAll(".old-comment");
 oldComments.forEach(comment => {
+    oldCommentHoverStyles(comment);
+    addDeleteBtnListener(comment);
+    addStarBtnListener(comment);
+    addEditBtnListener(comment);
+});
+
+function oldCommentHoverStyles(comment) {
     // when the user hovers over the div, show the .comment-tools div
     const commentTools = comment.querySelector(".comment-tools");
     const deleteBtn = comment.querySelector(".btn-delete-comment");
@@ -785,24 +861,14 @@ oldComments.forEach(comment => {
     // when the user hovers over the edit button, change the color to green
     editBtn.addEventListener("mouseenter", () => {
         editBtn.classList.add("text-success");
-    }
-    );
+    });
     // when the user hovers out of the edit button, change the color back to black
     editBtn.addEventListener("mouseleave", () => {
         editBtn.classList.remove("text-success");
-    }
-    );
-
-
-
-
+    });
 }
-);
 
-// add a click event listener to the delete button of each old comment
-// when the user clicks the delete button, open a modal to confirm the deletion
-
-oldComments.forEach(comment => {
+function addDeleteBtnListener (comment) {
     const deleteBtn = comment.querySelector(".btn-delete-comment");
     deleteBtn.addEventListener("click", () => {
         // get the comment id
@@ -818,10 +884,8 @@ oldComments.forEach(comment => {
         modalInstance.show();
     });
 }
-);
 
-// add a click event listener to the star button of each old comment
-oldComments.forEach(comment => {
+function addStarBtnListener (comment) {
     const starBtn = comment.querySelector(".btn-star-comment");
     // if there is no .comment-text element, the comment probably has a file
     // disable the star button
@@ -853,10 +917,8 @@ oldComments.forEach(comment => {
         modalInstance.show();
     });
 }
-);
 
-// add a click event listener to the edit button of each old comment
-oldComments.forEach(comment => {
+function addEditBtnListener (comment) {
     const editBtn = comment.querySelector(".btn-edit-comment");
     // if there is no .comment-text element, the comment probably has a file
     // disable the edit button
@@ -887,7 +949,6 @@ oldComments.forEach(comment => {
         modalInstance.show();
     });
 }
-);
 
 
 // add a click event listener to the modal delete button

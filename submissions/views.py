@@ -292,6 +292,12 @@ def api_grade_update_view(request, submission_pk):
             request.POST['question_grades'] = ",".join(q_grades)
         request.POST._mutable = _mutable
     print(request.POST['question_grades'].__repr__())
+    print(f"text: {request.POST.get('new_comment')}")
+    print(f"file: {request.FILES.getlist('comment_files')}")
+    for key in request.FILES.keys():
+        print(key)
+
+
     form = GradingForm(
         request.POST,
         request.FILES,
@@ -302,13 +308,72 @@ def api_grade_update_view(request, submission_pk):
         
         # save the form
         form.save()
-        # send a success message
+
+        if request.POST.get('new_comment').strip():
+            comment = SubmissionComment(
+                paper_submission=submission,
+                author=request.user,
+                text=request.POST.get('new_comment'))
+            comment.save()
+            created = (comment.created_at.astimezone()
+                       .strftime("%b. %-d, %Y, %-I:%M %p")
+                       .replace("AM", "a.m.")
+                       .replace("PM", "p.m.")
+                          ) 
+            print("comment saved")
+            # parse date as e.g. Dec. 31, 2020, 11:59 p.m. at the local timezone
+            serialized_comment = {
+                'pk': str(comment.pk),
+                'text': comment.text,
+                'created': created,
+                'author': {
+                    'first_name': comment.author.first_name,
+                },
+            }
+            serialized_comments = [serialized_comment]
+        else:
+            serialized_comments = []
+        
+        # get comment files with names comment_files_0, comment_files_1, etc.
+        # add new file from to a new SubmissionFile instance
+        # assigned to the submission and authored by the request.user
+        if request.FILES.getlist('comment_files'):
+            print("adding file(s)")
+            created_comment_pks = SubmissionComment.add_commentfiles_to_db(
+                submission_target=submission,
+                uploaded_files=request.FILES.getlist('comment_files'),
+                author=request.user)
+            # print("comment files saved: ", created_comment_pks)
+            for comment_pk in created_comment_pks:
+                comment = SubmissionComment.objects.get(pk=comment_pk)
+                created = (comment.created_at.astimezone()
+                       .strftime("%b. %-d, %Y, %-I:%M %p")
+                       .replace("AM", "a.m.")
+                       .replace("PM", "p.m.")
+                          ) 
+                serialized_comment = {
+                    'pk': str(comment.pk),
+                    'text': comment.text,
+                    'created': created,
+                    'file_name': comment.get_filename(),
+                    'file_url': comment.comment_file.url,
+                    'file_size': comment.get_filesize(),
+                    'author': {
+                        'first_name': comment.author.first_name,
+                    },
+                }
+                print("comment saved: ", serialized_comment)
+                serialized_comments.append(serialized_comment)
+
+        import json
+        serialized_comments = json.dumps(serialized_comments)
         return JsonResponse({
             'message': 'Grade updated',
             'success': True,
             'submission': submission_pk,
             'total_grade': submission.grade,
             'question_grades': submission.question_grades,
+            'new_comments': serialized_comments,
         })
     else:
         print("form is not valid")
@@ -318,6 +383,7 @@ def api_grade_update_view(request, submission_pk):
             'submission': submission_pk,
             'total_grade': submission.grade,
             'question_grades': submission.question_grades,
+            'new_comments': [],
         })
 
 @login_required
