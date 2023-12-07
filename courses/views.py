@@ -255,7 +255,9 @@ def api_course_assignments_create(request, course_pk):
             canvas_id=data.get('canvas_id'),
             defaults=defaults
         )
-        if (not created) and assignment.get_all_submissions().filter(graded_by__isnull=False).count() > 0:
+        num_subs_with_grader = assignment.get_all_submissions().filter(graded_by__isnull=False).count()
+        num_subs_with_question_grades = assignment.get_all_submissions().filter(question_grades__isnull=False).count()
+        if (not created) and (num_subs_with_grader > 0 or num_subs_with_question_grades > 0):
             defaults.pop('max_question_scores')
             print(f"Assignment has graded submissions. Not updating max_question_scores.")
         if (not created):
