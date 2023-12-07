@@ -45,22 +45,99 @@
 
 
 {% comment %} show the assignment grading progress and the average grade {% endcomment %}
-    <h1>
-        {{ assignment.name }}
-        <span class="badge bg-light text-dark {% if assignment.get_grading_progress == 100.0 %}border border-2 border-success{% endif %}"
-        title="Percentage of Submissions Graded">
-            {{ assignment.get_grading_progress }} %
-        </span>
-        {% if assignment.get_canvas_url %}
-            <button class="btn btn-outline-light btn-sm assignment-canvas-btn" 
-                data-assignment-canvas-url="{{assignment.get_canvas_url}}"
-                title="Open assignment in Canvas"
-                onclick="window.open(this.dataset.assignmentCanvasUrl, '_blank');">
-                <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" 
-                style="width: 16px; height: 16px; filter: grayscale(100%);">
-            </button>
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="me-auto">
+            <h1>
+                {{ assignment.name }}
+                <span class="badge bg-light text-dark {% if assignment.get_grading_progress == 100.0 %}border border-2 border-success{% endif %}"
+                title="Percentage of Submissions Graded">
+                    {{ assignment.get_grading_progress }} %
+                </span>
+                {% comment %} add settigns button {% endcomment %}
+                
+                {% if assignment.get_canvas_url %}
+                    <button class="btn btn-outline-light btn-sm assignment-canvas-btn" 
+                        data-assignment-canvas-url="{{assignment.get_canvas_url}}"
+                        title="Open assignment in Canvas"
+                        onclick="window.open(this.dataset.assignmentCanvasUrl, '_blank');">
+                        <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://canvas.instructure.com&size=48" 
+                        style="width: 16px; height: 16px; filter: grayscale(100%);">
+                    </button>
+                {% endif %}
+            </h1>
+        </div>
+        {% if qs %}
+            <div class="ms-auto">
+                <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                    <i class="bi bi-gear text-dark" style="width: 32px; height: 32px; filter: grayscale(100%);"></i>
+                </button>
+            </div>
+            {% comment %} create settings modal {% endcomment %}
+            <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="settingsModalLabel">Select grading scheme</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="settingsModalBody update-grade-scheme py-3 w-75 m-auto">
+                            {% comment %} if qs show warning alert {% endcomment %}
+                            <div class="current-grade-scheme mb-2">
+                                <p class="mb-1">Current grading scheme: {{assignment.number_of_questions}} question{{assignment.number_of_questions|pluralize}} with 
+                                        maximum score{{assignment.number_of_questions|pluralize}} of {{assignment.max_question_scores}} points.
+                                </p>
+                            </div>
+                            {% if assignment.get_all_question_grades%}
+                                
+                                <div class="alert alert-secondary d-flex align-items-center" role="alert">
+                                    <i class="bi bi-exclamation-triangle-fill" style='font-size:26px;'></i>
+                                    <div class="ms-2">
+                                        <p>There are already graded questions for this assignment. Please delete
+                                            all grades before changing the grading scheme.</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <form class="{% if assignment.get_all_question_grades %} d-none {% endif %}" action="" enctype="multipart/form-data" method="POST" id="gradingSchemeForm">
+                                {% csrf_token %}
+                                {% comment %} add slider for the number of questions. max is the total grade{% endcomment %}
+                                <label for="num_questions">Number of questions</label>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <input type="range" class="form-range" id="num_questions" name="num_questions" min="1" max="{{assignment.max_score}}" value="{{assignment.number_of_questions}}" oninput="this.form.num_questions_output.value = this.value">
+                                    <input type="number" class="form-control" name="num_questions_output" value="{{assignment.number_of_questions}}" min="1" max="{{assignment.max_score}}" style="width: 60px; margin-left:1rem" oninput="this.form.num_questions.value = this.value">
+                                </div>
+                                {% comment %} add a switch for equal or not equal grades for each question{% endcomment %}
+                                <div class="form-check form-switch mt-4">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="equal_grades" name="equal_grades" 
+                                    {% if assignment.has_equal_question_scores %}
+                                        checked
+                                    {% endif %}
+                                    >
+                                    <label for="equal_grades" class="">Equal maximum scores for all questions</label>
+                                </div>
+                                
+                                <div class="expander" id="expander">
+                                    <div class="form-group mt-1 ms-1 me-2 mb-2" id="grades_input_group">
+                                        {% comment %} input for the maximum grade for each question{% endcomment %}
+                                        {% comment %} E.g. 3,2 for 2 questions with 3 and 2 points respectively{% endcomment %}
+                                        <label for="max_grades" class="mt-1">Maximum grades for each question:</label>
+                                        <input type="text" class="form-control" id="max_grades" name="max_grades" value="{{assignment.max_question_scores}}" placeholder="E.g. 3,2 for two questions with 3 and 2 points respectively">
+                                    </div>
+                                </div>
+                                {% comment %} add switch to apply the same grading scheme to all assignments in the same assignment group{% endcomment %}
+                                <div class="form-check form-switch mt-3">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="apply_to_all" name="apply_to_all">
+                                    <label for="apply_to_all" class="">Apply to assignments in "{{assignment.assignment_group_object}}"</label>
+                                </div>
+                                {% comment %} add a hidden input for the assignment_id {% endcomment %}
+                                <input type="hidden" name="assignment_id" value="{{assignment.pk}}" id="assignment_id">
+                                <button type="button" name="update_grading_scheme" id="updateGradingSchemeBtn" class="btn btn-primary mt-3" style="display:block; margin:0 auto;">Update</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         {% endif %}
-    </h1>
+    </div>
 
 {% if assignment.description %}
     {% comment %} show description if it exists in italics {% endcomment %}

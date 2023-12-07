@@ -150,7 +150,7 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                     message = 'Upload to canvas completed gracefully. Details in the terminal.'
                     message_type = 'info'
                 except Exception as e:
-                    print("An error occured while syncing submissions to canvas")
+                    print(f"An error occured while syncing submissions to canvas: {e}")
                     import traceback
                     print(traceback.format_exc())
                     message = "An error occured while syncing submissions to canvas"
