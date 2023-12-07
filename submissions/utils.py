@@ -8,7 +8,7 @@ from django.db import models
 from django.utils.translation import gettext as _
 from PIL import Image
 
-comma_separated_float_list_re = re.compile('^([-+]?\d*\.?\d+[,\s]*)+$')
+comma_separated_float_list_re = re.compile('^[,\s]*([-+]?\d*\.?\d+[,\s]*)+$')
 validate_comma_separated_float_list = RegexValidator(
               comma_separated_float_list_re, 
               _(u'Enter only floats separated by commas.'), 'invalid')

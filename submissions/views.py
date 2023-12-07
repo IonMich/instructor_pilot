@@ -132,18 +132,33 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
     # get the section filter from the request GET parameters
     print(request.GET)
     section_filter = request.GET.get('section_filter')
+    version_filter = request.GET.get('version_filter')
+    question_focus = request.GET.get('question_focus')
     # allow only submissions whose student is enrolled in the section
     # to be displayed
     collection = PaperSubmission.objects.filter(
         assignment=submission.assignment
         )
+    filtered_collection = collection
     filter_pks = []
+    query_params_dict = {}
     if section_filter:
         filtered_collection = collection.filter(
             Q(student__sections__id=section_filter)
         )
         filter_pks = filtered_collection.values_list('pk', flat=True)
         filter_pks = list(filter_pks)
+        query_params_dict['section_filter'] = section_filter
+    if version_filter:
+        filtered_collection = filtered_collection.filter(
+            Q(version__id=version_filter)
+        )
+        filter_pks = filtered_collection.values_list('pk', flat=True)
+        filter_pks = list(filter_pks)
+        query_params_dict['version_filter'] = version_filter
+    if question_focus:
+        query_params_dict['question_focus'] = question_focus
+    print(query_params_dict)
     collection_pks = collection.values_list('pk', flat=True)
     collection_pks = list(collection_pks)
     print(submission.assignment)
@@ -221,7 +236,7 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
                 'grades_zipped': grades_zipped,
                 'collection_pks': collection_pks,
                 'filter_pks': filter_pks,
-                'query_params': request.GET.urlencode(),
+                'query_params': query_params_dict,
                 })
         else:
             print("form is not valid")
@@ -236,7 +251,139 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         'grades_zipped': grades_zipped,
         'collection_pks': collection_pks,
         'filter_pks': filter_pks,
-        'query_params': request.GET.urlencode(),
+        'query_params': query_params_dict,
+        })
+
+@login_required
+def api_grade_update_view(request, submission_pk):
+    """
+    This view updates the grade of a submission
+    """
+    if request.method != 'POST':
+        return JsonResponse({
+            'message': 'This view only accepts POST requests',
+            'success': False,
+            'submission': submission_pk,
+        })
+    try:
+        submission = PaperSubmission.objects.get(pk=submission_pk)
+    except PaperSubmission.DoesNotExist:
+        return JsonResponse({
+            'message': 'Submission does not exist',
+            'success': False,
+            'submission': submission_pk,
+        })
+    submission.graded_at = timezone.now()
+    submission.graded_by = request.user
+    if (not submission.student) or str(submission.student.id) != request.POST['student']:
+        submission.classification_type = 'M'
+        submission.canvas_id = ''
+        submission.canvas_url = ''
+
+    q_grades = [ str(request.POST.get(f"grade_{i+1}"))
+            for i in range(submission.assignment.number_of_questions)]
+    print(q_grades)
+    if q_grades:
+        _mutable = request.POST._mutable
+        request.POST._mutable = True
+        if all([q_grade == '' for q_grade in q_grades]):
+            request.POST['question_grades'] = ''
+        else:
+            request.POST['question_grades'] = ",".join(q_grades)
+        request.POST._mutable = _mutable
+    print(request.POST['question_grades'].__repr__())
+    print(f"text: {request.POST.get('new_comment')}")
+    print(f"file: {request.FILES.getlist('comment_files')}")
+    for key in request.FILES.keys():
+        print(key)
+
+
+    form = GradingForm(
+        request.POST,
+        request.FILES,
+        instance=submission)
+    if form.is_valid():
+        print("form is valid")
+        print(form.cleaned_data)
+        
+        # save the form
+        form.save()
+
+        if request.POST.get('new_comment').strip():
+            comment = SubmissionComment(
+                paper_submission=submission,
+                author=request.user,
+                text=request.POST.get('new_comment'))
+            comment.save()
+            created = (comment.created_at.astimezone()
+                       .strftime("%b. %-d, %Y, %-I:%M %p")
+                       .replace("AM", "a.m.")
+                       .replace("PM", "p.m.")
+                          ) 
+            print("comment saved")
+            # parse date as e.g. Dec. 31, 2020, 11:59 p.m. at the local timezone
+            serialized_comment = {
+                'pk': str(comment.pk),
+                'text': comment.text,
+                'created': created,
+                'author': {
+                    'first_name': comment.author.first_name,
+                },
+            }
+            serialized_comments = [serialized_comment]
+        else:
+            serialized_comments = []
+        
+        # get comment files with names comment_files_0, comment_files_1, etc.
+        # add new file from to a new SubmissionFile instance
+        # assigned to the submission and authored by the request.user
+        if request.FILES.getlist('comment_files'):
+            print("adding file(s)")
+            created_comment_pks = SubmissionComment.add_commentfiles_to_db(
+                submission_target=submission,
+                uploaded_files=request.FILES.getlist('comment_files'),
+                author=request.user)
+            # print("comment files saved: ", created_comment_pks)
+            for comment_pk in created_comment_pks:
+                comment = SubmissionComment.objects.get(pk=comment_pk)
+                created = (comment.created_at.astimezone()
+                       .strftime("%b. %-d, %Y, %-I:%M %p")
+                       .replace("AM", "a.m.")
+                       .replace("PM", "p.m.")
+                          ) 
+                serialized_comment = {
+                    'pk': str(comment.pk),
+                    'text': comment.text,
+                    'created': created,
+                    'file_name': comment.get_filename(),
+                    'file_url': comment.comment_file.url,
+                    'file_size': comment.get_filesize(),
+                    'author': {
+                        'first_name': comment.author.first_name,
+                    },
+                }
+                print("comment saved: ", serialized_comment)
+                serialized_comments.append(serialized_comment)
+
+        import json
+        serialized_comments = json.dumps(serialized_comments)
+        return JsonResponse({
+            'message': 'Grade updated',
+            'success': True,
+            'submission': submission_pk,
+            'total_grade': submission.grade,
+            'question_grades': submission.question_grades,
+            'new_comments': serialized_comments,
+        })
+    else:
+        print("form is not valid")
+        return JsonResponse({
+            'message': 'Form is not valid',
+            'success': False,
+            'submission': submission_pk,
+            'total_grade': submission.grade,
+            'question_grades': submission.question_grades,
+            'new_comments': [],
         })
 
 @login_required
@@ -280,15 +427,30 @@ def api_submission_patch_view(request, assignment_pk, submission_pk):
 @login_required
 def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
     section_filter = request.GET.get('section_filter')
-    extra_params = ''
-    if section_filter:
-        extra_params = f'?section_filter={section_filter}'
+    version_filter = request.GET.get('version_filter')
+    question_focus = request.GET.get('question_focus')
+    extra_params = []
+    if section_filter and section_filter != 'None':
+        extra_params.append(f'section_filter={section_filter}')
+    if version_filter and version_filter != 'None':
+        extra_params.append(f'version_filter={version_filter}')
+    if question_focus and question_focus != 'None':
+        extra_params.append(f'question_focus={question_focus}')
+    if len(extra_params) > 0:
+        extra_params = '?' + '&'.join(extra_params)
+    else:
+        extra_params = ''
+
     # first find the object corresponding to the pk
     submission = get_object_or_404(PaperSubmission, pk=submission_pk)
     # then find the previous object
     qs = PaperSubmission.objects.filter(
         assignment=submission.assignment,
         created__lt=submission.created).order_by('-created')
+    if version_filter:
+        qs = qs.filter(version__id=version_filter)
+    if section_filter:
+        qs = qs.filter(student__sections__id=section_filter)
     if len(qs) > 0:
         print("found previous")
         new_url = reverse(
@@ -309,9 +471,19 @@ def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
 @login_required
 def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
     section_filter = request.GET.get('section_filter')
-    extra_params = ''
+    version_filter = request.GET.get('version_filter')
+    question_focus = request.GET.get('question_focus')
+    extra_params = []
     if section_filter:
-        extra_params = f'?section_filter={section_filter}'
+        extra_params.append(f'section_filter={section_filter}')
+    if version_filter:
+        extra_params.append(f'version_filter={version_filter}')
+    if question_focus:
+        extra_params.append(f'question_focus={question_focus}')
+    if len(extra_params) > 0:
+        extra_params = '?' + '&'.join(extra_params)
+    else:
+        extra_params = ''
 
     # first find the object corresponding to the pk
     submission = get_object_or_404(PaperSubmission, pk=submission_pk)
@@ -320,6 +492,10 @@ def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
         created__gt=submission.created, 
         assignment=submission.assignment
         ).order_by('created')
+    if version_filter:
+        qs = qs.filter(version__id=version_filter)
+    if section_filter:
+        qs = qs.filter(student__sections__id=section_filter)
     if len(qs) > 0:
         print("found next")
         new_url = reverse(

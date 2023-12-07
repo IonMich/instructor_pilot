@@ -163,6 +163,14 @@ class Assignment(models.Model):
     def get_all_grades(self):
         """Returns the grades of all submissions of the assignment."""
         return [s.grade for s in self.get_all_submissions().filter(graded_by__isnull=False)]
+    
+    def get_all_question_grades(self):
+        """Returns the question grades of all submissions of the assignment."""
+        grades = []
+        for s in self.get_all_submissions():
+            if s.get_question_grades():
+                grades.append(s.get_question_grades())
+        return grades
 
     def sync_labeled_submissions_from_canvas(self):
         """Adds the canvas_id of the corresponding canvas 

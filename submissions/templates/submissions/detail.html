@@ -181,7 +181,8 @@
     </div>
 
     <div class="col-md-3">
-        <form action='{% url "submissions:detail" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}' method="post" enctype="multipart/form-data">
+        {% comment %} <form action='{% url "submissions:detail" submission_pk=submission.pk course_pk=submission.assignment.course.pk assignment_pk=submission.assignment.pk %}' method="post" enctype="multipart/form-data"> {% endcomment %}
+        <form action='{% url "submissions:api-grade-update" submission_pk=submission.pk %}' method="post" enctype="multipart/form-data" id="grader-updates-form">
             {% csrf_token %}
             <div class="row" >                    
                 <div class="col-xs-12 mb-5" style="height:30%;">
@@ -203,34 +204,53 @@
                         </select>
                         {% if submission.student is not None %}
                             {% if submission.classification_type == "D"%}
-                            <span class="badge bg-primary" title="Classified using University ID">{{submission.classification_type}}</span> 
+                            <span class="badge bg-primary border border-2 border-primary-subtle" title="Classified using University ID">{{submission.classification_type}}</span> 
                             
                             {% elif submission.classification_type == "M"%}
-                            <span class="badge bg-warning" title="Classified manually">{{submission.classification_type}}</span> 
+                            <span class="badge text-bg-warning border border-2 border-warning-subtle" title="Classified manually">{{submission.classification_type}}</span> 
         
                             {% elif submission.classification_type == "W"%}
-                            <span class="badge bg-info text-dark" title="Classified using Name">{{submission.classification_type}}</span> 
+                            <span class="badge text-bg-info border border-2 border-warning-subtle" title="Classified using Name">{{submission.classification_type}}</span> 
                             
                             {% else %}
                             <span class="badge bg-danger">?</span> 
                             {% endif %}
-                        {% endif %}
-
-
-                            <!-- label showing the clustering status -->
-
-                        
-                            {% if submission.version %}
-                            <span class="badge rounded-pill bg-success" title="Version {{submission.version.name}}">V{{submission.version.name}}</span> 
-                            {% else %}
+                        {% endif %} 
+                        {% if submission.version %}
+                            <span class="badge text-bg-light border border-2 border-success" title="Version {{submission.version.name}}">V{{submission.version.name}}</span> 
+                        {% else %}
                             {% if submission.assignment.versioned %}
-                                <span class="badge rounded-pill bg-danger" title="Outlier">V0</span> 
+                                <span class="badge text-bg-light border border-2 border-danger" title="Outlier">V?</span> 
                             {% endif %}
-                            {% endif %}
-                            
-
-                            <!-- End of changes made-->
-
+                        {% endif %}
+                        
+                        <span 
+                        class="
+                        {% if not submission.grade and not submission.question_grades %}
+                            d-none
+                        {% endif %}
+                        badge text-bg-light border border-2
+                        {% if submission.grade %}
+                            border-primary-subtle 
+                        {% else %}
+                            border-warning-subtle 
+                        {% endif %}
+                        position-relative"
+                        id="total-grade-badge"
+                        title="Saved Total Grade">
+                            <span id="total-grade-current">
+                                {% if submission.grade %}
+                                    {{submission.grade}}
+                                {% else %}
+                                    {{submission.question_grades}}
+                                {% endif %}
+                            </span> 
+                            <span id="total-grade-separator">/</span>
+                            <span id="total-grade-max">{{submission.assignment.max_score}}</span>
+                            <span class="d-none grade-update-indicator position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                                <span class="visually-hidden">Updated Grade</span>
+                            </span>
+                        </span>
                     </div>
                     <div class="form-outline">
                         {% for q_grade, q_max_grade in grades_zipped %} 
@@ -249,7 +269,8 @@
                                         value="{{q_grade}}" 
                                     {% endif %}
                                     style="max-width:80px;"
-                                    required>
+                                    >
+                                    {% comment %} required> {% endcomment %}
                                 <span class="input-group-text mt"> / {{ q_max_grade }}</span>
                             </div>
                         {% endfor %}
@@ -305,66 +326,62 @@
                             
                 </div>
                 {% endif %}
-
                 <!-- End-->
 
 
-                {% if submission.non_grade_comments %}
-                    <label class="mt-3" for="old-comments" style="font-size:20px;">Old Comments</label>
-                    <div class="col-xs-12 mt-2" style="height:70%;" id="old-comments">
-                        {% for comment in submission.submissions_submissioncomment_related.all %}
-                            {% if comment.is_grade_summary %}
-                                
-                            {% else %}
-                                <div class="form-outline old-comment mb-2" id="old-comment-{{forloop.counter}}" style="position:relative;">
-                                    {% comment %} add the old comment and a button to delete it at the top right corner of the div 
-                                    It is hidden by default and only shown when the user hovers over the div
-                                    Its position is absolute so it doesn't affect the layout of the page
-                                    {% endcomment %}
-                                    
-                                    <div class="comment-tools btn-group-sm d-none">
-                                        {% comment %} add edit, star and trash buttons {% endcomment %}
-                                        <button type="button" class="btn btn-edit-comment" aria-label="Edit" data-bs-pk="{{comment.pk}}" title="Edit comment" tabindex="-1">
-                                            {% comment %} pen {% endcomment %}
-                                            <i class="bi bi-pencil-fill"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-star-comment" aria-label="Star" data-bs-pk="{{comment.pk}}" title="Create reusable comment" tabindex="-1">
-                                            {% comment %} star {% endcomment %}
-                                            <i class="bi bi-star-fill"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-delete-comment" aria-label="Close" data-bs-pk="{{comment.pk}}" title="Delete comment" tabindex="-1">
-                                            {% comment %} trash {% endcomment %}
-                                            <i class="bi bi-trash-fill"></i>
-                                        </button>
-                                    </div>
-                                    {% if comment.text %}
-                                        <p name="old_comment_{{forloop.counter}}" class="comment-text" id="{{ comment.id_for_label }}">{{comment.text}}</p>
-                                    {% endif %}
-                                    {% if comment.comment_file%}
-                                        <a name="old_comment_{{forloop.counter}}-file" class="comment-file" id="{{ comment.id_for_label }}-file" href="{{comment.comment_file.url}}" target="_blank">
-                                            {{comment.get_filename}}
-                                        </a>
-                                    {% endif %}
-                                    {% comment %} add author and date in small text anchor to the bottom right corner of the div {% endcomment %}
-                                    {% comment %} note that if float:right interferes with the comment text, so 
-                                    we can use float:left and then add a margin to the text {% endcomment %}
-                                    <div class="d-flex">
-                                        <small class="ms-auto comment-info text-muted">
-                                            {% comment %} add author {% endcomment %}
-                                            <span class="comment-author">{{comment.author.first_name}} - </span>
-                                            {% comment %} add date {% endcomment %}
-                                            <span class="comment-date">{{comment.updated_at}}</span>
-                                            {% comment %} if file, add filesize {% endcomment %}
-                                            {% if comment.comment_file %}
-                                                <span class="comment-filesize">({{comment.get_filesize}})</span>
-                                            {% endif %}
-                                        </small>
-                                    </div>
+                <label class="
+                    {% if not submission.non_grade_comments %}
+                        d-none
+                    {% endif %}
+                    mt-3" for="old-comments" id="old-comments-label" style="font-size:20px;">Old Comments</label>
+                <div class="
+                    {% if not submission.non_grade_comments %}
+                        d-none
+                    {% endif %}
+                    col-xs-12 mt-2" style="height:70%;" id="old-comments">
+                    {% for comment in submission.submissions_submissioncomment_related.all %}
+                        {% if comment.is_grade_summary %}
+                            
+                        {% else %}
+                            <div class="form-outline old-comment mb-2" id="old-comment-{{forloop.counter}}" style="position:relative;">
+                                <div class="comment-tools btn-group-sm d-none">
+                                    <button type="button" class="btn btn-edit-comment" aria-label="Edit" data-bs-pk="{{comment.pk}}" title="Edit comment" tabindex="-1">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-star-comment" aria-label="Star" data-bs-pk="{{comment.pk}}" title="Create reusable comment" tabindex="-1">
+                                        <i class="bi bi-star-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-delete-comment" aria-label="Close" data-bs-pk="{{comment.pk}}" title="Delete comment" tabindex="-1">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
                                 </div>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                {% endif %}
+                                {% if comment.text %}
+                                    <p name="old_comment_{{forloop.counter}}" class="comment-text" id="{{ comment.id_for_label }}">{{comment.text}}</p>
+                                {% endif %}
+                                {% if comment.comment_file%}
+                                    <a name="old_comment_{{forloop.counter}}-file" class="comment-file" id="{{ comment.id_for_label }}-file" href="{{comment.comment_file.url}}" target="_blank">
+                                        {{comment.get_filename}}
+                                    </a>
+                                {% endif %}
+                                {% comment %} add author and date in small text anchor to the bottom right corner of the div {% endcomment %}
+                                {% comment %} note that if float:right interferes with the comment text, so 
+                                we can use float:left and then add a margin to the text {% endcomment %}
+                                <div class="d-flex">
+                                    <small class="ms-auto comment-info text-muted">
+                                        {% comment %} add author {% endcomment %}
+                                        <span class="comment-author">{{comment.author.first_name}} - </span>
+                                        {% comment %} add date {% endcomment %}
+                                        <span class="comment-date">{{comment.updated_at}}</span>
+                                        {% comment %} if file, add filesize {% endcomment %}
+                                        {% if comment.comment_file %}
+                                            <span class="comment-filesize">({{comment.get_filesize}})</span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
 
                 {% comment %} NEW COMMENTS {% endcomment %}
 
@@ -413,12 +430,14 @@
                     <div class="form-outline">
                         {{ grading_form.comment_files.errors }}
                         <label for="{{ grading_form.comment_files.id_for_label }}" style="font-size:20px;">File</label>
-                        <input type="file" name="comment_files" class="form-control" id="{{ grading_form.comment_files.id_for_label }}" multiple>
+                        <input type="file" name="comment_files" class="form-control" multiple>
                     </div>
                 </div>
                 <div class="row justify-content-center">
                     <div class="col-xs-12 mt-5 w-auto" style="height:70%;">
-                        <input class="btn btn-primary" type="submit" value="Update">
+                        <button class="btn btn-primary" type="submit">
+                            Update
+                        </button>
                     </div>
                 </div>
             </div>
@@ -636,6 +655,60 @@
                     <p>
                         The default step size of 0.5 will be used for all other assignments in the course that you have not yet set the step property for.
                     </p>
+                </div>
+            </div>
+        </form>
+        <h5 class="mt-5">Set navigation filters</h5>
+        <form id="offcanvas-filter-form" onsubmit="event.preventDefault();">
+            {% csrf_token %}
+            <div class="form-outline">
+                <label class="mt-3" for="id_filter_question" style="font-size:20px;">Focus on Question</label>
+                <div class="mt-2">
+                    <select class="form-control selectpicker show-tick" data-show-subtext="true" title="Select question" data-live-search="true" name="filter_question" id="id_filter_question">
+                        {% comment %} <option data-hidden="true" value=""></option> {% endcomment %}
+                        {% with ''|center:submission.assignment.number_of_questions as range %}
+                            {% for i in range %}
+                            <option value="{{ forloop.counter0 }}"
+                                {% if forloop.counter0 == 0 and query_params.question_focus is None %}
+                                    selected
+                                {% elif forloop.counter0|slugify in query_params.question_focus|slugify %}
+                                    selected
+                                {% endif %}
+                            
+                            >Question {{ forloop.counter }}</option>
+                            {% endfor %}
+                        {% endwith %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-outline">
+                <label class="mt-3" for="id_filter_student" style="font-size:20px;">Filter by Section</label>
+                <div class="mt-2">
+                    {% comment %} query_params has filter_section=\d+ {% endcomment %}
+                    <select class="form-control selectpicker show-tick" data-show-subtext="true" title="Select section" data-live-search="true" name="filter_section" id="id_filter_section">
+                        <option value="">No filter</option>
+                        {% for section in submission.assignment.course.sections.all %}
+                            <option value="{{ section.pk }}"
+                            {% if section.pk|slugify in query_params.section_filter|slugify %}
+                                selected
+                            {% endif %}>{{ section }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-outline">
+                <label class="mt-3" for="id_filter_version" style="font-size:20px;">Filter by Version</label>
+                <div class="mt-2">
+                    <select class="form-control selectpicker show-tick" data-show-subtext="true" title="Select version" data-live-search="true" name="filter_version" id="id_filter_version">
+                        <option value=""> No filter</option>
+                        {% for version in submission.assignment.version_set.all %}
+                            <option value="{{ version.pk }}"
+                            {% if version.pk|slugify in query_params.version_filter|slugify %}
+                                selected
+                            {% endif %}
+                            >V{{ version.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
         </form>

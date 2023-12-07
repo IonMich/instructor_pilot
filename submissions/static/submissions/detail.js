@@ -20,6 +20,7 @@
 
 function navigatorHandler (event) {
     // if any textareas are focused and their value is not empty, do not navigate
+    console.log("key pressed. Navigator handler");
     const element_focused = document.activeElement;
     if (element_focused.tagName === "TEXTAREA" && element_focused.value !== "") {
         return;
@@ -33,7 +34,10 @@ function navigatorHandler (event) {
     }
     // if any text inputs are focused and their value is not empty, do not navigate
     // only exception is the grade input.
-    if (element_focused.tagName === "INPUT" && element_focused.value !== "" && !element_focused.classList.contains("grade-input")) {
+    if (element_focused.tagName === "INPUT" 
+    && element_focused.value !== "" 
+    && !element_focused.classList.contains("grade-input")
+    && element_focused.value !== "Update") {
         return;
     }
     
@@ -60,35 +64,55 @@ function navigatorHandler (event) {
 
 function checkIfChanges() {
     let unsavedChanges = false;
+    // check if the comment area has changed
+    if (text_area.value !== "") {
+        unsavedChanges = true;
+        console.log("unsaved changes: ", unsavedChanges);
+        return unsavedChanges;
+    }
+    // check if the file input has changed
+    if (fileInput.files.length !== 0) {
+        unsavedChanges = true;
+        console.log("unsaved changes: ", unsavedChanges);
+        return unsavedChanges;
+    }
     // check if the grades have changed
     const grade_inputs = document.querySelectorAll(".grade-input");
     for (const [index, input] of grade_inputs.entries()) {
         // if input value is empty string, set it to null
+        let inputValue;
         if (input.value === "") {
             inputValue = null;
         } else {
             inputValue = input.value;
         }
+        // if both of them are null or "" consider no changes
+        if ([inputValue, initial_grades[index][0]].every(value => value === null || value === "")) {
+            continue;
+        }
+
         if (inputValue !== initial_grades[index][0]) {
             unsavedChanges = true;
-            console.log("changes");
             break;
         }
     };
-    // check if the comment area has changed
-    if (text_area.value !== "") {
-        unsavedChanges = true;
-    }
+    console.log("unsaved changes: ", unsavedChanges);
     return unsavedChanges
 }
 
 function handleChangesAndNavigate(url) {
-    unsavedChanges = checkIfChanges();
+    const unsavedChanges = checkIfChanges();
     if (unsavedChanges) {
-        withConfirm = confirm("You are navigating out of the page. Do you want to save the changes?");
+        withConfirm = confirm("You are navigating out of the page. Do you want to save the changes and try again?");
         if (withConfirm) {
-            saveChanges();
-            navigate(url)
+            let saved = false;
+            try {
+                graderUpdatesForm.dispatchEvent(new Event("submit"));
+                return;
+            } catch (error) {
+                console.log(error);
+                alert("An error occured while saving the changes. Please try again.");
+            }
         }
     }
     else {
@@ -119,9 +143,16 @@ async function handleScroll () {
     });
 
     // focus on the grade input with data-position=0
-    const firstGradeInput = document.querySelector(`input[data-position="0"]`);
-    console.log("focusing on first grade input");
-    firstGradeInput.focus();
+    const gradeInput = document.querySelector(`input[data-position="${initialFocusQuestionIndex}"]`);
+    console.log(`trying input[data-position="${initialFocusQuestionIndex}"]`);
+    if (gradeInput) {
+        gradeInput.focus();
+        console.log(`focusing on input[data-position="${initialFocusQuestionIndex}"]`);
+    } else {
+        const firstGradeInput = document.querySelector(`input[data-position="0"]`);
+        console.log(`Failed. Focusing on first grade input because input[data-position="${initialFocusQuestionIndex}"] does not exist`);
+        firstGradeInput.focus();
+    }
 };
 
 async function allImgsFullyLoaded () {
@@ -364,6 +395,15 @@ function setInitialGradeStep() {
 
 
 const text_area = document.getElementById("newCommentTextArea");
+text_area.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && event.ctrlKey) {
+        event.preventDefault();
+        graderUpdatesForm.dispatchEvent(new Event("submit"));
+    }
+});
+
+const fileInput = document.querySelector("[name='comment_files']");
+
 const prevBtn = document.getElementById("btnPrev");
 const nextBtn = document.getElementById("btnNext");
 const offcanvas = document.querySelector("#offcanvasExample");
@@ -421,7 +461,7 @@ if (filterPks.length === 0) {
     lastPk = collectionPks[collectionPks.length - 1];
 } else {
     const subPaginationFilterCurrent = document.querySelector("#sub-pagination-filter-current");
-    subPaginationFilterCurrent.textContent = currentSubInFilter + 1;
+    subPaginationFilterCurrent.textContent = currentSubInFilter >= 0 ? currentSubInFilter + 1 : "-";
 }
 console.log(scroll_height_factors, course_id, assignment_id);
 console.log(pk, firstPk, lastPk);
@@ -431,6 +471,78 @@ if (pk === lastPk) {
 if (pk === firstPk) {
     prevBtn.disabled = true;
 }
+
+// try to get the initial focus question index from the url question_focus parameter
+let initialFocusQuestionIndex = 0;
+try {
+    const urlParams = new URLSearchParams(location.search);
+    const questionFocus = urlParams.get("question_focus");
+    if (questionFocus) {
+        initialFocusQuestionIndex = parseInt(questionFocus);
+    }
+} catch (error) {
+    console.log(`No question_focus parameter in url`);
+}
+
+// apply navigation filter when the selectpicker element with id "id_filter_question" changes
+const filterQuestionSelect = document.querySelector("#id_filter_question");
+filterQuestionSelect.addEventListener("change", () => {
+    const selectedOption = filterQuestionSelect.options[filterQuestionSelect.selectedIndex];
+    const selectedOptionValue = selectedOption.value;
+    const url = location.href;
+    const urlWithoutQueryString = url.split("?")[0];
+    const urlSearch = url.split("?")[1];
+    let urlSearchWithoutQuestionFilter = "";
+    try {
+        urlSearchWithoutQuestionFilter = urlSearch.split("&").filter(param => !param.startsWith("question_focus")).join("&");
+    } catch (error) {
+        urlSearchWithoutQuestionFilter = "";
+    }
+    const newQuestionFilterStr = selectedOptionValue === "" ? "" : "question_focus=" + selectedOptionValue;
+    const urlWithFilter = urlWithoutQueryString + "?" + newQuestionFilterStr + (urlSearchWithoutQuestionFilter ? "&" + urlSearchWithoutQuestionFilter : "");
+
+    handleChangesAndNavigate(urlWithFilter);
+});
+
+// apply navigation filter when the selectpicker element with id "id_filter_section" changes
+const filterSectionSelect = document.querySelector("#id_filter_section");
+filterSectionSelect.addEventListener("change", () => {
+    const selectedOption = filterSectionSelect.options[filterSectionSelect.selectedIndex];
+    const selectedOptionValue = selectedOption.value;
+    const url = location.href;
+    const urlWithoutQueryString = url.split("?")[0];
+    const urlSearch = url.split("?")[1];
+    let urlSearchWithoutSectionFilter = "";
+    try {
+        urlSearchWithoutSectionFilter = urlSearch.split("&").filter(param => !param.startsWith("section_filter")).join("&");
+    } catch (error) {
+        urlSearchWithoutSectionFilter = "";
+    }
+    const newSectionFilterStr = selectedOptionValue === "" ? "" : "section_filter=" + selectedOptionValue;
+    const urlWithFilter = urlWithoutQueryString + "?" + newSectionFilterStr + (urlSearchWithoutSectionFilter ? "&" + urlSearchWithoutSectionFilter : "");
+    
+    handleChangesAndNavigate(urlWithFilter);
+});
+
+// apply navigation filter when the selectpicker element with id "id_filter_section" changes
+const filterVersionSelect = document.querySelector("#id_filter_version");
+filterVersionSelect.addEventListener("change", () => {
+    const selectedOption = filterVersionSelect.options[filterVersionSelect.selectedIndex];
+    const selectedOptionValue = selectedOption.value;
+    const url = location.href;
+    const urlWithoutQueryString = url.split("?")[0];
+    const urlSearch = url.split("?")[1];
+    let urlSearchWithoutVersionFilter = "";
+    try {
+        urlSearchWithoutVersionFilter = urlSearch.split("&").filter(param => !param.startsWith("version_filter")).join("&");
+    } catch (error) {
+        urlSearchWithoutVersionFilter = "";
+    }
+    const newVersionFilterStr = selectedOptionValue === "" ? "" : "version_filter=" + selectedOptionValue;
+    const urlWithFilter = urlWithoutQueryString + "?" + newVersionFilterStr + (urlSearchWithoutVersionFilter ? "&" + urlSearchWithoutVersionFilter : "");
+    handleChangesAndNavigate(urlWithFilter);
+});
+
 
 prevBtn.addEventListener("click", () => {
     handleChangesAndNavigate(prev_url);
@@ -450,6 +562,152 @@ setInitialGradeStep();
 handleOffcanvasGradeStepInput();
 
 document.addEventListener('keydown', navigatorHandler);
+
+const graderUpdatesForm = document.querySelector("#grader-updates-form");
+graderUpdatesForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const hasChanges = checkIfChanges();
+    if (!hasChanges) {
+        return;
+    }
+    console.log("submit at url", graderUpdatesForm.action);
+    const options = {
+        method: "POST",
+        headers: {
+            // "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": graderUpdatesForm.querySelector("input[name='csrfmiddlewaretoken']").value
+        },
+        body: new FormData(graderUpdatesForm),
+    };
+    try {
+        const response = await fetch(graderUpdatesForm.action, options);
+        const data = await response.json();
+        console.log(data);
+        // if the response is success, show a toast
+        if (data.success) {
+            // update the initial_grades variable
+            const gradeInputs = document.querySelectorAll(".grade-input");
+            for (const [index, input] of gradeInputs.entries()) {
+                initial_grades[index][0] = input.value === "" ? null : input.value;
+            };
+            // change the #total-grade-badge span
+            const totalGradeBadge = document.querySelector("#total-grade-current");
+            if (data.total_grade === null) {
+                totalGradeBadge.parentElement.classList.remove("border-success-subtle");
+                totalGradeBadge.parentElement.classList.add("border-warning-subtle");
+                if (data.question_grades === null) {
+                    totalGradeBadge.textContent = "-";
+                    totalGradeBadge.parentElement.classList.add("d-none");
+                } else {
+                    totalGradeBadge.textContent = data.question_grades;
+                    totalGradeBadge.parentElement.classList.remove("d-none");
+                }
+            } else {
+                totalGradeBadge.parentElement.classList.remove("border-warning-subtle");
+                totalGradeBadge.parentElement.classList.add("border-success-subtle");
+                totalGradeBadge.textContent = data.total_grade;
+                totalGradeBadge.parentElement.classList.remove("d-none");
+            }
+            text_area.value = "";
+            fileInput.value = "";
+            const newComments = JSON.parse(data.new_comments);
+            console.log(newComments);
+            const commentsDiv = document.querySelector("#old-comments");
+            const lenOldComments = commentsDiv.querySelectorAll(".old-comment").length;
+            if (lenOldComments === 0 && newComments.length !== 0) {
+                // remove d-none class from the old-comments div and its label
+                commentsDiv.classList.remove("d-none");
+                document.querySelector("#old-comments-label").classList.remove("d-none");
+            }
+            newComments.forEach((comment, i) => {
+                const commentCounter = lenOldComments + i + 1;
+                const commentDiv = document.createElement("div");
+                commentDiv.classList.add("form-outline", "old-comment", "mb-2");
+                commentDiv.setAttribute("id", `old-comment-${commentCounter}`);
+                commentDiv.setAttribute("style", "position:relative;");
+                const commentText = comment.text;
+                const commentPk = comment.pk;
+                const commentAuthorFirstName = comment.author.first_name;
+                const commentCreationDate = comment.created;
+                commentDiv.innerHTML = `
+                    <div class="comment-tools btn-group-sm d-none">
+                        <button type="button" class="btn btn-edit-comment" aria-label="Edit" data-bs-pk=${commentPk} title="Edit comment" tabindex="-1">
+                            <i class="bi bi-pencil-fill"></i>
+                        </button>
+                        <button type="button" class="btn btn-star-comment" aria-label="Star" data-bs-pk=${commentPk} title="Create reusable comment" tabindex="-1">
+                            <i class="bi bi-star-fill"></i>
+                        </button>
+                        <button type="button" class="btn btn-delete-comment" aria-label="Close" data-bs-pk=${commentPk} title="Delete comment" tabindex="-1">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </div>
+                    ${comment.file_name ? `<p class="comment-text"><a href="${comment.file_url}" target="_blank">${comment.file_name}</a></p>` : ""}
+                    ${commentText ? `<p class="comment-text">${commentText}</p>` : ""}
+                    <div class="d-flex">
+                        <small class="ms-auto comment-info text-muted">
+                            <span class="comment-author">${commentAuthorFirstName} - </span>
+                            <span class="comment-date">${commentCreationDate}</span>
+                            ${comment.file_size ? `<span class="comment-filesize"> - ${comment.file_size}</span>` : ""}
+                        </small>
+                    </div>
+                `;
+                commentsDiv.appendChild(commentDiv);
+                const newCommentDiv = document.querySelector(`#old-comment-${commentCounter}`);
+                oldCommentHoverStyles(newCommentDiv);
+                addDeleteBtnListener(newCommentDiv);
+                addStarBtnListener(newCommentDiv);
+                addEditBtnListener(newCommentDiv);
+            });
+            // show a toast
+            const toastDiv = document.createElement("div");
+            toastDiv.classList.add("toast", "align-items-center", "text-bg-success", "border-0");
+            toastDiv.setAttribute("role", "alert");
+            toastDiv.setAttribute("aria-live", "assertive");
+            toastDiv.setAttribute("aria-atomic", "true");
+            toastDiv.innerHTML = `<div class="d-flex">
+                                    <div class="toast-body">
+                                        Grader updates saved successfully!
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                    </div>`;
+            document.querySelector(".toast-container").appendChild(toastDiv);
+            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+            toastBootstrap.show();
+        } else {
+            const toastDiv = document.createElement("div");
+            toastDiv.classList.add("toast", "align-items-center", "text-bg-danger", "border-0");
+            toastDiv.setAttribute("role", "alert");
+            toastDiv.setAttribute("aria-live", "assertive");
+            toastDiv.setAttribute("aria-atomic", "true");
+            toastDiv.innerHTML = `<div class="d-flex">
+                                    <div class="toast-body">
+                                        Something went wrong. Please try again.
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                    </div>`;
+            document.querySelector(".toast-container").appendChild(toastDiv);
+            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+            toastBootstrap.show();
+        }
+    } catch (error) {
+        console.log(error);
+        const toastDiv = document.createElement("div");
+        toastDiv.classList.add("toast", "align-items-center", "text-bg-danger", "border-0");
+        toastDiv.setAttribute("role", "alert");
+        toastDiv.setAttribute("aria-live", "assertive");
+        toastDiv.setAttribute("aria-atomic", "true");
+        toastDiv.innerHTML = `<div class="d-flex">
+                                <div class="toast-body">
+                                    Something went wrong. Please try again.
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                </div>`;
+        document.querySelector(".toast-container").appendChild(toastDiv);
+        const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastDiv);
+        toastBootstrap.show();
+
+    }
+});
 
 // API call to get the starred comments for the current user and the current assignment
 const url_saved_comments_list = `/assignments/${assignment_id}/starcomments/`;
@@ -543,15 +801,22 @@ function handleOffcanvasGradeStepInput() {
 // submit enterkey event when the input is focused and simply unfocus the
 // input when the enterkey is pressed, instead of submitting the form.
 offcanvasGradeStepInput.addEventListener("keydown", (event) => {
+    console.log("blurring gradeform");
     if (event.key === "Enter") {
         offcanvasGradeStepInput.blur();
     }
 });
 
-// for each old comment, add a hover event listener for the div containing the comment
 
 const oldComments = document.querySelectorAll(".old-comment");
 oldComments.forEach(comment => {
+    oldCommentHoverStyles(comment);
+    addDeleteBtnListener(comment);
+    addStarBtnListener(comment);
+    addEditBtnListener(comment);
+});
+
+function oldCommentHoverStyles(comment) {
     // when the user hovers over the div, show the .comment-tools div
     const commentTools = comment.querySelector(".comment-tools");
     const deleteBtn = comment.querySelector(".btn-delete-comment");
@@ -587,24 +852,14 @@ oldComments.forEach(comment => {
     // when the user hovers over the edit button, change the color to green
     editBtn.addEventListener("mouseenter", () => {
         editBtn.classList.add("text-success");
-    }
-    );
+    });
     // when the user hovers out of the edit button, change the color back to black
     editBtn.addEventListener("mouseleave", () => {
         editBtn.classList.remove("text-success");
-    }
-    );
-
-
-
-
+    });
 }
-);
 
-// add a click event listener to the delete button of each old comment
-// when the user clicks the delete button, open a modal to confirm the deletion
-
-oldComments.forEach(comment => {
+function addDeleteBtnListener (comment) {
     const deleteBtn = comment.querySelector(".btn-delete-comment");
     deleteBtn.addEventListener("click", () => {
         // get the comment id
@@ -620,10 +875,8 @@ oldComments.forEach(comment => {
         modalInstance.show();
     });
 }
-);
 
-// add a click event listener to the star button of each old comment
-oldComments.forEach(comment => {
+function addStarBtnListener (comment) {
     const starBtn = comment.querySelector(".btn-star-comment");
     // if there is no .comment-text element, the comment probably has a file
     // disable the star button
@@ -655,10 +908,8 @@ oldComments.forEach(comment => {
         modalInstance.show();
     });
 }
-);
 
-// add a click event listener to the edit button of each old comment
-oldComments.forEach(comment => {
+function addEditBtnListener (comment) {
     const editBtn = comment.querySelector(".btn-edit-comment");
     // if there is no .comment-text element, the comment probably has a file
     // disable the edit button
@@ -689,7 +940,6 @@ oldComments.forEach(comment => {
         modalInstance.show();
     });
 }
-);
 
 
 // add a click event listener to the modal delete button
