@@ -39,14 +39,14 @@ def crop_and_ocr(image_path):
     return text
 
 
-def images_to_text(image_paths):
+def images_to_text(image_paths, sub_pks):
     """
     Use OCR to extract the text and save the texts in a list
     Input:
         image_list : list of paths to the images
+        sub_pks: list of submission pks. Same length as image_list
     Output:
         texts: list of texts extracted from the images
-        counts: list of number of images in each version
     """    
     print(f"Extracting text from {len(image_paths)} images. This may take a while...")
     
@@ -80,15 +80,37 @@ def images_to_text(image_paths):
     if df.page_num.max() > 0 and df.page_num.min() > 0:
         df.page_num = df.page_num - 1
 
-    texts_grouped = df[['text','page_num']].groupby('page_num')
+    texts_grouped = df[['text', 'page_num']].groupby('page_num')
     texts_grouped = texts_grouped.agg({'text': ' '.join})["text"]
-    texts = []
-    for i in range(len(image_paths)):
-        if i in texts_grouped.index:
-            texts.append(texts_grouped[i])
-        else:
-            texts.append("")
-    return texts
+    # replace NaN with empty string
+    texts_grouped = texts_grouped.fillna('')
+    print(texts_grouped.head(), type(texts_grouped))
+
+    df_pks = pd.DataFrame({"sub_pk": sub_pks, "page_num": range(len(sub_pks))})
+    print(df_pks.head(), type(df_pks))
+
+    texts_grouped = pd.merge(
+        df_pks,
+        texts_grouped,
+        left_on="page_num",
+        right_on="page_num",
+        how="left",
+    ).fillna('')
+    print(texts_grouped.head(), type(texts_grouped))
+    texts_grouped = (texts_grouped
+                     .groupby("sub_pk")
+                     .agg({'text': ' '.join, 'page_num': np.max})
+                     .sort_values(by=['page_num'])
+                     ["text"]
+    )
+    print(texts_grouped.head(25))
+    print(texts_grouped.shape)
+    print(texts_grouped.index)
+    print(type(texts_grouped))
+    # raise NotImplementedError
+
+    return texts_grouped
+
 
 
 def vectorize_texts(texts):

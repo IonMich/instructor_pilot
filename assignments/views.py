@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core import serializers
 from django.core.files.base import ContentFile
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.forms.models import model_to_dict
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -190,107 +190,123 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
 @login_required
 def version_view(request, course_pk, assignment_pk):
     # if the request is POST, then cluster the submissions
-    if request.method == 'POST':
-        page = 3
-        assignment = get_object_or_404(Assignment, pk=assignment_pk)
-        # select submissions to cluster from model submissions.PaperSubmission
-        # get the submissions from the database
-        submissions = PaperSubmission.objects.filter(assignment=assignment)
-        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
-        # get the items in the field
-        images = []
-        for submission in submissions:
-            submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=page)
-            images.append(submission_image[0].image.path)
-            
-        texts = images_to_text(images)
+    if request.method != 'POST':
+        # send the user to the assignment detail page
+        return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
+    # pages = [3,4]
+    import json
+    data = json.loads(request.body)
+    pages = data.get('pages')
+    print(pages)
+    if len(pages) == 0:
+        return JsonResponse(
+            {'message': 'No pages selected',
+            'success': False,
+             }
+        )
 
-        # vectorize the text
-        print("vectorizing texts")
-        X = vectorize_texts(texts)
-        # cluster the text
-        print("clustering images")
-        dbscan, cluster_labels = perform_dbscan_clustering(X)
-
-        # delete the versions if already exist
-        delete_versions(assignment)
-
-        outlier_label = -1
-        cluster_types = set(cluster_labels) - {outlier_label,}
-        len_cluster_types = len(set(cluster_types))
-        # create the versions
+    assignment = get_object_or_404(Assignment, pk=assignment_pk)
+    # select submissions to cluster from model submissions.PaperSubmission
+    # get the submissions from the database
+    submissions = PaperSubmission.objects.filter(assignment=assignment)
+    # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=3)
+    # get the items in the field
+    images = []
+    sub_pks = []
+    for submission in submissions:
+        submission_images = PaperSubmissionImage.objects.filter(
+            Q(submission=submission) & Q(page__in=pages))
+        for image in submission_images:
+            images.append(image.image.path)
+            sub_pks.append(submission.pk)
         
-        for label in cluster_types:
-            Version.objects.create(
-                name = label + 1,
-                assignment=assignment
-            )
-        
-        
-        cluster_images = [""] * len_cluster_types
-        # add the cluster labels to the database
-        for i, submission in enumerate(submissions):
-            # get the version with the corresponding cluster label
-            if cluster_labels[i] not in cluster_types:
-                continue
-            version = Version.objects.get(assignment=assignment, name=cluster_labels[i] + 1)
-            submission.version = version
-            # check if version already has an image
-            if version.version_image == "":
-                submission_image = PaperSubmissionImage.objects.filter(submission=submission, page=page)
-                cluster_images[int(version.name)-1] = submission_image[0].image.url
-                # url.replace("/media", "")
-                version.version_image = cluster_images[int(version.name)-1].replace("/media", "")
-                version.save()
-                
-            submission.save()
-        # renew the submissions_image queryset after the above changes
-        submissions = PaperSubmission.objects.filter(assignment=assignment)
-        # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=page)
+    texts = images_to_text(images, sub_pks)
+    print(len(texts))
 
-        # count number of 0 in cluster_labels
-        outliers = np.count_nonzero(cluster_labels == outlier_label)
+    # vectorize the text
+    print("vectorizing texts")
+    X = vectorize_texts(texts)
+    # cluster the text
+    print("clustering images")
+    dbscan, cluster_labels = perform_dbscan_clustering(X)
 
-        # set the versioned to True
-        assignment.versioned = True
-        assignment.save()
-        
-        # Serialize the data
-        assignment = model_to_dict(assignment)
-        submissions_serialized = []
-        for submission in submissions:
-            images_urls = submission.submissions_papersubmissionimage_related.all()
-            # .map(lambda x: (x.page, x.image.url))
-            images_urls = {image.page: image.image.url for image in images_urls}
-            submission_serialized = dict()
-            submission_serialized['id'] = submission.pk
-            submission_serialized['images'] = images_urls
-            if submission.version:
-                submission_serialized['version'] = dict()
-                submission_serialized['version']['id'] = submission.version.pk
-                submission_serialized['version']['name'] = submission.version.name
-            else:
-                submission_serialized['version'] = None
-            submissions_serialized.append(submission_serialized)
-        # context
-        context = {
-            'assignment': assignment,
-            'cluster_types' : len_cluster_types,
-            'outliers': outliers,
-            'submissions': submissions_serialized, 
-            # 'cluster_labels': cluster_labels, 
-            'cluster_images': cluster_images,
-            # 'course_pk': course_pk, 'assignment_pk': assignment_pk
-            'message': 'success',
-            'new_version': 'true'
-        }
+    # delete the versions if already exist
+    delete_versions(assignment)
 
-        # send a JsonResponse to the frontend with the context
-        return JsonResponse(context, safe=False)
+    outlier_label = -1
+    cluster_types = set(cluster_labels) - {outlier_label,}
+    len_cluster_types = len(set(cluster_types))
+    # create the versions
     
-    # send the user to the assignment detail page
-    return redirect('assignments:detail', course_pk=course_pk, assignment_pk=assignment_pk)
+    for label in cluster_types:
+        Version.objects.create(
+            name = label + 1,
+            assignment=assignment
+        )
+    
+    cluster_images = [""] * len_cluster_types
+    # add the cluster labels to the database
+    for i, submission in enumerate(submissions):
+        # get the version with the corresponding cluster label
+        if cluster_labels[i] not in cluster_types:
+            continue
+        version = Version.objects.get(assignment=assignment, name=cluster_labels[i] + 1)
+        submission.version = version
+        # check if version already has an image
+        if version.version_image == "":
+            submission_image = PaperSubmissionImage.objects.filter(
+                submission=submission, 
+                page=pages[0])
+            cluster_images[int(version.name)-1] = submission_image[0].image.url
+            # url.replace("/media", "")
+            version.version_image = cluster_images[int(version.name)-1].replace("/media", "")
+            version.save()
+            
+        submission.save()
+    # renew the submissions_image queryset after the above changes
+    submissions = PaperSubmission.objects.filter(assignment=assignment)
+    # submissions_image = PaperSubmissionImage.objects.filter(submission__in=submissions, page=page)
 
+    # count number of 0 in cluster_labels
+    outliers = np.count_nonzero(cluster_labels == outlier_label)
+
+    # set the versioned to True
+    assignment.versioned = True
+    assignment.save()
+    
+    # Serialize the data
+    assignment = model_to_dict(assignment)
+    submissions_serialized = []
+    for submission in submissions:
+        images_urls = submission.submissions_papersubmissionimage_related.all()
+        # .map(lambda x: (x.page, x.image.url))
+        images_urls = {image.page: image.image.url for image in images_urls}
+        submission_serialized = dict()
+        submission_serialized['id'] = submission.pk
+        submission_serialized['images'] = images_urls
+        if submission.version:
+            submission_serialized['version'] = dict()
+            submission_serialized['version']['id'] = submission.version.pk
+            submission_serialized['version']['name'] = submission.version.name
+        else:
+            submission_serialized['version'] = None
+        submissions_serialized.append(submission_serialized)
+    # context
+    context = {
+        'assignment': assignment,
+        'cluster_types' : len_cluster_types,
+        'outliers': outliers,
+        'submissions': submissions_serialized, 
+        # 'cluster_labels': cluster_labels, 
+        'cluster_images': cluster_images,
+        # 'course_pk': course_pk, 'assignment_pk': assignment_pk
+        'message': 'success',
+        'new_version': 'true',
+        'success': True,
+    }
+
+    # send a JsonResponse to the frontend with the context
+    return JsonResponse(context, safe=False)
 
 @login_required
 def api_version_comments(request, assignment_pk):

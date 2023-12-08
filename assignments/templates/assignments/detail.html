@@ -183,8 +183,7 @@
                                     id="btn-pageSelect-{{forloop.counter}}" 
                                     autocomplete="off"
                                     name="page-selected-{{forloop.counter}}"
-                                    value="1"
-                                    {% if forloop.counter in page_UIDs %}checked{% endif %}>
+                                    value="1">
                                     <label class="btn btn-outline-success mb-3" for="btn-pageSelect-{{forloop.counter}}">{{forloop.counter}}</label>
                                 {% endfor %}
                                 {% endwith %}
@@ -303,6 +302,26 @@
                                 <form id="initiateVersioningForm" action="" method="POST">
                                     {% csrf_token %}
                                     <button type="button" id="initiateVersioningBtn" class="btn btn-primary d-block m-auto">Identify Versions</button>
+                                    <div class="d-flex flex-column align-items-center mt-3">
+                                        <p class="mt-3 mb-1">Page(s) to search for versions:</p>
+                                        <div class="ms-1">
+                                        {% with ''|center:assignment.get_max_page_number as range %}
+                                        {% for _ in range %}
+                                            <input 
+                                            type="checkbox" class="btn-check" 
+                                            id="btn-versioningPageSelect-{{forloop.counter}}" 
+                                            autocomplete="off"
+                                            name="versioningpage-selected-{{forloop.counter}}"
+                                            value="1">
+                                            <label class="btn btn-outline-success mb-3" for="btn-versioningPageSelect-{{forloop.counter}}">{{forloop.counter}}</label>
+                                        {% endfor %}
+                                        {% endwith %}
+                                        </div>
+                                        {% comment %} make default button: {% endcomment %}
+                                        <div class="mb-3">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-default-versioning-pages">Set as Default</button>
+                                        </div>
+                                    </div>
                                 </form>
                             </div>
                             <div id="versionsDetails" class="modal-body">
@@ -314,7 +333,7 @@
                             </form>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                             <button type="button" id="resetClusterBtn" class="btn btn-danger">Reset</button>
-                            <button type="button" id="updateClusterBtn" class="btn btn-primary">Save</button>
+                            <button type="button" id="updateClusterBtn" class="btn btn-primary">Save Comments</button>
                         </div>
                         </div>
                     </div>

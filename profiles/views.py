@@ -25,7 +25,8 @@ def profile_preferences_edit_view(request):
     # - scroll_height_factors, 
     # - grade_steps,
     # - identify_pages,
-    # 
+    # - versioning_pages,
+    
     # all stored in a SINGLE user.profile.preferences JSON field. 
     # The data have the following format:
     # const data = {

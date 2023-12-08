@@ -133,6 +133,25 @@ async function getIdentifyPages() {
     return identifyPages;
 }
 
+async function getVersioningPages() {
+    const url_preferences = "/profile/preferences/";
+    const options = {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        }
+    };
+    let versioningPages = null;
+    try {
+        const response = await fetch(url_preferences, options);
+        const data = await response.json();
+        versioningPages = data.versioning_pages;
+    } catch (error) {
+        console.log(error);
+    }
+    return versioningPages;
+}
+
 const courseId = JSON.parse(document.getElementById('course_id').textContent);
 const assignmentId = JSON.parse(document.getElementById('assignment_id').textContent);
 
@@ -188,7 +207,129 @@ async function initializeCheckedPages() {
     });
 }
 
+async function initializeVersioningCheckedPages() {
+    let checked_pages = await getVersioningPages();
+    console.log("checked_pages", checked_pages);
+    console.log("course_id", courseId, "assignment_id", assignmentId);
+    let checkedPages;
+    let default_type;
+    if (checked_pages && checked_pages[courseId] && checked_pages[courseId][assignmentId]) {
+        checkedPages = checked_pages[courseId][assignmentId];
+        default_type = 'assignment';
+    } else {
+        if (checked_pages && checked_pages[courseId] && checked_pages[courseId]["default"]) {
+            checkedPages = checked_pages[courseId]["default"];
+            default_type = "course";
+        } else if (checked_pages && checked_pages["default"]) {
+            checkedPages = checked_pages["default"];
+            default_type = "user";
+        } else {
+            checkedPages = [0,];
+            default_type = "global";
+        }
+        // the checkedPages is set here to a default set of checked pages
+    }
+    console.log("Pages to check:", checkedPages, "default_type:", default_type);
+    // initialize the text describing the checked pages to say `their ID on pages ${checkedPages}`
+    // const checkedPagesText = document.getElementById('versioning-method-text');
+    // if (checkedPages.length === 1) {
+    //     // convert the page number to 1-indexed
+    //     checkedPagesText.innerHTML = `on page ${checkedPages[0] + 1}`;
+    // } else if (checkedPages.length > 1) {
+    //     // convert the page numbers to 1-indexed
+    //     checkedPagesText.innerHTML = `on pages ${checkedPages.map(page => page + 1).join(', ')}`;
+    // } else {
+    //     checkedPagesText.innerHTML = "";
+    // }
+    // select inputs whose name starts with "page-selected-"
+    // names are created with forloop.counter, so they are 1-indexed
+    const pageCheckInputs = document.querySelectorAll('input[name^="versioningpage-selected-"]');
+    pageCheckInputs.forEach(input => {
+        // get the page number from the input name
+        let pageNumber = input.name.split('-')[2];
+        pageNumber = parseInt(pageNumber);
+        console.log(pageNumber);
+        // if the page number is in checkedPages, set the input to checked
+        // We subtract 1 from the page number because the checkedPages is 0-indexed
+        if (checkedPages.includes(Math.max(pageNumber - 1, 0))) {
+            input.checked = true;
+            console.log("checked");
+        }
+    });
+}
+
+async function handleDefaultVersioningPages(event) {
+    // stop the default action of the button
+    event.preventDefault();
+
+    const versioningForm = document.getElementById('initiateVersioningForm');
+    const csrfToken = versioningForm.querySelector("input[name='csrfmiddlewaretoken']").value;
+
+    // get all the checkboxes in the form
+    const checkboxes = versioningForm.querySelectorAll("input[type='checkbox']");
+    // get the indices of the checked checkboxes
+    let page_indices = [];
+    for (let i = 0; i < checkboxes.length; i++) {
+        if (checkboxes[i].checked) {
+            page_indices.push(i);
+        }
+    }
+    console.log(page_indices);
+    const url = "/profile/preferences/edit/";
+    const data = {
+        "versioning_pages": {
+            [courseId]: {
+                [assignmentId]: page_indices
+            }
+        }
+    };
+
+    const options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify(data)
+    };
+
+    try {
+        const response = await fetch(url, options);
+        const responseJSON = await response.json();
+        console.log(responseJSON);
+        // if the message is success
+        if (responseJSON['success']) {
+            // create a toast
+            const toast = createToastElement(
+                "Default pages for versioning submisssions updated successfully.",
+                "success"
+            );
+            // append the toast to the toast-container
+            const toastContainer = document.querySelector('#toast-container');
+            toastContainer.appendChild(toast);
+            console.log("toast", toast);
+            let toastElement = new bootstrap.Toast(toast,
+                {delay: 10000, autohide: false});
+            toastElement.show();
+        }
+    } catch (error) {
+        // create a toast
+        const toast = createToastElement(
+            "Default pages for versioning submissions could not be updated.",
+            "danger"
+        );
+        // append the toast to the toast-container
+        const toastContainer = document.querySelector('#toast-container');
+        toastContainer.appendChild(toast);
+        console.log("toast", toast);
+        let toastElement = new bootstrap.Toast(toast,
+            {delay: 10000, autohide: false});
+        toastElement.show();
+    }
+}
+
 const identifyStudentsForm = document.getElementById('identifyStudentsForm');
+const versioningSubmissionsForm = document.getElementById('versioningSubmissionsForm');
 
 if (identifyStudentsForm) {
     identifyStudentsForm.addEventListener("submit", (event) => 
@@ -1042,8 +1183,6 @@ if (updateGradingSchemeButton) {
         const equalGrades = document.getElementById('equal_grades').checked;
         const maxGrades = document.getElementById('max_grades').value;
         const applyToAll = document.getElementById('apply_to_all').checked;
-        
-        const courseId = JSON.parse(document.getElementById('course_id').textContent);
 
         const url = '/course/' + courseId + '/grading_scheme/update/';
         const data = {
@@ -1086,43 +1225,55 @@ if (updateGradingSchemeButton) {
 // Clustering/versioning changes made here
 const versionButton = document.getElementById('initiateVersioningBtn');
 if(versionButton) {
+    initializeVersioningCheckedPages();
     versionButton.addEventListener('click', async (event) => {
-        // change the button text to a spinner
-        // store the original text of the button
-        const buttonText = versionButton.textContent;
-        versionButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Versioning...';
-        // disable the button
-        versionButton.disabled = true;
+        initiateVersioning(event)
+    });
+}
 
-        const url = `/courses/${courseId}/assignments/${assignmentId}/version/`
-        const data = {
-            assignment_id: assignmentId
-        };
+async function initiateVersioning (event) {
+    // change the button text to a spinner
+    // store the original text of the button
+    const buttonText = versionButton.textContent;
+    versionButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Versioning...';
+    // disable the button
+    versionButton.disabled = true;
+    const versionForm = document.getElementById('initiateVersioningForm');
+    const formData = new FormData(versionForm);
+    const numbers_selected = Array.from(formData.keys()).filter(key => key.startsWith('versioningpage-selected-')).map(key => key.split('-')[2]);
+    
+    const url = `/courses/${courseId}/assignments/${assignmentId}/version/`
+    const data = {
+        pages: numbers_selected,
+        assignment_id: assignmentId
+    };
+    console.log(numbers_selected, data, JSON.stringify(data), typeof(data), JSON.stringify(data));
+    const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
 
-        const versionForm = document.getElementById('initiateVersioningForm');
-        const csrfToken = versionForm.querySelector("input[name='csrfmiddlewaretoken']").value;
-
-        const options = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                
-            },
-            body: JSON.stringify(data)
-        };
-        try {
-            const response = await fetch(url, options)
-            const data = await response.json();
+    const options = {
+        method: 'POST',
+        headers: {
+            // 'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+            
+        },
+        body: JSON.stringify(data)
+    };
+    try {
+        const response = await fetch(url, options)
+        const data = await response.json();
+        if (data["success"]) {
             // call the function to display the message
             render_version_modal(data["submissions"], [], [], 0);
             console.log(data);
-        } catch (error) {
-            console.log(error);
+        } else {
+            throw new Error("Error while versioning");
         }
-        versionButton.innerHTML = buttonText;
-        versionButton.disabled = false;
-    });
+    } catch (error) {
+        console.log(error);
+    }
+    versionButton.innerHTML = buttonText;
+    versionButton.disabled = false;
 }
 
 const saveVersionCommentsBtn = document.getElementById('updateClusterBtn');
@@ -1261,6 +1412,11 @@ if(resetClusterBtn) {
 const btnDefaultIdentifyPages = document.getElementById('btn-default-identify-pages');
 if(btnDefaultIdentifyPages) {
     btnDefaultIdentifyPages.addEventListener('click', handleDefaultIdentifyPages);
+}
+
+const btnDefaultVersioningPages = document.getElementById('btn-default-versioning-pages');
+if(btnDefaultVersioningPages) {
+    btnDefaultVersioningPages.addEventListener('click', handleDefaultVersioningPages);
 }
 
 async function handleDefaultIdentifyPages(event) {
