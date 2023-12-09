@@ -371,7 +371,7 @@ class PaperSubmission(Submission):
                     paper_submission.save()
                 created_submission_pks.append(paper_submission.pk)
                 for j in range(num_pages_per_submission):
-                    page = doc.load_page(start_page + j)
+                    page = doc_new.load_page(j)
                     img_filename = f'submission-{i}-batch-{file_idx}-page-{j+1}-{random_string}.png'
                     pix = page.get_pixmap(dpi=dpi)
                     pix_bytes = pix.tobytes()
