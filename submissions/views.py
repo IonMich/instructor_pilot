@@ -315,13 +315,18 @@ def api_grade_update_view(request, submission_pk):
                 author=request.user,
                 text=request.POST.get('new_comment'))
             comment.save()
+
+            # parse date as e.g. Dec. 31, 2020, 11:59 p.m. at the local timezone
             created = (comment.created_at.astimezone()
-                       .strftime("%b. %-d, %Y, %-I:%M %p")
+                       .strftime("%b. %d, %Y, %I:%M %p")
                        .replace("AM", "a.m.")
                        .replace("PM", "p.m.")
                           ) 
+            # remove leading zeros from %d and %I
+            created = created.replace(" 0", " ")
+
             print("comment saved")
-            # parse date as e.g. Dec. 31, 2020, 11:59 p.m. at the local timezone
+
             serialized_comment = {
                 'pk': str(comment.pk),
                 'text': comment.text,
@@ -347,10 +352,12 @@ def api_grade_update_view(request, submission_pk):
             for comment_pk in created_comment_pks:
                 comment = SubmissionComment.objects.get(pk=comment_pk)
                 created = (comment.created_at.astimezone()
-                       .strftime("%b. %-d, %Y, %-I:%M %p")
+                       .strftime("%b. %d, %Y, %I:%M %p")
                        .replace("AM", "a.m.")
                        .replace("PM", "p.m.")
-                          ) 
+                          )
+                # remove leading zeros from %d and %I
+                created = created.replace(" 0", " ")
                 serialized_comment = {
                     'pk': str(comment.pk),
                     'text': comment.text,
