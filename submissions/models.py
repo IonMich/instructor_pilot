@@ -2,7 +2,6 @@ import os
 import random
 import string
 import uuid
-from multiprocessing import Pool, cpu_count, set_start_method
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -18,24 +17,12 @@ from assignments.models import Assignment, Version
 from students.models import Student
 from submissions.digits_classify import (classify, import_students_from_db,
                                          import_onnx_model)
-from submissions.utils import (CommaSeparatedFloatField, convert_pdf_to_images,
-                               get_quiz_pdf_path, open_UploadedFile_as_PDF,
-                               submission_image_upload_to,
+from submissions.utils import (CommaSeparatedFloatField, get_quiz_pdf_path, 
+                               open_UploadedFile_as_PDF, submission_image_upload_to,
                                submission_upload_to)
+from submissions.convert import (convert_pdf_to_images, 
+                                 multiprocessed_pdf_conversion)
 
-
-def convert_pdf_to_images_multi(i, cpu, submissions_pdfs, dpi, top_percent, left_percent, crop_box, skip_pages):
-    images = []
-    segment_size = len(submissions_pdfs) // cpu
-    start = i * segment_size
-    end = (i + 1) * segment_size
-    if i == cpu - 1:
-        end = len(submissions_pdfs)
-    print(f"Process {i}: {start} to {end-1}")
-    for j in range(start, end):
-        images.append(convert_pdf_to_images(submissions_pdfs[j], dpi, top_percent, left_percent, crop_box, skip_pages))
-
-    return images
 
 class Submission(models.Model):
     id = models.UUIDField(
@@ -279,27 +266,14 @@ class PaperSubmission(Submission):
     # @profile
     @classmethod
     def get_images_for_classify_multi(cls, assignment, dpi, top_percent=0.25, left_percent=0.5, crop_box=None, skip_pages=(0,1,3)):
-        
-        submissions = PaperSubmission.objects.filter(assignment=assignment)
-
-        try:
-            #TODO: verify that this is ok on all platforms
-            set_start_method('fork')
-        except RuntimeError:
-            pass
+        from multiprocessing import cpu_count
         cpu = cpu_count()
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
         submissions_pdfs = [sub.pdf.path for sub in submissions]
         vectors = [(i, cpu, submissions_pdfs, dpi, top_percent, left_percent, crop_box, skip_pages) for i in range(cpu)]
-        print("Starting %i processes for %i subs..." % (cpu, len(submissions)))
-        pool = Pool()
-        results = pool.starmap(convert_pdf_to_images_multi, vectors)
-        pool.close()
-        pool.join()
-        print("Done")
-
-        images = []
-        for result in results:
-            images.extend(result)
+        
+        print("%i submissions..." % (len(submissions)))
+        images = multiprocessed_pdf_conversion(vectors)
 
         len_images = [len(imgs) for imgs in images]
         image_sub_pks = [[sub.pk for i in range(len_imgs_sub)] for sub, len_imgs_sub in zip(submissions, len_images)]
