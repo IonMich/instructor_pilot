@@ -50,14 +50,14 @@ def images_to_text(image_paths, sub_pks):
     """    
     print(f"Extracting text from {len(image_paths)} images. This may take a while...")
     
-    char_set = ascii_letters + digits + ' '
+    char_set = ascii_letters + ' ' + digits
     text_tsv = subprocess.run(
         [
-            'tesseract', 
-            '-', '-', # stdin/stdout
-            'tsv', 
+            'tesseract',  
             '--dpi', '150',
             '-c', f'tessedit_char_whitelist={char_set}',
+            'stdin', 'stdout', # stdin/stdout
+            'tsv', # output format
         ],
         input="\n".join(image_paths),
         capture_output=True, 
@@ -71,7 +71,7 @@ def images_to_text(image_paths, sub_pks):
         engine='python',
         keep_default_na=False,
     )
-
+    
     # keep only the text with confidence > 70
     df = df[df.conf > 70]
     # remove empty texts
