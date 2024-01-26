@@ -56,8 +56,8 @@ def images_to_text(image_paths, sub_pks):
             'tesseract',  
             '--dpi', '150',
             '-c', f'tessedit_char_whitelist={char_set}',
+            '-c', 'tessedit_create_tsv=1',
             'stdin', 'stdout', # stdin/stdout
-            'tsv', # output format
         ],
         input="\n".join(image_paths),
         capture_output=True, 
