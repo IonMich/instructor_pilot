@@ -395,7 +395,7 @@ function setInitialGradeStep() {
 
 
 const text_area = document.getElementById("newCommentTextArea");
-text_area.addEventListener("keydown", (event) => {
+text_area.parentElement.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && event.ctrlKey) {
         event.preventDefault();
         graderUpdatesForm.dispatchEvent(new Event("submit"));
@@ -658,6 +658,12 @@ graderUpdatesForm.addEventListener("submit", async (event) => {
                 addStarBtnListener(newCommentDiv);
                 addEditBtnListener(newCommentDiv);
             });
+            // deselect the selected option in the save comment selectpicker
+            $(savedCommentsSelect).selectpicker("deselectAll");
+            // reset the height of the preview text area
+            const previewCommentArea = document.querySelector("#newCommentPreview");
+            previewCommentArea.style.height = "auto";
+
             // show a toast
             const toastDiv = document.createElement("div");
             toastDiv.classList.add("toast", "align-items-center", "text-bg-success", "border-0");
