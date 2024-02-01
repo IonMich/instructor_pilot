@@ -356,3 +356,20 @@ if (assignmentCanvasBtns) {
         });
     });
 }
+
+
+$('button[data-bs-toggle="pill"]').on('show.bs.tab', function (e) {
+    console.log("New tab activated. Saving to local storage.");
+    localStorage.setItem('activePill', $(e.target).attr('data-bs-target'));
+});
+
+var activePill = localStorage.getItem('activePill');
+if(activePill){
+    const query = 'button[data-bs-target="' + activePill + '"]';
+    console.log(query);
+    const activeTab = document.querySelector(query);
+    console.log(activeTab);
+    if (activeTab) {
+        activeTab.click();
+    }
+}
