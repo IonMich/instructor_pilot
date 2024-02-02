@@ -423,7 +423,7 @@ function renderOutliersManualVersionForm(versions, activeElementId) {
         <select class="form-select mb-2 mr-sm-2" name="versionName" id="versionName">
             <option selected value=""></option>
         </select>
-        <button type="button" class="btn btn-primary d-block mb-2 mx-auto" disabled>Corfirm</button>
+        <button type="button" class="btn btn-primary d-block mb-2 mx-auto" disabled>Confirm</button>
     </div>
     `;
     const select = form.querySelector('select');
