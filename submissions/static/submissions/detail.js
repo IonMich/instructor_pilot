@@ -148,6 +148,13 @@ async function handleScroll () {
     if (gradeInput) {
         gradeInput.focus();
         console.log(`focusing on input[data-position="${initialFocusQuestionIndex}"]`);
+
+        // remove tabindex from all other grade inputs
+        grade_inputs.forEach((input, i) => {
+            if (i !== initialFocusQuestionIndex) {
+                input.setAttribute("tabindex", "-1");
+            }
+        });
     } else {
         const firstGradeInput = document.querySelector(`input[data-position="0"]`);
         console.log(`Failed. Focusing on first grade input because input[data-position="${initialFocusQuestionIndex}"] does not exist`);
