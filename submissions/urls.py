@@ -4,10 +4,11 @@ from .views import (home_view, redirect_to_next, redirect_to_previous,
                     submission_classify_view, submission_comment_delete_view,
                     submission_comment_modify_view, submission_delete_all_view,
                     submission_delete_view, submission_detail_view,
-                    api_grade_update_view,
+                    submission_export_grades_csv_view, api_grade_update_view,
                     api_submission_patch_view,
                     api_submission_manual_version_view,
-                    api_submissions_list_view,
+                    api_submissions_list_view, submission_pdf_view,
+                    api_grades_list_view,
                     )
 
 app_name = 'submissions'
@@ -17,6 +18,7 @@ urlpatterns = [
     path('courses/<course_pk>/assignments/<assignment_pk>/submissions/', home_view, name='home'),
     path('courses/<course_pk>/submissions/classify/', submission_classify_view, name='classify'),
     path('courses/<course_pk>/assignments/<assignment_pk>/submissions/delete-all/', submission_delete_all_view, name='delete-all-submissions'),
+    path('submissions/export-csv/', submission_export_grades_csv_view, name='export-grades-csv'),
     path('courses/<course_pk>/assignments/<assignment_pk>/submissions/<submission_pk>/', submission_detail_view, name='detail'),
     path('courses/<course_pk>/assignments/<assignment_pk>/submissions/<uuid:submission_pk>/previous/', redirect_to_previous, name='detail_previous'),
     path('courses/<course_pk>/assignments/<assignment_pk>/submissions/<uuid:submission_pk>/next/', redirect_to_next, name='detail_next'),
@@ -27,4 +29,6 @@ urlpatterns = [
     path('submissions/<submission_pk>/version/', api_submission_manual_version_view, name='manual-version'),
     path('submissions/<submission_pk>/grade/', api_grade_update_view, name='api-grade-update'),
     path('assignments/<assignment_pk>/submissions/', api_submissions_list_view, name='api-submissions-list'),
+    path('assignments/<assignment_pk>/grades/', api_grades_list_view, name='api-grades-list'),
+    path('submissions/<submission_pk>/pdf/', submission_pdf_view, name='pdf'),
 ]

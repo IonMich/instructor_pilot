@@ -518,9 +518,85 @@ def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
             'assignment_pk': submission.assignment.pk,
             'submission_pk': submission.pk})
         return redirect(new_url + extra_params)
+
+@login_required
+def api_grades_list_view(request, assignment_pk):
+    """
+    This view returns the grades for an assignment
+    """
+    assignment = get_object_or_404(Assignment, pk=assignment_pk)
+    submissions = PaperSubmission.objects.filter(assignment=assignment)
     
-# The delete view deletes the submission and returns a JsonResponse
-# with a message (success or failure)
+    # create a pandas dataframe
+    data = []
+    for submission in submissions:
+        question_grades = submission.get_question_grades()
+        question_grades_dict = dict()
+        for i, qg in enumerate(question_grades):
+            question_grades_dict[f'question_{i+1}_grade'] = qg
+        row = {
+            'submission_id': submission.pk,
+            'version': submission.version.name if submission.version else '',
+            'grade': submission.grade,
+            **question_grades_dict,
+        }
+        data.append(row)
+    df = pd.DataFrame(data)
+    # replace NaN with empty string
+    df = df.fillna('')
+    grades = df.to_dict(orient='records')
+    return JsonResponse({
+        'message': 'success',
+        'grades': grades,
+    })
+
+@login_required
+def submission_export_grades_csv_view(request):
+    """
+    This view exports the grades for an assignment to a CSV file
+    """
+    if request.method != 'POST':
+        return JsonResponse({
+            'message': 'This view only accepts POST requests',
+            'success': False,
+        })
+    
+    # the sub pks are in the JSON stringified list
+    submission_pks = request.POST.get('submission_pks')
+    import json
+    submission_pks = json.loads(submission_pks)
+
+    # get the submissions
+    print(submission_pks)
+    submissions = PaperSubmission.objects.filter(pk__in=submission_pks)
+    
+    # create a pandas dataframe
+    data = []
+    for submission in submissions:
+        question_grades = submission.get_question_grades()
+        question_grades_dict = dict()
+        for i, qg in enumerate(question_grades):
+            question_grades_dict[f'question_{i+1}_grade'] = qg
+        row = {
+            'submission_id': submission.pk,
+            'submission_canvas_id': submission.canvas_id,
+            'student_last_name': submission.student.last_name,
+            'student_first_name': submission.student.first_name,
+            'student_canvas_id': submission.canvas_id,
+            'student_uni_id': submission.student.uni_id,
+            'version': submission.version.name if submission.version else '',
+            'grade': submission.grade,
+            **question_grades_dict,
+        }
+        data.append(row)
+    df = pd.DataFrame(data)
+    # create the response
+    from django.http import HttpResponse
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="grades.csv"'
+    df.to_csv(response, index=False)
+    return response
+
 @login_required
 def submission_delete_view(request, course_pk, assignment_pk, submission_pk):
     submission = get_object_or_404(PaperSubmission, pk=submission_pk)
@@ -664,3 +740,11 @@ def api_submissions_list_view(request, assignment_pk):
         'message': 'success',
         'submissions': submissions_serialized,
     })
+
+def submission_pdf_view(request, submission_pk):
+    """
+    Load the submission.pdf.url in an iframe
+    using pdf.js in submissions/viewer.html
+    """
+    submission = get_object_or_404(PaperSubmission, pk=submission_pk)
+    return render(request, 'submissions/viewer.html', {'submission': submission})

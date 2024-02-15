@@ -28,6 +28,9 @@
             <i class="bi bi-x-lg search-bar__button--clear"></i>
           </button>
       </div>
+      <button type="button m-2" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#export-grades" title="Export grades">
+        <i class="bi-file-earmark-spreadsheet-fill"></i>
+      </button>
       <button type="button m-2" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#add-sub-modal" title="Add new submissions">
         <i class="bi-file-earmark-plus-fill"></i>
       </button>
@@ -37,8 +40,8 @@
     </div>
 </div>
 
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 row-cols-xxl-5 g-2 mt-3" id="submissions-row">
-      {% for obj in object_list %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 row-cols-xxl-5 g-2 mt-3" id="submissions-row">
+    {% for obj in object_list %}
       <div class="col">
         <div class="card h-100 sub-card" data-pk="{{ obj.pk }}">
             {% comment %} add bootstrap carousel with all images (obj.submissions_papersubmissionimage_related.all){% endcomment %}
@@ -156,8 +159,30 @@
 
         </div>
       </div>
-      {% endfor %}
+    {% endfor %}
+</div>
+
+  <div class="modal fade" id="export-grades" tabindex="-1" aria-labelledby="export-grades-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="export-grades-label">Export Grades</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Export gradebook as a CSV file</p>
+          <form method="POST" id="export-grades-form" action="{% url 'submissions:export-grades-csv' %}">
+            {% csrf_token %}
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Export</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
+
 
   {% comment %} add modal for card deletion 
   the modal should contain a form with a hidden input for the pk of the submission

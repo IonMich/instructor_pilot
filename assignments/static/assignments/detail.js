@@ -941,6 +941,34 @@ for (const btn of btnCarouselNext) {
 //     // }
 // });
 
+// when export-grades-form is submitted, get the submission_pks of the cards
+// and append them to the form data as submission_pks
+// then submit the form with fetch
+const exportGradesForm = document.getElementById('export-grades-form');
+if (exportGradesForm) {
+    exportGradesForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const form = this;
+        const submissionPks = Array.from(document.querySelectorAll('.card')).map(card => card.getAttribute('data-pk'));
+        const submissionPksInput = document.createElement('input');
+        submissionPksInput.type = 'hidden';
+        submissionPksInput.name = 'submission_pks';
+        submissionPksInput.value = JSON.stringify(submissionPks);
+        form.appendChild(submissionPksInput);
+        const csrfToken = form.querySelector('input[name="csrfmiddlewaretoken"]').value;
+        
+        form.submit();
+        submissionPksInput.remove();
+        
+        // close the modal
+        const modal = document.getElementById('export-grades');
+        const bsModal = bootstrap.Modal.getOrCreateInstance(modal);
+        bsModal.hide();
+
+    });
+}
+
+
 // handle modal close
 // when the modal is closed, resume the carousel of all cards
 const deleteModal = document.getElementById('modal-delete-sub');
@@ -999,20 +1027,62 @@ function deleteAllSubs(event) {
     );
 }
 
+async function fetchGrades() {
+    const url = `/assignments/${assignmentId}/grades/`;
+    const response = await fetch(url);
+    console.log(response);
+    const data = await response.json();
+    console.log("data", data);
+    console.log(data["grades"]);
+    return data["grades"];
+}
 
 var chart = document.getElementById('myChart')
 if (chart) {
+    const groupButtonContainer = document.createElement('div');
+    groupButtonContainer.classList.add('d-flex', 'justify-content-end', 'my-2');
+    // add the button group to the parent of the chart
+    chart.parentElement.append(groupButtonContainer);
+    // or with innerHTML
+    groupButtonContainer.innerHTML = `
+    <div class="d-flex justify-content-end mb-2">
+        <div class="btn-group me-2" role="group" aria-label="Toggle displayed data">
+            <input type="radio" name="chart-type" id="group-by-default" class="btn-check" checked autocomplete="off">
+            <label class="btn btn-outline-secondary btn-sm" for="group-by-default">All Grades</label>
+            <input type="radio" name="chart-type" id="group-by-version" class="btn-check" autocomplete="off">
+            <label class="btn btn-outline-secondary btn-sm" for="group-by-version">Group by Version</label>
+            <input type="radio" name="chart-type" id="group-by-question" class="btn-check" autocomplete="off">
+            <label class="btn btn-outline-secondary btn-sm" for="group-by-question">Group by Question</label>
+        </div>
+    </div>
+    `;
+    const groupByDefaultButton = document.getElementById('group-by-default');
+    const groupByVersionButton = document.getElementById('group-by-version');
+    const groupByQuestionButton = document.getElementById('group-by-question');
+
     var ctx = chart.getContext('2d');
     // await the maxScore from the server
     const maxScore = JSON.parse(document.getElementById('max_score').textContent);
-    const all_grades = JSON.parse(document.getElementById('all_grades').textContent);
+    const all_grades_old = JSON.parse(document.getElementById('all_grades').textContent);
+    console.log(all_grades_old);
     // find the min and max of the grades from all_grades
-    const values = Object.values(all_grades);
+    // const values = Object.values(all_grades);
+
+    let fetched_grades = [];
+    try {
+        fetched_grades = await fetchGrades();
+    } catch (error) {
+        console.log(error);
+    }
+
+    // get the "grade" entry of each object and store them in an array
+    const all_grades = fetched_grades.map(obj => obj.grade).filter(grade => grade !== "" && grade !== null);
+
     // set the min value of the x-axis to 0 and the max value to the max possible grade of the assignment
     const minm = 0;
     const maxm = maxScore;
     var histGenerator = d3.bin()
-    .domain([minm,maxm])    // TODO: get the min and max of the grades
+    .domain([minm, maxm])    // TODO: get the min and max of the grades
     .thresholds(39);  // number of thresholds; this will create 19+1 bins
 
     var bins = histGenerator(all_grades);
@@ -1038,30 +1108,135 @@ if (chart) {
         }]
     };
 
-    var myChart = new Chart(ctx, {
-        type: 'bar',
-        data: data,
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        autoSkip: true,
-                        maxTicksLimit: 10
-                    }
-                },
-                x: {
-                    ticks: {
-                        min: 0,
-                        max: maxScore,
-                        stepSize: 1,
-                        maxTicksLimit: 10,
-                    }
+    var myChart = new Chart(ctx);
+
+    function updateChartGroupDefault() {
+        myChart.config.type = 'bar';
+        myChart.config.data = data;
+        myChart.config.options.scales = {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    autoSkip: true,
+                    maxTicksLimit: 10
                 }
             },
-            
+            x: {
+                ticks: {
+                    min: 0,
+                    max: maxScore,
+                    stepSize: 1,
+                    maxTicksLimit: 10,
+                }
+            }
+        };
+        myChart.update();
+    }
+    updateChartGroupDefault();
+    groupByDefaultButton.addEventListener('click', updateChartGroupDefault);
+
+    
+    // add event listener for the group-by-version button
+    // when the button is clicked, group the grades by version
+    if (groupByVersionButton) {
+        // group by version
+        const grouped_version = fetched_grades.reduce((acc, obj) => {
+            const version = obj.version;
+            if (!acc[version]) {
+                acc[version] = [];
+            }
+            // skip empty grades
+            if (obj.grade !== "" && obj.grade !== null)
+                acc[version].push(obj.grade);
+            return acc;
+        }, {});
+        console.log(grouped_version);
+        // if there is at most one version, disable the button
+        if (Object.keys(grouped_version).length <= 1) {
+            groupByVersionButton.disabled = true;
         }
-    });
+        function updateChartGroupVersions() {
+            myChart.config.type = 'violin';
+            myChart.config.data = {
+                labels: Object.keys(grouped_version).map(version => {
+                    version = version === '' ? 'Outliers' : `Version ${version}`
+                    return version;
+                }
+                ),
+                datasets: []
+            };
+            const grades = Object.values(grouped_version);
+    
+            myChart.config.data.datasets.push({
+                label: `Versions`,
+                data: grades,
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1,
+                outlierColor: '#999999',
+                padding: 10,
+                itemRadius: 0,
+            });
+            
+            // // change the y axis limit to the min and max of the grades
+            myChart.config.options.scales.y.min = 0;
+            myChart.config.options.scales.y.max = Math.max(...all_grades);
+            myChart.update();
+            console.log(myChart.config.data);
+        }
+        groupByVersionButton.addEventListener('click', updateChartGroupVersions);
+    }
+
+    
+    // add event listener for the group-by-question button
+    // when the button is clicked, group the grades by question
+    if (groupByQuestionButton) {
+        const grouped_question = fetched_grades.reduce((acc, obj) => {
+            // fields `question_{i}_grade` are the grades for each question
+            for (const [key, value] of Object.entries(obj)) {
+                if (key.startsWith('question_')) {
+                    const question = key.split('_')[1];
+                    if (!acc[question]) {
+                        acc[question] = [];
+                    }
+                    // skip empty grades
+                    if (value !== "" && value !== null)
+                        acc[question].push(value);
+
+                }
+            }
+            return acc;
+        }, {});
+        console.log(grouped_question);
+        if (Object.keys(grouped_question).length <= 1) {
+            groupByQuestionButton.disabled = true;
+        }
+        function updateChartGroupQuestions() {
+            myChart.config.type = 'violin';
+            myChart.config.data = {
+                labels: Object.keys(grouped_question).map(question => `Question ${question}`),
+                datasets: []
+            };
+            const grades = Object.values(grouped_question);
+            myChart.config.data.datasets.push({
+                label: `Questions`,
+                data: grades,
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1,
+                outlierColor: '#999999',
+                padding: 10,
+                itemRadius: 0,
+            });
+            // change the y axis limit to the min and max of the grades
+            myChart.config.options.scales.y.min = 0;
+            myChart.config.options.scales.y.max = (grades.flat().length === 0) ? 1 : Math.max(...grades.flat());
+            myChart.update();
+            console.log(myChart.config.data);
+        }
+
+        groupByQuestionButton.addEventListener('click', updateChartGroupQuestions);
+    }
 }
 
 // add event listener for the .search-bar__button

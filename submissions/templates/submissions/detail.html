@@ -147,6 +147,11 @@
             </div>
         </figure>
 
+        {% comment %} <object data="{{submission.pdf.url}}" type="application/pdf" width="100%" height="100%">
+            <div>No PDF viewer available</div>
+        </object> {% endcomment %}
+        {% comment %} <iframe src="{% url 'submissions:pdf' submission_pk=submission.pk %}?file={{submission.pdf.url}}" width="100%" height="100%" style="border: none;"></iframe> {% endcomment %}
+
         <div class="d-flex justify-content-center my-3">
             <div class="btn-group m-auto">
                 {% comment %} previous submission {% endcomment %}
