@@ -103,11 +103,13 @@
                   {% else %}
                     <h5 class="card-title text-muted"> <i>No Student</i></h5>
                   {% endif %}
-                  {% if obj.grade is not None %}
+                  {% if obj.grade is not None or obj.get_question_grades %}
                     {% for q_grade in obj.get_question_grades %}
+                    {% if q_grade %}
                       <p class="card-text">
                         Question {{forloop.counter}} grade: {{q_grade}}
                       </p>
+                    {% endif %}
                     {% endfor %}
                   {% else %}
                     <p class="card-text">
