@@ -2,7 +2,7 @@ from django.urls import path
 
 from .views import (api_savedcomment_detail_view, api_savedcomment_list_view,
                     assignment_detail_view, api_delete_versiontextcomment, api_delete_versionfilecomment, api_versions_get,
-                    version_reset, api_version_comments, version_view)
+                    version_reset, api_version_comments, version_view, api_canvas_info_get)
 
 app_name = 'assignments'
 
@@ -12,6 +12,7 @@ urlpatterns = [
     path('assignments/<assignment_pk>/versioncomments/', api_version_comments, name='version_comments'),
     path('assignments/<assignment_pk>/versionreset/', version_reset, name='version_reset'),
     path('assignments/<assignment_pk>/versions/', api_versions_get, name='versions_get'),
+    path('courses/<course_pk>/assignments/<assignment_pk>/canvas_info/', api_canvas_info_get, name='canvas_info_get'),
     path('versiontextcomment/<comment_pk>/', api_delete_versiontextcomment, name='delete_versiontextcomment'),
     path('versionfilecomment/<comment_pk>/', api_delete_versionfilecomment, name='delete_versionfilecomment'),
     path('assignments/<assignment_pk>/starcomments/', api_savedcomment_list_view, name='starcomment_list'),

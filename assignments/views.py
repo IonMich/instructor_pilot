@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from courses.models import Course
+from courses.utils import get_canvas_course
 from submissions.cluster import (images_to_text,
                                  perform_dbscan_clustering,
                                  plot_clusters_dbscan, vectorize_texts)
@@ -363,6 +364,70 @@ def api_version_comments(request, assignment_pk):
         {'message': 'success',
         'success': True,
          })
+
+@login_required
+def api_canvas_info_get(request, course_pk, assignment_pk):
+    if request.method != 'GET':
+        return JsonResponse(
+            {'message': 'Only POST requests are allowed',
+            'success': False,
+             })
+    # get the assignment
+    course = get_object_or_404(Course, pk=course_pk)
+    course_canvas_id = course.canvas_id
+    assignment = get_object_or_404(Assignment, pk=assignment_pk)
+    assignment_canvas_id = assignment.canvas_id
+    assignment_submissions = PaperSubmission.objects.filter(assignment=assignment)
+    assignment_graded_submissions = assignment_submissions.filter(graded_by__isnull=False)
+    
+    canvas_course = get_canvas_course(canvas_id=course_canvas_id)
+    canvas_assignment = canvas_course.get_assignment(
+        assignment_canvas_id,)
+    canvas_assignment_serialized = canvas_assignment.__dict__.copy()
+    canvas_assignment_serialized.pop('_requester')
+    print(canvas_assignment_serialized)
+    canvas_gradeable_students = canvas_assignment.get_gradeable_students()
+    gradeable_students_serialized = []
+    test_entries = []
+    for item in canvas_gradeable_students:
+        if item.__dict__.get('fake_student'):
+            test_entries.append(item.__dict__.get('id'))
+            continue
+        gradeable_students_serialized.append(
+            {'id': item.id,
+            'display_name': item.display_name,
+            })
+    print(len(gradeable_students_serialized))
+    canvas_submissions = canvas_assignment.get_submissions()
+    graded_submissions_serialized = []
+    ungraded_submissions_serialized = []
+    for submission in canvas_submissions:
+        if submission.__dict__.get('user_id') in test_entries:
+            continue
+        sub_dict = submission.__dict__.copy()
+        sub_dict.pop('_requester')
+        if submission.__dict__.get('workflow_state') == 'graded':
+            graded_submissions_serialized.append(sub_dict)
+        else:
+            print(submission.__dict__)
+            ungraded_submissions_serialized.append(sub_dict)
+    print(len(graded_submissions_serialized))
+    print(len(ungraded_submissions_serialized))
+
+    context = {
+        'canvas_assignment': canvas_assignment_serialized,
+        'canvas_gradeable_students': gradeable_students_serialized,
+        'canvas_graded_subs': graded_submissions_serialized,
+        'canvas_ungraded_subs': ungraded_submissions_serialized,
+        'db_assignment_name': assignment.name,
+        'db_assignment_max_points': assignment.max_score,
+        'db_course_student_count': len(course.get_students()),
+        'db_subs': assignment_submissions.count(),
+        'db_graded_subs': assignment_graded_submissions.count(),
+        'message': 'success',
+        'success': True,
+    }
+    return JsonResponse(context, safe=False)
 
 @login_required
 def version_reset(request, assignment_pk):

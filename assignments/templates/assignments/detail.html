@@ -427,12 +427,25 @@
                               <div class="modal-content">
                                 <div class="modal-header">
                                   <h5 class="modal-title" id="syncToModalLabel">Upload to Canvas: {{assignment.name}}</h5>
+                                  <div class="d-flex" id="checkCanvasAssignmentStatus">
+                                    <button type="button" class="btn btn-sm btn-outline-primary d-block mx-3 my-auto" id="btnCheckCanvasAssignmentStatus">Check Status</button>
+                                    <div class="spinner-border text-primary d-none" role="status" id="spinnerCanvasAssignmentStatus">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                  </div>
                                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 
                                 <form class="needs-validation" action="" method="POST" id="syncToCanvasForm" novalidate>
                                 {% csrf_token %}
                                 <div class="modal-body">
+                                    <div class="d-flex gap-3 d-none" id="canvas-info-container">
+                                        <ul class="list-group my-3 ms-auto" id="canvas-info-list">
+                                        </ul>
+                                        <ul class="list-group my-3 me-auto" id="db-info-list">
+                                        </ul>
+                                    </div>
+                                    
                                     {% if assignment.count_submissions_no_sync > 0 %}
                                         <div class="alert alert-warning d-flex align-items-center" role="alert">
                                             <i class="bi bi-exclamation-triangle-fill" style='font-size:26px;'></i>

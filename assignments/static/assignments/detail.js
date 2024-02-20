@@ -451,6 +451,99 @@ function identifyStudents (event, form) {
 
 const uploadToCanvasModalForm = document.getElementById('syncToCanvasForm');
 
+const retrieveCanvasInfoButton = document.getElementById('btnCheckCanvasAssignmentStatus');
+
+if (retrieveCanvasInfoButton) {
+    retrieveCanvasInfoButton.addEventListener('click', async function(event) {
+        event.preventDefault();
+        // spinnerCanvasAssignmentStatus
+        const spinner = document.getElementById('spinnerCanvasAssignmentStatus');
+        spinner.classList.remove('d-none');
+        let data;
+        try {
+            const url = `/courses/${courseId}/assignments/${assignmentId}/canvas_info/`;
+            const options = {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            };
+            const response = await fetch(url, options);
+            data = await response.json();
+        } catch (error) {
+            console.log(error);
+        }
+        console.log(data);
+        spinner.classList.add('d-none');
+        if (!data) {
+            return;
+        }
+        const canvasAssignment = data.canvas_assignment;
+        const canvasGradeableStudents = data.canvas_gradeable_students;
+        const canvasGradedSubs = data.canvas_graded_subs;
+        const canvasUngradedSubs = data.canvas_ungraded_subs;
+        const dbAssignmentName = data.db_assignment_name;
+        const dbAssignmentMaxPoints = data.db_assignment_max_points;
+        const dbStudentCount = data.db_course_student_count;
+        const dbSubsCount = data.db_subs;
+        const dbGradedSubsCount = data.db_graded_subs;
+        // add info to ul canvas-info-list: name, workflow_state, points_possible
+        const canvasInfoList = document.getElementById('canvas-info-list');
+        canvasInfoList.innerHTML = `
+            <li class="list-group-item text-center bg-secondary text-white">
+                Canvas Information
+            </li>
+            <li class="list-group-item">
+                <strong>Assignment Name:</strong> ${canvasAssignment.name}
+            </li>
+            <li class="list-group-item">
+                <strong>Workflow State:</strong> ${canvasAssignment.workflow_state}
+            </li>
+            <li class="list-group-item">
+                <strong>Points Possible:</strong> ${canvasAssignment.points_possible}
+            </li>
+            <li class="list-group-item">
+                <strong>Gradeable Students:</strong> ${canvasGradeableStudents.length}
+            </li>
+            <li class="list-group-item">
+                <strong>Graded Submissions:</strong> ${canvasGradedSubs.length}
+            </li>
+            <li class="list-group-item">
+                <strong>Ungraded Submissions:</strong> ${canvasUngradedSubs.length}
+            </li>
+        `;
+        const dbInfoList = document.getElementById('db-info-list');
+        dbInfoList.innerHTML = `
+            <li class="list-group-item text-center bg-secondary text-white">
+                This App
+            </li>
+            <li class="list-group-item">
+                <strong>Assignment Name:</strong> ${dbAssignmentName}
+            </li>
+            <li class="list-group-item">
+                <strong>Workflow State:</strong> N/A
+            </li>
+            <li class="list-group-item">
+                <strong>Points Possible:</strong> ${dbAssignmentMaxPoints}
+            </li>
+            <li class="list-group-item">
+                <strong>Gradeable Students:</strong> ${dbStudentCount}
+            </li>
+            <li class="list-group-item">
+                <strong>Graded Submissions:</strong> ${dbGradedSubsCount}
+            </li>
+            <li class="list-group-item">
+                <strong>Ungraded Submissions:</strong> ${dbSubsCount - dbGradedSubsCount}
+            </li>
+        `;
+        // remove the d-none class from the canvas-info-div
+        const canvasInfoDiv = document.getElementById('canvas-info-container');
+        canvasInfoDiv.classList.remove('d-none');
+    });
+
+}
+
+
 if (uploadToCanvasModalForm) {
     uploadToCanvasModalForm.addEventListener("submit", (event) => 
     uploadToCanvas(event, uploadToCanvasModalForm));
