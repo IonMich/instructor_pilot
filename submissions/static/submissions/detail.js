@@ -150,11 +150,13 @@ async function handleScroll () {
         console.log(`focusing on input[data-position="${initialFocusQuestionIndex}"]`);
 
         // remove tabindex from all other grade inputs
-        grade_inputs.forEach((input, i) => {
-            if (i !== initialFocusQuestionIndex) {
-                input.setAttribute("tabindex", "-1");
-            }
-        });
+        if (hasInitialFocusQuestionIndex) {
+            grade_inputs.forEach((input, i) => {
+                if (i !== initialFocusQuestionIndex) {
+                    input.setAttribute("tabindex", "-1");
+                }
+            });
+        }
     } else {
         const firstGradeInput = document.querySelector(`input[data-position="0"]`);
         console.log(`Failed. Focusing on first grade input because input[data-position="${initialFocusQuestionIndex}"] does not exist`);
@@ -481,11 +483,13 @@ if (pk === firstPk) {
 
 // try to get the initial focus question index from the url question_focus parameter
 let initialFocusQuestionIndex = 0;
+let hasInitialFocusQuestionIndex = false;
 try {
     const urlParams = new URLSearchParams(location.search);
     const questionFocus = urlParams.get("question_focus");
     if (questionFocus) {
         initialFocusQuestionIndex = parseInt(questionFocus);
+        hasInitialFocusQuestionIndex = true;
     }
 } catch (error) {
     console.log(`No question_focus parameter in url`);
