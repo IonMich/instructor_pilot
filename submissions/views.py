@@ -124,7 +124,6 @@ def submission_list_view(request):
 @login_required
 def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
     submission = get_object_or_404(PaperSubmission, pk=submission_pk)
-    n_q = submission.assignment.number_of_questions
     grades_zipped = list(zip_longest(
         submission.get_question_grades(), 
         submission.assignment.get_max_question_scores())
@@ -156,6 +155,11 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         filter_pks = filtered_collection.values_list('pk', flat=True)
         filter_pks = list(filter_pks)
         query_params_dict['version_filter'] = version_filter
+    has_previous = filtered_collection.filter(
+        created__lt=submission.created).exists()
+    has_next = filtered_collection.filter(
+        created__gt=submission.created).exists()
+    print(has_previous, has_next)
     if question_focus:
         query_params_dict['question_focus'] = question_focus
     print(query_params_dict)
@@ -163,85 +167,8 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
     collection_pks = list(collection_pks)
     print(submission.assignment)
     print("request.user: ", request.user)
-    if request.method == 'POST':
-        submission.graded_at = timezone.now()
-        submission.graded_by = request.user
-        # if the submission student is not the same as the request.POST['student'],
-        # then the student was changed manually at this stage,
-        # so we need to update the classification type to 'M' for manual
-        # and remove the canvas_id from the submission
-        if (not submission.student) or str(submission.student.id) != request.POST['student']:
-            submission.classification_type = 'M'
-            submission.canvas_id = ''
-            submission.canvas_url = ''
-            
-        q_grades = [ str(request.POST.get(f"grade_{i+1}")) 
-            for i in range(n_q)]
-        print(q_grades)
-        if q_grades:
-            _mutable = request.POST._mutable
-            # set to mutable
-            request.POST._mutable = True
-            # сhange the values you want
-            request.POST['question_grades'] = ",".join(q_grades)
-            # set mutable flag back
-            request.POST._mutable = _mutable
-
-        print(f"text: {request.POST.get('new_comment')}")
-        print(f"file: {request.FILES.get('comment_files')}")
-
-        grading_form = GradingForm(
-            request.POST,
-            request.FILES,
-            instance=submission)
-
-            
-        if grading_form.is_valid():
-            print("form is valid")
-            print(grading_form.cleaned_data)
-            
-            # add new comment from request.POST to a new SubmissionComment instance
-            # assigned to the submission and authored by the request.user
-            
-            submission.save()
-
-            if request.POST.get('new_comment').strip():
-                comment = SubmissionComment(
-                    paper_submission=submission,
-                    author=request.user,
-                    text=request.POST.get('new_comment'))
-                comment.save()
-            print("comment saved")
-            # add new file from request.FILES to a new SubmissionFile instance
-            # assigned to the submission and authored by the request.user
-            if request.FILES.get('comment_files'):
-                # use the class method add_commentfile_to_db of SubmissionComment
-                # to add the file to the database
-                print("adding file(s)")
-                SubmissionComment.add_commentfiles_to_db(
-                    submission_target=submission,
-                    uploaded_files=request.FILES.getlist('comment_files'),
-                    author=request.user)
-
-            print("question grades", submission.question_grades)
-            grades_zipped = list(zip_longest(
-                submission.get_question_grades(), 
-                submission.assignment.get_max_question_scores())
-            )
-            return render(
-                request, 
-                'submissions/detail.html', 
-                {'submission': submission,
-                'grading_form': grading_form,
-                'grades_zipped': grades_zipped,
-                'collection_pks': collection_pks,
-                'filter_pks': filter_pks,
-                'query_params': query_params_dict,
-                })
-        else:
-            print("form is not valid")
-    else:
-        grading_form = GradingForm(None)
+    
+    grading_form = GradingForm(None)
 
     return render(
         request, 
@@ -251,6 +178,8 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         'grades_zipped': grades_zipped,
         'collection_pks': collection_pks,
         'filter_pks': filter_pks,
+        'has_previous': has_previous,
+        'has_next': has_next,
         'query_params': query_params_dict,
         })
 

@@ -48,13 +48,13 @@ function navigatorHandler (event) {
     }
     switch(event.key) {
         case "ArrowLeft":
-            if (pk === firstPk) {
+            if (!hasPrevious) {
                 return
             }
             handleChangesAndNavigate(prev_url);
             break;
         case "ArrowRight":
-            if (pk === lastPk) {
+            if (!hasNext) {
                 return
             }
             handleChangesAndNavigate(next_url);
@@ -457,6 +457,13 @@ const collectionPks = JSON.parse(
 const filterPks = JSON.parse(
     document.getElementById("filter-pks").textContent
     );
+
+const hasPrevious = JSON.parse(
+    document.getElementById("has-previous").textContent
+    );
+const hasNext = JSON.parse(
+    document.getElementById("has-next").textContent
+    );
 const currentSub = collectionPks.indexOf(pk);
 const currentSubInFilter = filterPks.indexOf(pk);
 console.log("currentSub", currentSub);
@@ -466,18 +473,16 @@ subPaginationCurrent.textContent = currentSub + 1;
 if (filterPks.length === 0) {
     // if there are no filtered submissions, hide the filter pagination
     document.querySelector("#sub-pagination-filter-position").classList.add("d-none");
-    firstPk = collectionPks[0];
-    lastPk = collectionPks[collectionPks.length - 1];
 } else {
     const subPaginationFilterCurrent = document.querySelector("#sub-pagination-filter-current");
     subPaginationFilterCurrent.textContent = currentSubInFilter >= 0 ? currentSubInFilter + 1 : "-";
 }
-console.log(scroll_height_factors, course_id, assignment_id);
-console.log(pk, firstPk, lastPk);
-if (pk === lastPk) {
+console.log(course_id, assignment_id);
+console.log(pk, hasPrevious, hasNext);
+if (!hasNext) {
     nextBtn.disabled = true;
 }
-if (pk === firstPk) {
+if (!hasPrevious) {
     prevBtn.disabled = true;
 }
 

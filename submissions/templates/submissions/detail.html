@@ -16,8 +16,8 @@
     {{ submission.pk|json_script:"sub-pk" }}
     {{ filter_pks|json_script:"filter-pks" }}
     {{ collection_pks|json_script:"collection-pks" }}
-    {{ filter_pks|first|json_script:"first-sub-pk" }}
-    {{ filter_pks|last|json_script:"last-sub-pk" }}
+    {{ has_previous|json_script:"has-previous" }}
+    {{ has_next|json_script:"has-next" }}
     <script src="{% static 'submissions/detail.js' %}" defer></script>
 {% endblock scripts %}
 
