@@ -445,12 +445,6 @@ const initial_grades = JSON.parse(
 const pk = JSON.parse(
     document.getElementById("sub-pk").textContent
     );
-let firstPk = JSON.parse(
-    document.getElementById("first-sub-pk").textContent
-    );
-let lastPk = JSON.parse(
-    document.getElementById("last-sub-pk").textContent
-    );
 const collectionPks = JSON.parse(
     document.getElementById("collection-pks").textContent
     );
