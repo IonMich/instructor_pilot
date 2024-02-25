@@ -551,6 +551,47 @@ def api_grades_list_view(request, assignment_pk):
     })
 
 @login_required
+def export_gradebook_canvas_csv_view(request):
+    """
+    This view exports the grades for an assignment to a CSV file
+    """
+    if request.method != 'POST':
+        return JsonResponse({
+            'message': 'This view only accepts POST requests',
+            'success': False,
+        })
+    
+    # the sub pks are in the JSON stringified list
+    submission_pks = request.POST.get('submission_pks')
+    import json
+    submission_pks = json.loads(submission_pks)
+
+    # get the submissions
+    print(submission_pks)
+    submissions = PaperSubmission.objects.filter(pk__in=submission_pks)
+    
+    # create a pandas dataframe
+    assignment_column = f"{submissions[0].assignment.name} ({submissions[0].assignment.canvas_id})"
+    data = []
+    for submission in submissions:
+        row = {
+            'Student': f"{submission.student.last_name}, {submission.student.first_name}",
+            'ID': submission.student.canvas_id,
+            'SIS User ID': submission.student.uni_id,
+            'SIS Login ID': "",
+            'Section': submission.student.get_section_in_course(submission.assignment.course).name,
+            assignment_column: submission.grade,
+        }
+        data.append(row)
+    df = pd.DataFrame(data)
+    # create the response
+    from django.http import HttpResponse
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{assignment_column}_grades.csv"'
+    df.to_csv(response, index=False)
+    return response
+
+@login_required
 def submission_export_grades_csv_view(request):
     """
     This view exports the grades for an assignment to a CSV file

@@ -259,10 +259,10 @@ def api_course_assignments_create(request, course_pk):
         num_subs_with_question_grades = assignment.get_all_submissions().filter(question_grades__isnull=False).count()
         if (not created) and (num_subs_with_grader > 0 or num_subs_with_question_grades > 0):
             defaults.pop('max_question_scores')
-            print(f"Assignment has graded submissions. Not updating max_question_scores.")
+            print("Assignment has graded submissions. Not updating max_question_scores.")
         if (not created):
             print(assignment)
-            print(f"Assignment is updated")
+            print("Assignment is updated")
             for key, value in defaults.items():
                 setattr(assignment, key, value)
             assignment.save()
@@ -530,8 +530,9 @@ def api_canvas_sections_get_view(request, canvas_id):
             corresponding_section.update(section_dict)
     list_to_include = [
         "enrollments", "locked", "bio",
-        "sis_user_id", "avatar_url"
+        "sis_user_id", "sis_login_id", "avatar_url"
     ]
+
     canvas_users = []
     try:
         canvas_users = canvas_course.get_users(

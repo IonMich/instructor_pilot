@@ -258,12 +258,13 @@ async function populateSectionsWithStudents(selectedCanvasStudents, courseId) {
             canvas_id: student.id,
             last_name: student.sortable_name.split(',')[0].trim(),
             first_name: student.sortable_name.split(',')[1].trim(),
-            uni_id: student.sis_user_id || student.email || student.uuid || `canvas:${student.id}`,
-            email: student.email || null,
+            uni_id: student.sis_user_id || student.sis_login_id || student.uuid || `canvas:${student.id}`,
+            email: student.sis_login_id || null,
             section_id: student.enrollments[0].course_section_id,
             bio: student.bio || '',
             avatar_url: student.avatar_url || '',
         };
+        console.log(studentData);
         studentsData.push(studentData);
     }
     formData.append('students', JSON.stringify(studentsData));

@@ -1037,9 +1037,9 @@ for (const btn of btnCarouselNext) {
 // when export-grades-form is submitted, get the submission_pks of the cards
 // and append them to the form data as submission_pks
 // then submit the form with fetch
-const exportGradesForm = document.getElementById('export-grades-form');
-if (exportGradesForm) {
-    exportGradesForm.addEventListener('submit', async function(event) {
+const exportGradesDetailedForm = document.getElementById('export-grades-detailed-form');
+if (exportGradesDetailedForm) {
+    exportGradesDetailedForm.addEventListener('submit', async function(event) {
         event.preventDefault();
         const form = this;
         const submissionPks = Array.from(document.querySelectorAll('.card')).map(card => card.getAttribute('data-pk'));
@@ -1048,8 +1048,7 @@ if (exportGradesForm) {
         submissionPksInput.name = 'submission_pks';
         submissionPksInput.value = JSON.stringify(submissionPks);
         form.appendChild(submissionPksInput);
-        const csrfToken = form.querySelector('input[name="csrfmiddlewaretoken"]').value;
-        
+        // const csrfToken = form.querySelector('input[name="csrfmiddlewaretoken"]').value;
         form.submit();
         submissionPksInput.remove();
         
@@ -1057,10 +1056,30 @@ if (exportGradesForm) {
         const modal = document.getElementById('export-grades');
         const bsModal = bootstrap.Modal.getOrCreateInstance(modal);
         bsModal.hide();
-
     });
 }
 
+const exportGradesCanvasForm = document.getElementById('export-grades-canvas-form');
+if (exportGradesCanvasForm) {
+    exportGradesCanvasForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const form = this;
+        const submissionPks = Array.from(document.querySelectorAll('.card')).map(card => card.getAttribute('data-pk'));
+        const submissionPksInput = document.createElement('input');
+        submissionPksInput.type = 'hidden';
+        submissionPksInput.name = 'submission_pks';
+        submissionPksInput.value = JSON.stringify(submissionPks);
+        form.appendChild(submissionPksInput);
+        // const csrfToken = form.querySelector('input[name="csrfmiddlewaretoken"]').value;
+        form.submit();
+        submissionPksInput.remove();
+        
+        // close the modal
+        const modal = document.getElementById('export-grades');
+        const bsModal = bootstrap.Modal.getOrCreateInstance(modal);
+        bsModal.hide();
+    });
+}
 
 // handle modal close
 // when the modal is closed, resume the carousel of all cards

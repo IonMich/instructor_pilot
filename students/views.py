@@ -155,6 +155,7 @@ def api_course_enrollments_create(request, course_pk):
                 defaults.pop('uni_id')
         if (not created):
             for key, value in defaults.items():
+                print(f'setting {key} from {getattr(student, key)} to {value}')
                 setattr(student, key, value)
             student.save()
 
