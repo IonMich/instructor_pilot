@@ -20,6 +20,32 @@ from .forms import GradingForm, StudentClassifyForm, SubmissionSearchForm
 from .models import (CanvasQuizSubmission, PaperSubmission, ScantronSubmission,
                      Submission, SubmissionComment)
 
+from rest_framework.response import Response
+from rest_framework import viewsets
+from rest_framework import permissions
+from submissions.serializers import PaperSubmissionSerializer
+# Create your views here.
+class PaperSubmissionInAssignmentViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = PaperSubmission.objects.all()
+    serializer_class = PaperSubmissionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+    def get_queryset(self):
+        assignment_id = self.kwargs['assignment_pk']
+        return PaperSubmission.objects.filter(assignment=assignment_id)
+    
+class PaperSubmissionViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = PaperSubmission.objects.all()
+    serializer_class = PaperSubmissionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
 
 def _random1000():
     yield random.randint(0, 100)

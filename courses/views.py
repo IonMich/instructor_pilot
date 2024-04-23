@@ -12,6 +12,19 @@ from courses.utils import get_canvas_object
 
 from .models import Course
 
+from rest_framework import viewsets
+from rest_framework import permissions
+from courses.serializers import CourseSerializer
+
+class CourseViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,
+                          ]
 
 @login_required
 def course_detail_view(request, pk):

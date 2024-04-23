@@ -26,7 +26,31 @@ from submissions.views import _random1000
 from .models import Assignment, SavedComment, Version, VersionFile, VersionText
 from .utils import delete_versions
 
+from rest_framework import viewsets
+from rest_framework import permissions
+from assignments.serializers import AssignmentSerializer
 # Create your views here.
+
+class AssignmentViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Assignment.objects.all()
+    serializer_class = AssignmentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+class AssignmentInCourseViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Assignment.objects.all()
+    serializer_class = AssignmentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+    def get_queryset(self):
+        course_id = self.kwargs['course_pk']
+        return Assignment.objects.filter(course_id=course_id)
 
 @login_required
 def assignment_detail_view(request,  course_pk, assignment_pk):

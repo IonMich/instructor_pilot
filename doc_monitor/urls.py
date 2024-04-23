@@ -18,8 +18,43 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from rest_framework_nested import routers
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+from profiles.views import UserViewSet
+from courses.views import CourseViewSet
+from sections.views import SectionViewSet, SectionInCourseViewSet
+from assignments.views import AssignmentInCourseViewSet, AssignmentViewSet
+from students.views import StudentInSectionViewSet, StudentInCourseViewSet
+from submissions.views import PaperSubmissionViewSet, PaperSubmissionInAssignmentViewSet
+
+# Routers provide an easy way of automatically determining the URL conf.
+router = routers.DefaultRouter()
+router.register(r'users', UserViewSet)
+router.register(r'courses', CourseViewSet)
+router.register(r'sections', SectionViewSet, basename='section')
+router.register(r'assignments', AssignmentViewSet, basename='assignment')
+router.register(r'submissions', PaperSubmissionViewSet, basename='submission')
+course_router = routers.NestedDefaultRouter(router, r'courses', lookup='course')
+course_router.register(r'sections', SectionInCourseViewSet, basename='course-section')
+course_router.register(r'assignments', AssignmentInCourseViewSet, basename='course-assignment')
+course_router.register(r'students', StudentInCourseViewSet, basename='course-student')
+section_router = routers.NestedDefaultRouter(router, r'sections', lookup='section')
+section_router.register(r'students', StudentInSectionViewSet, basename='section-student')
+assignment_router = routers.NestedDefaultRouter(router, r'assignments', lookup='assignment')
+assignment_router.register(r'submissions', PaperSubmissionInAssignmentViewSet, basename='assignment-submission')
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include(router.urls)),
+    path('api-auth/', include('rest_framework.urls')),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/', include(course_router.urls)),
+    path('api/', include(section_router.urls)),
+    path('api/', include(assignment_router.urls)),
     path('accounts/', include('django.contrib.auth.urls')),
     path('', include('students.urls', namespace='students')),
     path('', include('profiles.urls', namespace='profiles')),

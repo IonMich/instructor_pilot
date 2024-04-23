@@ -6,6 +6,40 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 
+from students.models import Student
+from rest_framework import viewsets
+
+from rest_framework import permissions
+# from students.permissions import IsTA
+from students.serializers import StudentSerializer
+class StudentInSectionViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer
+    # TODO: should add permission isTA and 
+    # replace IsAuthenticatedOrReadOnly with IsAuthenticated
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    def get_queryset(self):
+        section_id = self.kwargs['section_pk']
+        return Student.objects.filter(sections=section_id)
+    
+class StudentInCourseViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer
+    # TODO: should add permission isTA and 
+    # replace IsAuthenticatedOrReadOnly with IsAuthenticated
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    def get_queryset(self):
+        course_id = self.kwargs['course_pk']
+        return Student.objects.filter(sections__course=course_id)
+
 
 def get_serialized_students(course_pk, section_pk=None):
     """returns a list of serialized students in a course or section

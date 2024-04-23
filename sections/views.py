@@ -7,6 +7,44 @@ from django.http import JsonResponse
 
 from sections.models import Meeting, Section
 
+from rest_framework import viewsets
+from rest_framework import permissions
+
+from sections.permissions import IsOwnerOrReadOnly
+from sections.serializers import SectionSerializer
+
+class SectionViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Section.objects.all()
+    serializer_class = SectionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,
+                          IsOwnerOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(teaching_assistant=self.request.user)
+
+class SectionInCourseViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Section.objects.all()
+    serializer_class = SectionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,
+                          IsOwnerOrReadOnly]
+
+    def perform_create(self, serializer):
+        course_id = self.kwargs['course_pk']
+        course = apps.get_model('courses.Course').objects.get(pk=course_id)
+        serializer.save(course)
+        serializer.save(teaching_assistant=self.request.user)
+
+    def get_queryset(self):
+        course_id = self.kwargs['course_pk']
+        return Section.objects.filter(course_id=course_id)
 
 @login_required
 def api_section_meetings_put_view(request, pk):
