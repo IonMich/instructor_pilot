@@ -1,4 +1,4 @@
-import { createFileRoute, useLoaderData } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { LuFiles, LuMail, LuMegaphone, LuUsers } from "react-icons/lu"
 import {
   Card,
@@ -17,6 +17,7 @@ import {
 } from "@/utils/queryOptions"
 import { seo } from "@/utils/utils"
 import { Course } from "@/utils/fetchData"
+import { useSuspenseQueries } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/_authenticated/courses/$courseId/")({
   parseParams: (params) => ({
@@ -68,8 +69,13 @@ function getBreadcrumbItems(course: Course) {
 }
 
 function CourseDashboard() {
-  const data = useLoaderData({ from: "/_authenticated/courses/$courseId/" })
-  const { sections, assignments } = data
+  const courseId = Route.useParams().courseId
+  const [{ data: sections }, { data: assignments }] = useSuspenseQueries({
+    queries: [
+      sectionsQueryOptions(courseId),
+      assignmentsQueryOptions(courseId),
+    ],
+  })
   const total_sub_count = assignments.reduce(
     (acc, assignment) => acc + assignment.submission_count,
     0

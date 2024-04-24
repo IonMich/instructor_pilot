@@ -10,7 +10,7 @@ import {
   fetchAssignmentById,
   fetchStudents,
   fetchStudentsOfCourse,
-  fetchStudentById,
+  fetchStudentOfCourseById,
   fetchSubmissionsOfAssignment,
   fetchSubmissionById,
   patchSubmission,
@@ -78,10 +78,13 @@ export const studentsInCourseQueryOptions = (courseId: number) => {
   })
 }
 
-export const studentQueryOptions = (studentId: number) => {
+export const studentInCourseQueryOptions = (
+  courseId: number,
+  studentId: number
+) => {
   return queryOptions({
     queryKey: ["student", studentId],
-    queryFn: () => fetchStudentById(studentId),
+    queryFn: () => fetchStudentOfCourseById(courseId, studentId),
   })
 }
 

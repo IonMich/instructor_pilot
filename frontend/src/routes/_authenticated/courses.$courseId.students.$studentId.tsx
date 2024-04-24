@@ -2,10 +2,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Course, Section, Student } from "@/utils/fetchData"
 import {
   sectionsQueryOptions,
-  studentsOfSectionQueryOptions,
+  studentInCourseQueryOptions,
 } from "@/utils/queryOptions"
 import { seo } from "@/utils/utils"
-import { createFileRoute, useLoaderData } from "@tanstack/react-router"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 
 function getBreadcrumbItems(
   course: Course,
@@ -49,41 +50,34 @@ export const Route = createFileRoute(
   loader: async (opts) => {
     const studentId = opts.params.studentId
     const courseId = opts.params.courseId
+    const studentPromise = opts.context.queryClient.ensureQueryData(
+      studentInCourseQueryOptions(courseId, studentId)
+    )
     const sectionsPromise = opts.context.queryClient.ensureQueryData(
       sectionsQueryOptions(courseId)
     )
-    const [sections] = await Promise.all([sectionsPromise])
-    const studentsPromise = sections.map((section) => {
-      return opts.context.queryClient.ensureQueryData(
-        studentsOfSectionQueryOptions(section.id)
-      )
-    })
-    const studentsOfSections = await Promise.all(studentsPromise)
-    for (const students of studentsOfSections) {
-      console.log("students: ", students)
-      for (const student of students) {
-        if (student.id === studentId) {
-          for (const sectionOfStudent of student.sections) {
-            const section = sections.find((s) => s.id === sectionOfStudent.id)
-            if (!section) {
-              throw new Error("Section not found")
-            }
-            return {
-              student: student,
-              section: section,
-              course: section.course,
-              title: `Student ${student.id}`,
-              breadcrumbItems: getBreadcrumbItems(
-                section.course,
-                section,
-                student
-              ),
-            }
-          }
-        }
-      }
+    const [student, sections] = await Promise.all([
+      studentPromise,
+      sectionsPromise,
+    ])
+    console.log("student", student)
+    const sectionOfStudent = student.sections.find((s) => s.course === courseId)
+    if (!sectionOfStudent) {
+      throw new Error("Student not found in course")
     }
-    throw new Error("Student not found")
+    const sectionId = sectionOfStudent.id
+    const section = sections.find((s) => s.id === sectionId)
+    if (!section) {
+      throw new Error("Section not found")
+    }
+    const course = section.course as Course
+    return {
+      student: student,
+      section: section,
+      course: course,
+      title: `Student ${student.id}`,
+      breadcrumbItems: getBreadcrumbItems(course, section, student),
+    }
   },
   meta: ({ loaderData }) => [
     ...seo({
@@ -94,11 +88,14 @@ export const Route = createFileRoute(
 })
 
 function StudentDetail() {
-  const data = useLoaderData({
-    from: "/_authenticated/courses/$courseId/students/$studentId",
-  })
-  const { student, course, section } = data
-  console.log("StudentDetail: ", student, course, section)
+  const { courseId, studentId } = Route.useParams()
+  const { data: student } = useSuspenseQuery(
+    studentInCourseQueryOptions(courseId, studentId)
+  )
+  const section = student.sections.find((s) => s.course === courseId)
+  if (!section) {
+    throw new Error("Student not found in course")
+  }
   return (
     <div className="container mx-auto">
       <p className="text-lg font-medium my-5 text-center">

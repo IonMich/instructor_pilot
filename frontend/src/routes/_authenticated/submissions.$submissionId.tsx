@@ -1,8 +1,8 @@
 import * as React from "react"
-import { Link, createFileRoute, useLoaderData } from "@tanstack/react-router"
+import { Link, createFileRoute } from "@tanstack/react-router"
 import { useRouter } from "@tanstack/react-router"
 import { useTheme } from "@/components/theme-provider"
-import { Submission, Assignment, Student, Course } from "@/utils/fetchData"
+import { Submission, Assignment, Course, Student } from "@/utils/fetchData"
 import {
   submissionQueryOptions,
   assignmentQueryOptions,
@@ -59,6 +59,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { toast } from "@/components/ui/use-toast"
+import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
 
 export const Route = createFileRoute(
   "/_authenticated/submissions/$submissionId"
@@ -159,10 +160,20 @@ function getBreadcrumbItems(
 function SubmissionDetail() {
   const { theme } = useTheme()
   const [allImgsLoaded, setAllImgsLoaded] = React.useState(false)
-  const data = useLoaderData({
-    from: "/_authenticated/submissions/$submissionId",
-  })
-  const { submission, assignment, submissions, students } = data
+  const submissionId = Route.useParams().submissionId
+  const { data: submission } = useSuspenseQuery(
+    submissionQueryOptions(submissionId)
+  )
+  const assignmentId = submission.assignment.id
+  const courseId = submission.assignment.course as number
+  const [{ data: assignment }, { data: submissions }, { data: students }] =
+    useSuspenseQueries({
+      queries: [
+        assignmentQueryOptions(assignmentId),
+        submissionsQueryOptions(assignmentId),
+        studentsInCourseQueryOptions(courseId),
+      ],
+    })
 
   // navigation
   const prevSubmission = findPrevSubmission(submission, submissions)
@@ -193,7 +204,7 @@ function SubmissionDetail() {
   React.useEffect(() => {
     loadedImages.current = 0
     setAllImgsLoaded(false)
-  }, [submission])
+  }, [submission.id])
 
   // on all images loaded, scroll to the middle of the image div
   React.useEffect(() => {
@@ -648,13 +659,29 @@ export function StudentComboboxForm({
   const updateSubmissionMutation = useUpdateSubmissionMutation(submission.id)
   const [open, setOpen] = React.useState(false)
 
+  function getSection(student: Student, courseId: number) {
+    const section = student.sections.find(
+      (section) => section.course === courseId
+    )
+    if (!section) {
+      throw new Error(
+        `Student ${student.id} is not enrolled in course ${courseId}`
+      )
+    }
+    return section
+  }
+  const courseId = submission.assignment.course as number
+
   const studentsSectionsLabelVals: StudentSectionLabelVal[] = students.map(
-    (student) => ({
-      label: `${student.first_name} ${student.last_name}`,
-      value: student.id.toString(),
-      section_id: student.sections[0].id,
-      section_name: student.sections[0].name,
-    })
+    (student) => {
+      const section = getSection(student, courseId)
+      return {
+        label: `${student.first_name} ${student.last_name}`,
+        value: student.id.toString(),
+        section_id: section.id,
+        section_name: section.name,
+      }
+    }
   )
 
   // group students by section

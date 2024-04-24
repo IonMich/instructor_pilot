@@ -1,7 +1,12 @@
 import { Course, Student } from "@/utils/fetchData"
 import { Card, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Link, useLoaderData } from "@tanstack/react-router"
+import { Link, getRouteApi } from "@tanstack/react-router"
+import { useSuspenseQueries } from "@tanstack/react-query"
+import {
+  sectionQueryOptions,
+  studentsOfSectionQueryOptions,
+} from "@/utils/queryOptions"
 
 export function StudentCard({
   student,
@@ -36,9 +41,17 @@ export function StudentCard({
   )
 }
 
+const route = getRouteApi("/_authenticated/sections/$sectionId")
+
 export function StudentDeck() {
-  const data = useLoaderData({ from: "/_authenticated/sections/$sectionId" })
-  const { section, students, course } = data
+  const sectionId = route.useParams().sectionId
+  const [{ data: section }, { data: students }] = useSuspenseQueries({
+    queries: [
+      sectionQueryOptions(sectionId),
+      studentsOfSectionQueryOptions(sectionId),
+    ],
+  })
+  const course = section.course
   return (
     <div className="container mx-auto">
       <p className="text-lg font-medium my-5 text-center">

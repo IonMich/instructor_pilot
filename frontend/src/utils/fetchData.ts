@@ -7,7 +7,7 @@ export interface Section {
   name: string
   teaching_assistant: string
   meetings: string
-  course: Course
+  course: Course | number
   class_number: string
   canvas_id: string
   students_count: number
@@ -262,17 +262,23 @@ export async function fetchStudentsOfCourse(courseId: number) {
   return studs
 }
 
-export async function fetchStudentById(id: number) {
-  const sectionId = 210
-  return loaderFn(() =>
-    ensureStudents(sectionId).then(() => {
-      const student = students[sectionId].find((student) => student.id === id)
-      if (!student) {
-        throw new Error(`Student ${id} not found`)
-      }
-      return student
+export async function fetchStudentOfCourseById(courseId: number, id: number) {
+  console.log(`Fetching student of course ${courseId} by Id`, id)
+  const student = loaderFn(() =>
+    Promise.resolve().then(async () => {
+      const fetch_result = await axios
+        .get<Student>(`${studentsInCourseUrlMapper(courseId)}${id}/`)
+        .then((response) => response.data)
+        .catch((error) => {
+          if (error.response?.status === 404) {
+            throw new Error(`Student ${id} not found`)
+          }
+          throw error
+        })
+      return fetch_result
     })
   )
+  return student
 }
 
 export async function fetchSubmissionsOfAssignment(assignmentId: number) {

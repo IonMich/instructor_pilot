@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useParams, useRouter } from "@tanstack/react-router"
+import { useRouter } from "@tanstack/react-router"
 
 import {
   assignmentQueryOptions,
@@ -43,6 +43,9 @@ import { Assignment, Submission } from "@/utils/fetchData"
 import { Separator } from "@/components/ui/separator"
 import { SubmissionPDFsForm } from "./assignmentDetailForms"
 import { useSuspenseQueries } from "@tanstack/react-query"
+import { getRouteApi } from "@tanstack/react-router"
+
+const route = getRouteApi("/_authenticated/assignments/$assignmentId")
 
 enum Dialogs {
   dialog1 = "dialog1",
@@ -50,17 +53,13 @@ enum Dialogs {
 }
 
 export function SubmissionsTable() {
-  const params = useParams({
-    from: "/_authenticated/assignments/$assignmentId",
-  })
-  const assignmentId = params.assignmentId
-  const results = useSuspenseQueries({
+  const assignmentId = route.useParams().assignmentId
+  const [{ data: assignment }, { data: submissions }] = useSuspenseQueries({
     queries: [
       assignmentQueryOptions(assignmentId),
       submissionsQueryOptions(assignmentId),
     ],
   })
-  const [assignment, submissions] = [results[0].data, results[1].data]
   return (
     <>
       <div className="container mx-auto py-2">
