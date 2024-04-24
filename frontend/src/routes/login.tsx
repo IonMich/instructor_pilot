@@ -1,7 +1,7 @@
-import * as React from "react";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
+import * as React from "react"
+import { createFileRoute, useRouter } from "@tanstack/react-router"
+import { z } from "zod"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -9,51 +9,51 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 export const Route = createFileRoute("/login")({
-    validateSearch: z.object({
-      redirect: z.string().optional(),
-    }),
-  }).update({
-    component: LoginForm,
-  });
+  validateSearch: z.object({
+    redirect: z.string().optional(),
+  }),
+}).update({
+  component: LoginForm,
+})
 
 function LoginForm() {
-  const router = useRouter();
+  const router = useRouter()
   const { auth, status } = Route.useRouteContext({
     select: ({ auth }) => ({ auth, status: auth.status }),
-  });
-  const search = Route.useSearch();
-  const [username, setUsername] = React.useState("");
+  })
+  const search = Route.useSearch()
+  const [username, setUsername] = React.useState("")
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const password = (e.currentTarget.elements.namedItem(
-      "password"
-    ) as HTMLInputElement).value;
-    console.log("username", username);
-    await auth.login(username, password);
-    router.invalidate();
-  };
+    e.preventDefault()
+    const password = (
+      e.currentTarget.elements.namedItem("password") as HTMLInputElement
+    ).value
+    console.log("username", username)
+    await auth.login(username, password)
+    router.invalidate()
+  }
 
   // Ah, the subtle nuances of client side auth. 🙄
   React.useLayoutEffect(() => {
-    console.log("status", status);
+    console.log("status", status)
     if (status === "loggedIn" && search.redirect) {
-      router.history.push(search.redirect);
+      router.history.push(search.redirect)
     }
-  }, [status, search.redirect, router.history]);
+  }, [status, search.redirect, router.history])
   return status === "loggedIn" ? (
     <div>
       Logged in as <strong>{auth.username}</strong>
       <div className="h-2" />
       <button
         onClick={() => {
-          auth.logout();
-          router.invalidate();
+          auth.logout()
+          router.invalidate()
         }}
         className="text-sm bg-blue-500 text-white border inline-block py-1 px-2 rounded"
       >
@@ -96,5 +96,5 @@ function LoginForm() {
         </CardFooter>
       </Card>
     </div>
-  );
+  )
 }

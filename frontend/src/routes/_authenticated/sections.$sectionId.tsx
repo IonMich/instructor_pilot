@@ -1,7 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { sectionQueryOptions, studentsOfSectionQueryOptions } from '@/utils/queryOptions'
-import { StudentDeck } from '@/routes/-components/sectionDetailLists'
-import { Course, Section } from '@/utils/fetchData';
+import { createFileRoute } from "@tanstack/react-router"
+import {
+  sectionQueryOptions,
+  studentsOfSectionQueryOptions,
+} from "@/utils/queryOptions"
+import { StudentDeck } from "@/routes/-components/sectionDetailLists"
+import { Course, Section } from "@/utils/fetchData"
 
 function getBreadcrumbItems(course: Course, section: Section) {
   return [
@@ -14,13 +17,13 @@ function getBreadcrumbItems(course: Course, section: Section) {
       path: `/courses/${course.id}`,
     },
     {
-      title: `${section.name}` ?? `Section ${section.id}` ?? 'Section',
+      title: `${section.name}` ?? `Section ${section.id}` ?? "Section",
       path: `/sections/${section.id}`,
     },
-  ];
+  ]
 }
 
-export const Route = createFileRoute('/_authenticated/sections/$sectionId')({
+export const Route = createFileRoute("/_authenticated/sections/$sectionId")({
   parseParams: (params) => ({
     sectionId: parseInt(params.sectionId),
   }),
@@ -35,7 +38,10 @@ export const Route = createFileRoute('/_authenticated/sections/$sectionId')({
     const studentsPromise = opts.context.queryClient.ensureQueryData(
       studentsOfSectionQueryOptions(sectionId)
     )
-    const [section, students] = await Promise.all([sectionPromise, studentsPromise])
+    const [section, students] = await Promise.all([
+      sectionPromise,
+      studentsPromise,
+    ])
     const course = section.course
     return {
       section: section,
@@ -45,5 +51,5 @@ export const Route = createFileRoute('/_authenticated/sections/$sectionId')({
       breadcrumbItems: getBreadcrumbItems(course, section),
     }
   },
-  component: StudentDeck
+  component: StudentDeck,
 })

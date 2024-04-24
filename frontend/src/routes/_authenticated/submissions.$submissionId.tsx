@@ -1,21 +1,21 @@
-import * as React from "react";
-import { Link, createFileRoute, useLoaderData } from "@tanstack/react-router";
-import { useRouter } from "@tanstack/react-router";
-import { useTheme } from "@/components/theme-provider";
-import { Submission, Assignment, Student, Course } from "@/utils/fetchData";
+import * as React from "react"
+import { Link, createFileRoute, useLoaderData } from "@tanstack/react-router"
+import { useRouter } from "@tanstack/react-router"
+import { useTheme } from "@/components/theme-provider"
+import { Submission, Assignment, Student, Course } from "@/utils/fetchData"
 import {
   submissionQueryOptions,
   assignmentQueryOptions,
   useUpdateSubmissionMutation,
   studentsInCourseQueryOptions,
   submissionsQueryOptions,
-} from "@/utils/queryOptions";
+} from "@/utils/queryOptions"
 
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 import {
   Form,
   FormControl,
@@ -23,9 +23,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { useToast } from "@/components/ui/use-toast"
 import {
   LuMessageSquare,
   LuCornerDownLeft,
@@ -33,18 +33,18 @@ import {
   LuPaperclip,
   LuChevronLeft,
   LuChevronRight,
-} from "react-icons/lu";
-import { Textarea } from "@/components/ui/textarea";
+} from "react-icons/lu"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
+} from "@/components/ui/tooltip"
+import { Separator } from "@/components/ui/separator"
 
-import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons"
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 import {
   Command,
   CommandEmpty,
@@ -52,15 +52,17 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@/components/ui/command"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { toast } from "@/components/ui/use-toast";
+} from "@/components/ui/popover"
+import { toast } from "@/components/ui/use-toast"
 
-export const Route = createFileRoute("/_authenticated/submissions/$submissionId")({
+export const Route = createFileRoute(
+  "/_authenticated/submissions/$submissionId"
+)({
   parseParams: (params) => ({
     submissionId: params.submissionId,
   }),
@@ -68,28 +70,28 @@ export const Route = createFileRoute("/_authenticated/submissions/$submissionId"
     submissionId: params.submissionId.toString(),
   }),
   loader: async (opts) => {
-    const submissionId = opts.params.submissionId;
+    const submissionId = opts.params.submissionId
     const submissionPromise = opts.context.queryClient.ensureQueryData(
       submissionQueryOptions(submissionId)
-    );
-    const submission = await submissionPromise;
-    const assignmentId = submission.assignment.id;
-    const courseId = submission.assignment.course as number;
+    )
+    const submission = await submissionPromise
+    const assignmentId = submission.assignment.id
+    const courseId = submission.assignment.course as number
     const assignmentPromise = opts.context.queryClient.ensureQueryData(
       assignmentQueryOptions(assignmentId)
-    );
+    )
     const submissionsPromise = opts.context.queryClient.ensureQueryData(
       submissionsQueryOptions(assignmentId)
-    );
+    )
     const studentsPromise = opts.context.queryClient.ensureQueryData(
       studentsInCourseQueryOptions(courseId)
-    );
+    )
     const [assignment, submissions, students] = await Promise.all([
       assignmentPromise,
       submissionsPromise,
       studentsPromise,
-    ]);
-    const course = assignment.course as Course;
+    ])
+    const course = assignment.course as Course
     return {
       submission,
       assignment,
@@ -97,7 +99,7 @@ export const Route = createFileRoute("/_authenticated/submissions/$submissionId"
       students,
       title: `Submission ${submission.id.split("-")[0]}` ?? "Submission",
       breadcrumbItems: getBreadcrumbItems(submission, assignment, course),
-    };
+    }
   },
   meta: ({ loaderData }) => [
     {
@@ -105,29 +107,33 @@ export const Route = createFileRoute("/_authenticated/submissions/$submissionId"
     },
   ],
   component: SubmissionDetail,
-});
+})
 
 function findPrevSubmission(submission: Submission, submissions: Submission[]) {
   const currentSubmissionIndex = submissions.findIndex(
     (s) => s.id === submission.id
-  );
+  )
   if (currentSubmissionIndex === 0) {
-    return null;
+    return null
   }
-  return submissions[currentSubmissionIndex - 1];
+  return submissions[currentSubmissionIndex - 1]
 }
 
 function findNextSubmission(submission: Submission, submissions: Submission[]) {
   const currentSubmissionIndex = submissions.findIndex(
     (s) => s.id === submission.id
-  );
+  )
   if (currentSubmissionIndex === submissions.length - 1) {
-    return null;
+    return null
   }
-  return submissions[currentSubmissionIndex + 1];
+  return submissions[currentSubmissionIndex + 1]
 }
 
-function getBreadcrumbItems(submission: Submission, assignment: Assignment, course: Course) {
+function getBreadcrumbItems(
+  submission: Submission,
+  assignment: Assignment,
+  course: Course
+) {
   return [
     {
       title: "Home",
@@ -142,96 +148,102 @@ function getBreadcrumbItems(submission: Submission, assignment: Assignment, cour
       path: `/assignments/${assignment.id}`,
     },
     {
-      title: submission.student? `${submission.student.first_name} ${submission.student.last_name}` : `Submission ${submission.id.split("-")[0]}`,
+      title: submission.student
+        ? `${submission.student.first_name} ${submission.student.last_name}`
+        : `Submission ${submission.id.split("-")[0]}`,
       path: `/submissions/${submission.id}`,
     },
-  ];
+  ]
 }
 
 function SubmissionDetail() {
-  const { theme } = useTheme();
-  const [allImgsLoaded, setAllImgsLoaded] = React.useState(false);
-  const data = useLoaderData({ from: '/_authenticated/submissions/$submissionId' });
-  const { submission, assignment, submissions, students } = data;
+  const { theme } = useTheme()
+  const [allImgsLoaded, setAllImgsLoaded] = React.useState(false)
+  const data = useLoaderData({
+    from: "/_authenticated/submissions/$submissionId",
+  })
+  const { submission, assignment, submissions, students } = data
 
   // navigation
-  const prevSubmission = findPrevSubmission(submission, submissions);
-  const nextSubmission = findNextSubmission(submission, submissions);
-  const prevSubmissionUrl = prevSubmission ? `/submissions/${prevSubmission.id}` : undefined;
-  const nextSubmissionUrl = nextSubmission ? `/submissions/${nextSubmission.id}` : undefined;
+  const prevSubmission = findPrevSubmission(submission, submissions)
+  const nextSubmission = findNextSubmission(submission, submissions)
+  const prevSubmissionUrl = prevSubmission
+    ? `/submissions/${prevSubmission.id}`
+    : undefined
+  const nextSubmissionUrl = nextSubmission
+    ? `/submissions/${nextSubmission.id}`
+    : undefined
 
   // scrolling
-  const imgDivScrollHeights = [
-    2.2,
-    3.2,
-  ]
-  const [initialQuestionFocus, setInitialQuestionFocus] = React.useState(0);
-  const scrollHeightImgDiv = imgDivScrollHeights[initialQuestionFocus];
-  const [pageValue, setPageValue] = React.useState(1);
-  const [zoomImgPercent, setZoomImgPercent] = React.useState(6);
-  
-  const images = submission?.papersubmission_images ?? [];
-  const imagesLength = images.length;
-  const loadedImages = React.useRef(0);
+  const imgDivScrollHeights = [2.2, 3.2]
+  const [initialQuestionFocus, setInitialQuestionFocus] = React.useState(0)
+  const scrollHeightImgDiv = imgDivScrollHeights[initialQuestionFocus]
+  const [pageValue, setPageValue] = React.useState(1)
+  const [zoomImgPercent, setZoomImgPercent] = React.useState(6)
+
+  const images = submission?.papersubmission_images ?? []
+  const imagesLength = images.length
+  const loadedImages = React.useRef(0)
   const handleImageLoad = () => {
-    loadedImages.current += 1;
+    loadedImages.current += 1
     if (loadedImages.current === imagesLength) {
-      setAllImgsLoaded(true);
+      setAllImgsLoaded(true)
     }
-  };
-  React.useEffect(() => {
-    loadedImages.current = 0;
-    setAllImgsLoaded(false);
   }
-  , [submission]);
+  React.useEffect(() => {
+    loadedImages.current = 0
+    setAllImgsLoaded(false)
+  }, [submission])
 
   // on all images loaded, scroll to the middle of the image div
   React.useEffect(() => {
     if (allImgsLoaded) {
-      const imgCard = document.querySelector("div > img")?.parentElement;
-      const numImages = imgCard?.childElementCount;
+      const imgCard = document.querySelector("div > img")?.parentElement
+      const numImages = imgCard?.childElementCount
       if (imgCard && numImages) {
-        imgCard.scrollTop = imgCard.scrollHeight / numImages * scrollHeightImgDiv;
+        imgCard.scrollTop =
+          (imgCard.scrollHeight / numImages) * scrollHeightImgDiv
       }
     }
-  }
-  , [allImgsLoaded, scrollHeightImgDiv]);
+  }, [allImgsLoaded, scrollHeightImgDiv])
 
   return (
     <>
       <div className="container grid grid-cols-8 md:gap-4 gap-1 md:px-8 px-0 py-0">
         <Card className="md:h-[85vh] col-span-1 p-4 hidden lg:flex my-2 text-center flex-col gap-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => {
-              const newPageValue = pageValue % images.length + 1;
-              setPageValue(newPageValue);
-              const imgCard = document.querySelector("div > img")?.parentElement;
+              const newPageValue = (pageValue % images.length) + 1
+              setPageValue(newPageValue)
+              const imgCard = document.querySelector("div > img")?.parentElement
               if (imgCard) {
-                imgCard.scrollTop = imgCard.scrollHeight / images.length * (newPageValue-1);
+                imgCard.scrollTop =
+                  (imgCard.scrollHeight / images.length) * (newPageValue - 1)
               }
             }}
           >
             Page {pageValue} of {images.length}
           </Button>
-          <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => setInitialQuestionFocus(initialQuestionFocus === 0 ? 1 : 0)}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setInitialQuestionFocus(initialQuestionFocus === 0 ? 1 : 0)
+            }
           >
             Q {initialQuestionFocus + 1}
           </Button>
-          <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => {
-            setZoomImgPercent(zoomImgPercent === 3 ? 6 : zoomImgPercent - 1);
-          }}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setZoomImgPercent(zoomImgPercent === 3 ? 6 : zoomImgPercent - 1)
+            }}
           >
-            Zoom {(zoomImgPercent/6*100).toFixed(0)}%
+            Zoom {((zoomImgPercent / 6) * 100).toFixed(0)}%
           </Button>
-            
         </Card>
         <div className="lg:col-span-5 md:col-span-6 col-span-8 md:py-2 py-0">
           <Card className="h-[70vh] md:h-[85vh] overflow-y-scroll bg-gray-500">
@@ -247,34 +259,39 @@ function SubmissionDetail() {
                 className={cn(
                   theme === "dark" && "invert brightness-[0.9] contrast-[0.9]",
                   "mx-auto",
-                  zoomImgPercent === 5 ? "w-5/6" : zoomImgPercent === 4 ? "w-4/6" : zoomImgPercent === 3 ? "w-3/6" : "w-full"
+                  zoomImgPercent === 5
+                    ? "w-5/6"
+                    : zoomImgPercent === 4
+                      ? "w-4/6"
+                      : zoomImgPercent === 3
+                        ? "w-3/6"
+                        : "w-full"
                 )}
               />
             ))}
           </Card>
         </div>
         <div className="md:h-[85vh] col-span-8 md:col-span-2 my-2 order-first md:order-last flex md:flex-col flex-row gap-4">
-          
           {/* navigation */}
           {submission && assignment && (
             <Card className="p-4 flex flex-row gap-2 justify-center items-center">
-              <Link to={prevSubmissionUrl} disabled={!prevSubmission} tabIndex={-1}>
-              <Button 
-                variant="outline" 
-                size="sm"
+              <Link
+                to={prevSubmissionUrl}
                 disabled={!prevSubmission}
-                >
-                <LuChevronLeft className="h-4 w-4 inline" />
-              </Button>
+                tabIndex={-1}
+              >
+                <Button variant="outline" size="sm" disabled={!prevSubmission}>
+                  <LuChevronLeft className="h-4 w-4 inline" />
+                </Button>
               </Link>
-              <Link to={nextSubmissionUrl} disabled={!nextSubmission} tabIndex={-1}>
-              <Button 
-                variant="outline" 
-                size="sm"
+              <Link
+                to={nextSubmissionUrl}
                 disabled={!nextSubmission}
-                >
-                <LuChevronRight className="h-4 w-4 inline" />
-              </Button>
+                tabIndex={-1}
+              >
+                <Button variant="outline" size="sm" disabled={!nextSubmission}>
+                  <LuChevronRight className="h-4 w-4 inline" />
+                </Button>
               </Link>
             </Card>
           )}
@@ -282,22 +299,31 @@ function SubmissionDetail() {
             {/* grade form */}
             {submission && assignment && (
               <>
-                <GradeForm submission={submission} assignment={assignment} initialQuestionFocus={initialQuestionFocus} />
+                <GradeForm
+                  submission={submission}
+                  assignment={assignment}
+                  initialQuestionFocus={initialQuestionFocus}
+                />
               </>
             )}
             {/* comments */}
-            {submission && assignment && <CommentsChat submission={submission} />}
+            {submission && assignment && (
+              <CommentsChat submission={submission} />
+            )}
             {/* student form */}
             {submission && assignment && students && (
-            <Card className="p-4 md:order-first">
-              <StudentComboboxForm submission={submission} students={students} />
-            </Card>
+              <Card className="p-4 md:order-first">
+                <StudentComboboxForm
+                  submission={submission}
+                  students={students}
+                />
+              </Card>
             )}
           </div>
         </div>
       </div>
     </>
-  );
+  )
 }
 
 export function GradeForm({
@@ -305,21 +331,23 @@ export function GradeForm({
   assignment,
   initialQuestionFocus,
 }: {
-  submission: Submission;
-  assignment: Assignment;
-  initialQuestionFocus: number;
+  submission: Submission
+  assignment: Assignment
+  initialQuestionFocus: number
 }) {
-  const router = useRouter();
-  const updateSubmissionMutation = useUpdateSubmissionMutation(submission.id);
-  const stepSize = 0.5;
-  const createEmptySubQGradesArr = (assignmentMaxQuestionScores: string): ("")[] => {
-    return assignmentMaxQuestionScores.split(",").map(() => "");
+  const router = useRouter()
+  const updateSubmissionMutation = useUpdateSubmissionMutation(submission.id)
+  const stepSize = 0.5
+  const createEmptySubQGradesArr = (
+    assignmentMaxQuestionScores: string
+  ): ""[] => {
+    return assignmentMaxQuestionScores.split(",").map(() => "")
   }
 
   const createEmptySubQGrades = (assignmentMaxQuestionScores: string) => {
-    return createEmptySubQGradesArr(assignmentMaxQuestionScores).join(",");
+    return createEmptySubQGradesArr(assignmentMaxQuestionScores).join(",")
   }
-  
+
   const QGradesSubFetchSchema = z.preprocess(
     (gradesStr) =>
       gradesStr === null || gradesStr === ""
@@ -332,45 +360,46 @@ export function GradeForm({
           .split(",")
           .map((gradeStr) => (gradeStr === "" ? "" : parseFloat(gradeStr)))
       )
-  );
-  const subQGrades = QGradesSubFetchSchema.parse(submission.question_grades);
+  )
+  const subQGrades = QGradesSubFetchSchema.parse(submission.question_grades)
 
   const formSchema = z.object({
     question_grades: z
       .array(
         z.union([
-        z.literal(""),
-        z.coerce
-          .number()
-          .multipleOf(stepSize, {
-            message: `Question grade must be a multiple of the step size: ${stepSize}.
+          z.literal(""),
+          z.coerce
+            .number()
+            .multipleOf(stepSize, {
+              message: `Question grade must be a multiple of the step size: ${stepSize}.
             Enter a valid grade, or change the step size.`,
-          })
-          .nonnegative({ message: "Question grade cannot be negative" })
-          .safe()
+            })
+            .nonnegative({ message: "Question grade cannot be negative" })
+            .safe(),
         ])
       )
       .length(assignment.max_question_scores?.split(",").length)
       .superRefine((items, ctx) => {
         // check that all grades are less than or equal to the max question score
         for (let index = 0; index < items.length; index++) {
-          const item = items[index];
+          const item = items[index]
           if (item === "") {
-            continue;
+            continue
           }
-          const maxQuestionScore = parseFloat(assignment.max_question_scores.split(",")[index]);
+          const maxQuestionScore = parseFloat(
+            assignment.max_question_scores.split(",")[index]
+          )
           if (item > maxQuestionScore) {
             ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Value cannot be greater than the max question score: ${maxQuestionScore}`,
-            path: [index],
-            });
+              code: z.ZodIssueCode.custom,
+              message: `Value cannot be greater than the max question score: ${maxQuestionScore}`,
+              path: [index],
+            })
           }
         }
-        return z.NEVER;
-      }
-    ),
-  });
+        return z.NEVER
+      }),
+  })
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -378,37 +407,38 @@ export function GradeForm({
       question_grades: createEmptySubQGradesArr(assignment.max_question_scores),
     },
     values: {
-      question_grades:
-        subQGrades,
+      question_grades: subQGrades,
     },
-  });
+  })
 
-  const { toast } = useToast();
+  const { toast } = useToast()
 
   function onSubmit(data: z.infer<typeof formSchema>) {
-    let question_grades = data.question_grades.join(",");
+    let question_grades = data.question_grades.join(",")
     if (question_grades === submission.question_grades) {
       toast({
         title: "No changes",
         description: "No changes were made to the submission.",
-      });
-      return;
+      })
+      return
     }
 
-    if (question_grades === createEmptySubQGrades(assignment.max_question_scores)) {
-      question_grades = "";
+    if (
+      question_grades === createEmptySubQGrades(assignment.max_question_scores)
+    ) {
+      question_grades = ""
     }
 
-    const patchData = { id: submission.id, question_grades: question_grades };
+    const patchData = { id: submission.id, question_grades: question_grades }
 
     updateSubmissionMutation.mutate(patchData, {
       onError: (error) => {
-        console.error(error);
+        console.error(error)
         toast({
           title: "Error updating submission",
           description: "An error occurred while updating the submission.",
           variant: "destructive",
-        });
+        })
       },
       onSuccess: () => {
         toast({
@@ -420,10 +450,10 @@ export function GradeForm({
               </code>
             </pre>
           ),
-        });
+        })
       },
-    });
-    router.invalidate();
+    })
+    router.invalidate()
   }
 
   return (
@@ -469,18 +499,20 @@ export function GradeForm({
                 )}
               />
             ))}
-            <div className="flex flex-row items-center justify-between">
-                <Button type="submit" size="sm" className="lg:px-12 md:px-4">
-                  Update
-                </Button>
-                <div className="flex flex-col items-center sm:px-4 px-2 whitespace-nowrap">
-                  <span className="text-sm">{submission.grade} / {assignment.max_score}</span>
-                </div>
+          <div className="flex flex-row items-center justify-between">
+            <Button type="submit" size="sm" className="lg:px-12 md:px-4">
+              Update
+            </Button>
+            <div className="flex flex-col items-center sm:px-4 px-2 whitespace-nowrap">
+              <span className="text-sm">
+                {submission.grade} / {assignment.max_score}
+              </span>
             </div>
+          </div>
         </form>
       </Form>
     </Card>
-  );
+  )
 }
 
 function CommentsChat({ submission }: { submission: Submission }) {
@@ -514,7 +546,7 @@ function CommentsChat({ submission }: { submission: Submission }) {
       <Separator orientation="horizontal" />
       <ChatForm />
     </Card>
-  );
+  )
 }
 
 function ChatForm() {
@@ -522,10 +554,10 @@ function ChatForm() {
     text: z.string({
       required_error: "Please enter a message.",
     }),
-  });
+  })
   const form = useForm<z.infer<typeof CommentFormSchema>>({
     resolver: zodResolver(CommentFormSchema),
-  });
+  })
 
   function onSubmit(data: z.infer<typeof CommentFormSchema>) {
     toast({
@@ -535,7 +567,7 @@ function ChatForm() {
           <code className="text-white">{JSON.stringify(data, null, 2)}</code>
         </pre>
       ),
-    });
+    })
   }
   return (
     <Form {...form}>
@@ -595,23 +627,26 @@ function ChatForm() {
         </div>
       </form>
     </Form>
-  );
+  )
 }
 
 interface StudentSectionLabelVal {
-  label: string;
-  value: string;
-  section_id: number;
-  section_name: string;
+  label: string
+  value: string
+  section_id: number
+  section_name: string
 }
 
-export function StudentComboboxForm({ submission, students }: {
-  submission: Submission;
-  students: Student[] 
+export function StudentComboboxForm({
+  submission,
+  students,
+}: {
+  submission: Submission
+  students: Student[]
 }) {
-  const router = useRouter();
-  const updateSubmissionMutation = useUpdateSubmissionMutation(submission.id);
-  const [open, setOpen] = React.useState(false);
+  const router = useRouter()
+  const updateSubmissionMutation = useUpdateSubmissionMutation(submission.id)
+  const [open, setOpen] = React.useState(false)
 
   const studentsSectionsLabelVals: StudentSectionLabelVal[] = students.map(
     (student) => ({
@@ -620,25 +655,25 @@ export function StudentComboboxForm({ submission, students }: {
       section_id: student.sections[0].id,
       section_name: student.sections[0].name,
     })
-  );
+  )
 
   // group students by section
   const studentsGroupedBySection = studentsSectionsLabelVals.reduce(
     (acc, student) => {
       if (!acc[student.section_id]) {
-        acc[student.section_id] = [];
+        acc[student.section_id] = []
       }
-      acc[student.section_id].push(student);
-      return acc;
+      acc[student.section_id].push(student)
+      return acc
     },
     {} as Record<string, StudentSectionLabelVal[]>
-  );
+  )
 
   const studentFormSchema = z.object({
     student: z.string({
       required_error: "Please select a Student.",
     }),
-  });
+  })
 
   const studentForm = useForm<z.infer<typeof studentFormSchema>>({
     resolver: zodResolver(studentFormSchema),
@@ -648,30 +683,30 @@ export function StudentComboboxForm({ submission, students }: {
     values: {
       student: submission.student?.id.toString() ?? "",
     },
-  });
+  })
 
   function onSubmit(data: z.infer<typeof studentFormSchema>) {
-    const student_id = parseInt(data.student);
+    const student_id = parseInt(data.student)
     if (student_id === submission.student?.id) {
       toast({
         title: "No changes",
         description: "No changes were made to the student.",
-      });
-      return;
+      })
+      return
     }
 
-    const patchData = { id: submission.id, student: { id: student_id } };
+    const patchData = { id: submission.id, student: { id: student_id } }
 
-    console.log(patchData);
+    console.log(patchData)
 
     updateSubmissionMutation.mutate(patchData, {
       onError: (error) => {
-        console.error(error);
+        console.error(error)
         toast({
           title: "Error updating submission",
           description: "An error occurred while updating the submission.",
           variant: "destructive",
-        });
+        })
       },
       onSuccess: () => {
         toast({
@@ -683,16 +718,16 @@ export function StudentComboboxForm({ submission, students }: {
               </code>
             </pre>
           ),
-        });
+        })
       },
-    });
-    router.invalidate();
+    })
+    router.invalidate()
   }
 
   // useEffect is needed to update the form value when the submission.student.id changes
   React.useEffect(() => {
-    studentForm.reset({ student: submission.student?.id.toString() ?? "" });
-  }, [submission, studentForm]);
+    studentForm.reset({ student: submission.student?.id.toString() ?? "" })
+  }, [submission, studentForm])
 
   return (
     <Form {...studentForm}>
@@ -748,9 +783,9 @@ export function StudentComboboxForm({ submission, students }: {
                                 value={student.label}
                                 key={student.value}
                                 onSelect={() => {
-                                  studentForm.setValue("student", student.value);
-                                  studentForm.handleSubmit(onSubmit)();
-                                  setOpen(false);
+                                  studentForm.setValue("student", student.value)
+                                  studentForm.handleSubmit(onSubmit)()
+                                  setOpen(false)
                                 }}
                               >
                                 {student.label}
@@ -777,5 +812,5 @@ export function StudentComboboxForm({ submission, students }: {
         />
       </form>
     </Form>
-  );
+  )
 }

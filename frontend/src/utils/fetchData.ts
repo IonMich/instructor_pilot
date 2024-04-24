@@ -1,16 +1,16 @@
-import axios from 'axios'
-import { loaderFn } from './utils'
-import { auth } from './auth'
+import axios from "axios"
+import { loaderFn } from "./utils"
+import { auth } from "./auth"
 export interface Section {
-    id: number
-    url: string
-    name: string
-    teaching_assistant: string
-    meetings: string
-    course: Course
-    class_number: string
-    canvas_id: string
-    students_count: number
+  id: number
+  url: string
+  name: string
+  teaching_assistant: string
+  meetings: string
+  course: Course
+  class_number: string
+  canvas_id: string
+  students_count: number
 }
 
 export interface Student {
@@ -27,27 +27,27 @@ export interface Student {
 }
 
 export interface Course {
-    id: number
-    url: string
-    name: string
-    course_code: string
-    term: string
-    canvas_id: string
-    sections: Section[]
+  id: number
+  url: string
+  name: string
+  course_code: string
+  term: string
+  canvas_id: string
+  sections: Section[]
 }
 
 export interface Assignment {
-    id: number
-    url: string
-    name: string
-    max_score: number
-    position: number
-    submission_count: number
-    course: Course | number
-    max_question_scores: string
-    get_average_grade: number
-    get_grading_progress: number
-    assignment_group_object: AssignmentGroup
+  id: number
+  url: string
+  name: string
+  max_score: number
+  position: number
+  submission_count: number
+  course: Course | number
+  max_question_scores: string
+  get_average_grade: number
+  get_grading_progress: number
+  assignment_group_object: AssignmentGroup
 }
 
 export interface PaperSubmissionImage {
@@ -57,20 +57,20 @@ export interface PaperSubmissionImage {
 }
 
 export interface Submission {
-    id: string
-    url: string
-    student?: Student
-    grade: number
-    version?: {
-        id: number
-        name: string
-    }
-    canvas_id: string
-    canvas_url: string
-    assignment: Assignment
-    question_grades: string
-    papersubmission_images: PaperSubmissionImage[]
-    submission_comments: SubmissionComment[]
+  id: string
+  url: string
+  student?: Student
+  grade: number
+  version?: {
+    id: number
+    name: string
+  }
+  canvas_id: string
+  canvas_url: string
+  assignment: Assignment
+  question_grades: string
+  papersubmission_images: PaperSubmissionImage[]
+  submission_comments: SubmissionComment[]
 }
 
 export interface SubmissionComment {
@@ -92,16 +92,16 @@ export interface User {
 }
 
 export interface AssignmentGroup {
-    id: string
-    name: string
-    position: number
-    group_weight: number
+  id: string
+  name: string
+  position: number
+  group_weight: number
 }
 
 const students: Record<number, Student[]> = {}!
 const studentsPromise: Record<number, Promise<void>> = {}
 
-const baseAPIUrl = 'http://127.0.0.1:8000/api/'
+const baseAPIUrl = "http://127.0.0.1:8000/api/"
 
 const sectionsOfCourseUrlMapper = (courseId: number) => {
   return `${baseAPIUrl}courses/${courseId}/sections/`
@@ -119,7 +119,7 @@ const assignmentUrlMapper = (assignmentId: number) => {
   return `${baseAPIUrl}assignments/${assignmentId}/`
 }
 
-const studentsInSectionUrlMapper = (sectionId: number) => {  
+const studentsInSectionUrlMapper = (sectionId: number) => {
   return `${baseAPIUrl}sections/${sectionId}/students/`
 }
 
@@ -136,23 +136,23 @@ const submissionUrlMapper = (submissionId: string) => {
 }
 
 export async function fetchCourses() {
-  console.log("Fetching courses");
+  console.log("Fetching courses")
   const courses = loaderFn(() =>
     Promise.resolve().then(async () => {
       const items = await axios
         .get<Course[]>(`${baseAPIUrl}courses/`)
         .then((response) => response.data)
         .catch((error) => {
-          throw error;
-        });
-      return items;
+          throw error
+        })
+      return items
     })
-  );
-  return courses;
+  )
+  return courses
 }
 
 export async function fetchSectionsOfCourse(courseId: number) {
-  console.log("Fetching sections of course", courseId);
+  console.log("Fetching sections of course", courseId)
   const sections = loaderFn(() =>
     Promise.resolve().then(async () => {
       const items = await axios
@@ -160,18 +160,18 @@ export async function fetchSectionsOfCourse(courseId: number) {
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
-            throw new Error(`Course ${courseId} not found`);
+            throw new Error(`Course ${courseId} not found`)
           }
-          throw error;
-        });
-      return items;
+          throw error
+        })
+      return items
     })
-  );
-  return sections;
+  )
+  return sections
 }
 
 export async function fetchSectionById(sectionId: number) {
-  console.log("Fetching sections by Id", sectionId);
+  console.log("Fetching sections by Id", sectionId)
   const section = loaderFn(() =>
     Promise.resolve().then(async () => {
       const item = await axios
@@ -179,18 +179,18 @@ export async function fetchSectionById(sectionId: number) {
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
-            throw new Error(`Section ${sectionId} not found`);
+            throw new Error(`Section ${sectionId} not found`)
           }
-          throw error;
-        });
-      return item;
+          throw error
+        })
+      return item
     })
-  );
-  return section;
+  )
+  return section
 }
 
 export async function fetchAssignmentsOfCourse(courseId: number) {
-  console.log("Fetching assignments of course", courseId);
+  console.log("Fetching assignments of course", courseId)
   const assignments = loaderFn(() =>
     Promise.resolve().then(async () => {
       const result = await axios
@@ -198,18 +198,18 @@ export async function fetchAssignmentsOfCourse(courseId: number) {
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
-            throw new Error(`Course ${courseId} not found`);
+            throw new Error(`Course ${courseId} not found`)
           }
-          throw error;
-        });
-      return result;
+          throw error
+        })
+      return result
     })
-  );
-  return assignments;
+  )
+  return assignments
 }
 
 export async function fetchAssignmentById(assignmentId: number) {
-  console.log("Fetching assignment by Id", assignmentId);
+  console.log("Fetching assignment by Id", assignmentId)
   const assignment = loaderFn(() =>
     Promise.resolve().then(async () => {
       const result = await axios
@@ -217,14 +217,14 @@ export async function fetchAssignmentById(assignmentId: number) {
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
-            throw new Error(`Assignment ${assignmentId} not found`);
+            throw new Error(`Assignment ${assignmentId} not found`)
           }
-          throw error;
-        });
-      return result;
+          throw error
+        })
+      return result
     })
-  );
-  return assignment;
+  )
+  return assignment
 }
 
 export const ensureStudents = async (sectionId: number) => {
@@ -238,12 +238,13 @@ export const ensureStudents = async (sectionId: number) => {
 }
 
 export async function fetchStudents(sectionId: number) {
-  return await loaderFn(() => ensureStudents(sectionId).then(() => students[sectionId] ?? []
-  ))
+  return await loaderFn(() =>
+    ensureStudents(sectionId).then(() => students[sectionId] ?? [])
+  )
 }
 
 export async function fetchStudentsOfCourse(courseId: number) {
-  console.log("Fetching students of course", courseId);
+  console.log("Fetching students of course", courseId)
   const studs = loaderFn(() =>
     Promise.resolve().then(async () => {
       const fetch_result = await axios
@@ -251,29 +252,31 @@ export async function fetchStudentsOfCourse(courseId: number) {
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
-            throw new Error(`Course ${courseId} not found`);
+            throw new Error(`Course ${courseId} not found`)
           }
-          throw error;
-        });
-      return fetch_result;
+          throw error
+        })
+      return fetch_result
     })
-  );
-  return studs;
+  )
+  return studs
 }
 
 export async function fetchStudentById(id: number) {
-  const sectionId = 210;
-  return loaderFn(() => ensureStudents(sectionId).then(() => {
-    const student = students[sectionId].find((student) => student.id === id)
-    if (!student) {
-      throw new Error(`Student ${id} not found`)
-    }
-    return student
-  }))
+  const sectionId = 210
+  return loaderFn(() =>
+    ensureStudents(sectionId).then(() => {
+      const student = students[sectionId].find((student) => student.id === id)
+      if (!student) {
+        throw new Error(`Student ${id} not found`)
+      }
+      return student
+    })
+  )
 }
 
 export async function fetchSubmissionsOfAssignment(assignmentId: number) {
-  console.log("Fetching submissions of assignment", assignmentId);
+  console.log("Fetching submissions of assignment", assignmentId)
   const submissions = loaderFn(() =>
     Promise.resolve().then(async () => {
       const subs = await axios
@@ -281,18 +284,18 @@ export async function fetchSubmissionsOfAssignment(assignmentId: number) {
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
-            throw new Error(`Assignment ${assignmentId} not found`);
+            throw new Error(`Assignment ${assignmentId} not found`)
           }
-          throw error;
-        });
-      return subs;
+          throw error
+        })
+      return subs
     })
-  );
-  return submissions;
+  )
+  return submissions
 }
 
 export async function fetchSubmissionById(submissionId: string) {
-  console.log("Fetching submissions by Id", submissionId);
+  console.log("Fetching submissions by Id", submissionId)
   const submission = loaderFn(() =>
     Promise.resolve().then(async () => {
       const sub = await axios
@@ -300,17 +303,17 @@ export async function fetchSubmissionById(submissionId: string) {
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
-            throw new Error(`Submission ${submissionId} not found`);
+            throw new Error(`Submission ${submissionId} not found`)
           }
-          throw error;
-        });
-      return sub;
+          throw error
+        })
+      return sub
     })
-  );
-  return submission;
+  )
+  return submission
 }
 
-export async function patchSubmission ({
+export async function patchSubmission({
   id,
   ...updatedSubmissionFields
 }: {
@@ -343,6 +346,9 @@ export async function deleteSubmission(submissionId: string) {
           Authorization: `Bearer ${token}`,
         },
       })
-      .then((response) => response.data)
+      .then((response) => {
+        console.log("response: ", response)
+        return response.data
+      })
   )
 }

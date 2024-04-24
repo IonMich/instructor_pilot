@@ -1,6 +1,6 @@
 import { ColumnDef } from "@tanstack/react-table"
-import { DataTableColumnHeader } from "@/components/ui/table-fancy-header";
-import { Button } from "@/components/ui/button";
+import { DataTableColumnHeader } from "@/components/ui/table-fancy-header"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -17,18 +17,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"
 
-import { Submission } from "@/utils/fetchData";
-import { Link, useRouter } from "@tanstack/react-router";
-import { LuArrowUpRight, LuMoreHorizontal } from "react-icons/lu";
+import { Submission } from "@/utils/fetchData"
+import { Link, useRouter } from "@tanstack/react-router"
+import { LuArrowUpRight, LuMoreHorizontal } from "react-icons/lu"
 
-import { 
+import {
   useDeleteSubmissionMutation,
   useIdentifySubmissionMutation,
-} from "@/utils/queryOptions";
-import * as React from "react";
-import { queryClient } from "@/app";
+} from "@/utils/queryOptions"
+import * as React from "react"
+import { queryClient } from "@/app"
 
 enum Dialogs {
   dialog1 = "dialog1",
@@ -38,7 +38,7 @@ enum Dialogs {
 export const columns: ColumnDef<Submission>[] = [
   {
     id: "index",
-    accessorFn: ((_, index) => index + 1),
+    accessorFn: (_, index) => index + 1,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="#" className="pl-2" />
     ),
@@ -49,7 +49,10 @@ export const columns: ColumnDef<Submission>[] = [
   },
   {
     id: "student",
-    accessorFn: (submission) => submission.student? submission.student.last_name + ", " + submission.student.first_name : "",
+    accessorFn: (submission) =>
+      submission.student
+        ? submission.student.last_name + ", " + submission.student.first_name
+        : "",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Student" />
     ),
@@ -84,16 +87,17 @@ export const columns: ColumnDef<Submission>[] = [
     id: "actions",
     cell: ({ row }) => {
       const submission = row.original
-      return (
-        <SubmissionDropdownMenu submission={submission} />
-      )
+      return <SubmissionDropdownMenu submission={submission} />
     },
   },
   {
     id: "view",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <Link to="/submissions/$submissionId" params={{ submissionId: row.original.id }}>
+        <Link
+          to="/submissions/$submissionId"
+          params={{ submissionId: row.original.id }}
+        >
           <LuArrowUpRight />
         </Link>
       </div>
@@ -101,7 +105,7 @@ export const columns: ColumnDef<Submission>[] = [
   },
 ]
 
-function SubmissionDropdownMenu({submission}: {submission: Submission}) {
+function SubmissionDropdownMenu({ submission }: { submission: Submission }) {
   const [dialog, setDialog] = React.useState<Dialogs | null>(null)
   const onOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -110,64 +114,63 @@ function SubmissionDropdownMenu({submission}: {submission: Submission}) {
   }
   return (
     <Dialog open={dialog !== null} onOpenChange={onOpenChange}>
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0">
-          <span className="sr-only">Open menu</span>
-          <LuMoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DialogTrigger
-          asChild
-          onClick={() => {
-            setDialog(Dialogs.dialog1)
-          }}
-        >
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">Open menu</span>
+            <LuMoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DialogTrigger
+            asChild
+            onClick={() => {
+              setDialog(Dialogs.dialog1)
+            }}
+          >
+            <DropdownMenuItem>Delete</DropdownMenuItem>
+          </DialogTrigger>
+          <DropdownMenuSeparator />
+          <DialogTrigger
+            asChild
+            onClick={() => {
+              setDialog(Dialogs.dialog2)
+            }}
+          >
+            <DropdownMenuItem>Identify</DropdownMenuItem>
+          </DialogTrigger>
+          <DropdownMenuItem>Version</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>Export PDF</DropdownMenuItem>
+          <DropdownMenuItem>Export Images</DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem>
-            Delete
+            <p>
+              Sync &nbsp;<code>canvas_id</code>
+            </p>
           </DropdownMenuItem>
-        </DialogTrigger>
-        <DropdownMenuSeparator />
-        <DialogTrigger
-          asChild
-          onClick={() => {
-            setDialog(Dialogs.dialog2)
-          }}
-        >
-          <DropdownMenuItem>
-            Identify
-          </DropdownMenuItem>
-        </DialogTrigger>
-        <DropdownMenuItem>Version</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>Export PDF</DropdownMenuItem>
-        <DropdownMenuItem>Export Images</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <p>Sync &nbsp;<code>canvas_id</code></p>
-        </DropdownMenuItem>
-        <CanvasViewDropdownMenuItem url={submission.canvas_url} />
-      </DropdownMenuContent>
-    </DropdownMenu>
-    {dialog === Dialogs.dialog1
-        ? <DeleteDialogContent submission={submission} setDialog={setDialog} />
-        : <IdentifyDialogContent submission={submission} />
-    }
-  </Dialog>
+          <CanvasViewDropdownMenuItem url={submission.canvas_url} />
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {dialog === Dialogs.dialog1 ? (
+        <DeleteDialogContent submission={submission} setDialog={setDialog} />
+      ) : (
+        <IdentifyDialogContent submission={submission} />
+      )}
+    </Dialog>
   )
 }
-      
+
 function DeleteDialogContent({
   submission,
   setDialog,
 }: {
-  submission: Submission,
+  submission: Submission
   setDialog: React.Dispatch<React.SetStateAction<Dialogs | null>>
 }) {
   const router = useRouter()
-  const deleteSubmissionMutation = useDeleteSubmissionMutation();
+  const deleteSubmissionMutation = useDeleteSubmissionMutation()
   return (
     <DialogContent className="sm:max-w-[425px]">
       <DialogHeader>
@@ -175,18 +178,20 @@ function DeleteDialogContent({
       </DialogHeader>
       <div className="grid gap-4 py-4">
         <DialogDescription>
-          Are you sure you want to delete the submission with ID {submission.id}?
+          Are you sure you want to delete the submission with ID {submission.id}
+          ?
         </DialogDescription>
       </div>
       <DialogFooter>
-        <Button onClick={async(e) => {
-          e.preventDefault();
-          deleteSubmissionMutation.mutate(submission.id);
-          setDialog(null);
-          router.invalidate();
-          queryClient.invalidateQueries();
-        }
-        }>
+        <Button
+          onClick={async (e) => {
+            e.preventDefault()
+            deleteSubmissionMutation.mutate(submission.id)
+            setDialog(null)
+            router.invalidate()
+            queryClient.invalidateQueries()
+          }}
+        >
           Delete
         </Button>
       </DialogFooter>
@@ -194,13 +199,9 @@ function DeleteDialogContent({
   )
 }
 
-function IdentifyDialogContent({
-  submission,
-}: {
-  submission: Submission
-}) {
+function IdentifyDialogContent({ submission }: { submission: Submission }) {
   const router = useRouter()
-  const identifySubmissionMutation = useIdentifySubmissionMutation();
+  const identifySubmissionMutation = useIdentifySubmissionMutation()
   return (
     <DialogContent className="sm:max-w-[425px]">
       <DialogHeader>
@@ -208,16 +209,18 @@ function IdentifyDialogContent({
       </DialogHeader>
       <div className="grid gap-4 py-4">
         <DialogDescription>
-          Are you sure you want to identify the submission with ID {submission.id}?
+          Are you sure you want to identify the submission with ID{" "}
+          {submission.id}?
         </DialogDescription>
       </div>
       <DialogFooter>
-        <Button onClick={() => {
-          identifySubmissionMutation.mutate(submission.id);
-          router.invalidate();
-          queryClient.invalidateQueries();
-        }
-        }>
+        <Button
+          onClick={() => {
+            identifySubmissionMutation.mutate(submission.id)
+            router.invalidate()
+            queryClient.invalidateQueries()
+          }}
+        >
           Identify
         </Button>
       </DialogFooter>
@@ -225,12 +228,14 @@ function IdentifyDialogContent({
   )
 }
 
-function CanvasViewDropdownMenuItem({url}: {url: string}) {
+function CanvasViewDropdownMenuItem({ url }: { url: string }) {
   return (
-    <DropdownMenuItem onClick={() => {
-      const url_no_params = url.split("?")[0]
-      return window.open(url_no_params, "_blank")
-    }}>
+    <DropdownMenuItem
+      onClick={() => {
+        const url_no_params = url.split("?")[0]
+        return window.open(url_no_params, "_blank")
+      }}
+    >
       View on Canvas
     </DropdownMenuItem>
   )
