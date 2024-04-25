@@ -28,7 +28,7 @@ from courses.views import CourseViewSet
 from sections.views import SectionViewSet, SectionInCourseViewSet
 from assignments.views import AssignmentInCourseViewSet, AssignmentViewSet
 from students.views import StudentInSectionViewSet, StudentInCourseViewSet
-from submissions.views import PaperSubmissionViewSet, PaperSubmissionInAssignmentViewSet
+from submissions.views import PaperSubmissionViewSet, PaperSubmissionInAssignmentViewSet, PaperSubmissionOfStudentInCourseViewSet
 
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
@@ -41,6 +41,8 @@ course_router = routers.NestedDefaultRouter(router, r'courses', lookup='course')
 course_router.register(r'sections', SectionInCourseViewSet, basename='course-section')
 course_router.register(r'assignments', AssignmentInCourseViewSet, basename='course-assignment')
 course_router.register(r'students', StudentInCourseViewSet, basename='course-student')
+student_in_course_router = routers.NestedDefaultRouter(course_router, r'students', lookup='student')
+student_in_course_router.register(r'submissions', PaperSubmissionOfStudentInCourseViewSet, basename='student-course-submission')
 section_router = routers.NestedDefaultRouter(router, r'sections', lookup='section')
 section_router.register(r'students', StudentInSectionViewSet, basename='section-student')
 assignment_router = routers.NestedDefaultRouter(router, r'assignments', lookup='assignment')
@@ -55,6 +57,7 @@ urlpatterns = [
     path('api/', include(course_router.urls)),
     path('api/', include(section_router.urls)),
     path('api/', include(assignment_router.urls)),
+    path('api/', include(student_in_course_router.urls)),
     path('accounts/', include('django.contrib.auth.urls')),
     path('', include('students.urls', namespace='students')),
     path('', include('profiles.urls', namespace='profiles')),

@@ -12,6 +12,7 @@ import {
   fetchStudentsOfCourse,
   fetchStudentOfCourseById,
   fetchSubmissionsOfAssignment,
+  fetchSubmissionsOfStudentInCourse,
   fetchSubmissionById,
   patchSubmission,
   deleteSubmission,
@@ -92,6 +93,16 @@ export const submissionsQueryOptions = (assignmentId: number) => {
   return queryOptions({
     queryKey: subKeys.list(`assignmentId=${assignmentId}`),
     queryFn: () => fetchSubmissionsOfAssignment(assignmentId),
+  })
+}
+
+export const submissionsOfStudentInCourseQueryOptions = (
+  courseId: number,
+  studentId: number
+) => {
+  return queryOptions({
+    queryKey: subKeys.list(`courseId=${courseId}&studentId=${studentId}`),
+    queryFn: () => fetchSubmissionsOfStudentInCourse(courseId, studentId),
   })
 }
 

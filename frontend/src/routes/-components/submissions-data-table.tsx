@@ -30,11 +30,13 @@ import { cn } from "@/lib/utils"
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  searchby: string[]
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  searchby,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -142,10 +144,10 @@ export function DataTable<TData, TValue>({
           </Button>
         </div>
         <Input
-          placeholder="Filter Students..."
-          value={(table.getColumn("student")?.getFilterValue() as string) ?? ""}
+          placeholder={`Search by ${searchby.join(", ")}`}
+          value={(table.getColumn(searchby[0])?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("student")?.setFilterValue(event.target.value)
+            table.getColumn(searchby[0])?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />

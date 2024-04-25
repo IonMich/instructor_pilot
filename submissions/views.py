@@ -38,6 +38,20 @@ class PaperSubmissionInAssignmentViewSet(viewsets.ModelViewSet):
         assignment_id = self.kwargs['assignment_pk']
         return PaperSubmission.objects.filter(assignment=assignment_id)
     
+class PaperSubmissionOfStudentInCourseViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = PaperSubmission.objects.all()
+    serializer_class = PaperSubmissionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+    def get_queryset(self):
+        course_id = self.kwargs['course_pk']
+        student_id = self.kwargs['student_pk']
+        return PaperSubmission.objects.filter(assignment__course=course_id, student=student_id)
+    
 class PaperSubmissionViewSet(viewsets.ModelViewSet):
     """
     This ViewSet automatically provides `create`, `retrieve`,

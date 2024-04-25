@@ -300,6 +300,32 @@ export async function fetchSubmissionsOfAssignment(assignmentId: number) {
   return submissions
 }
 
+export async function fetchSubmissionsOfStudentInCourse(
+  courseId: number,
+  studentId: number
+) {
+  console.log("Fetching submissions of student in course", courseId, studentId)
+  const submissions = loaderFn(() =>
+    Promise.resolve().then(async () => {
+      const subs = await axios
+        .get<Submission[]>(
+          `${studentsInCourseUrlMapper(courseId)}${studentId}/submissions/`
+        )
+        .then((response) => response.data)
+        .catch((error) => {
+          if (error.response?.status === 404) {
+            throw new Error(
+              `Student ${studentId} not found in course ${courseId}`
+            )
+          }
+          throw error
+        })
+      return subs
+    })
+  )
+  return submissions
+}
+
 export async function fetchSubmissionById(submissionId: string) {
   console.log("Fetching submissions by Id", submissionId)
   const submission = loaderFn(() =>

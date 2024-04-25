@@ -3,10 +3,14 @@ import { Course, Section, Student } from "@/utils/fetchData"
 import {
   sectionsQueryOptions,
   studentInCourseQueryOptions,
+  submissionsOfStudentInCourseQueryOptions,
 } from "@/utils/queryOptions"
+
 import { seo } from "@/utils/utils"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { columns } from "@/routes/-components/columns"
+import { DataTable } from "@/routes/-components/submissions-data-table"
 
 function getBreadcrumbItems(
   course: Course,
@@ -96,6 +100,10 @@ function StudentDetail() {
   if (!section) {
     throw new Error("Student not found in course")
   }
+  const { data: submissions } = useSuspenseQuery(
+    submissionsOfStudentInCourseQueryOptions(courseId, studentId)
+  )
+  const columnsOfStudent = columns.filter((c) => c.id !== "student" && c.id !== "uni_id" && c.id !== "section")
   return (
     <div className="container mx-auto">
       <p className="text-lg font-medium my-5 text-center">
@@ -109,6 +117,7 @@ function StudentDetail() {
           {student.last_name[0]}
         </AvatarFallback>
       </Avatar>
+      <DataTable columns={columnsOfStudent} data={submissions} searchby={["assignment"]} />
     </div>
   )
 }

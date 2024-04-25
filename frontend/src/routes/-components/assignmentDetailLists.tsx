@@ -60,6 +60,9 @@ export function SubmissionsTable() {
       submissionsQueryOptions(assignmentId),
     ],
   })
+  const columnsOfAssignment = columns.filter(
+    (column) => column.id !== "assignment"
+  )
   return (
     <>
       <div className="container mx-auto py-2">
@@ -68,7 +71,7 @@ export function SubmissionsTable() {
           assignment={assignment}
           submissions={submissions}
         />
-        <DataTable columns={columns} data={submissions} />
+        <DataTable columns={columnsOfAssignment} data={submissions} searchby={["student", "uni_id"]} />
       </div>
     </>
   )

@@ -48,6 +48,13 @@ export const columns: ColumnDef<Submission>[] = [
     header: "Sub ID",
   },
   {
+    id: "assignment",
+    accessorFn: (submission) => submission.assignment.name,
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Assignment" />
+    ),
+  },
+  {
     id: "student",
     accessorFn: (submission) =>
       submission.student
@@ -67,6 +74,13 @@ export const columns: ColumnDef<Submission>[] = [
     accessorFn: (submission) => submission.version?.name ?? "",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Version" />
+    ),
+  },
+  {
+    id: "section",
+    accessorFn: (submission) => submission.student?.sections[0] ?? "",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Section" />
     ),
   },
   {
