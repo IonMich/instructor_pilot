@@ -61,6 +61,8 @@ import {
 import { toast } from "@/components/ui/use-toast"
 import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
 
+// import { subPdfRender } from "@/components/pdf-viewer"
+
 export const Route = createFileRoute(
   "/_authenticated/submissions/$submissionId"
 )({
@@ -218,6 +220,9 @@ function SubmissionDetail() {
     }
   }, [allImgsLoaded, scrollHeightImgDiv])
 
+  // ** PDF Rendering **
+  // subPdfRender({ url: submission.pdf })
+
   return (
     <>
       <div className="container grid grid-cols-8 md:gap-4 gap-1 md:px-8 px-0 py-0">
@@ -265,6 +270,8 @@ function SubmissionDetail() {
                 alt={`Page ${image.page}`}
                 onLoad={handleImageLoad}
                 hidden={!allImgsLoaded}
+                // ----PDF Rendering----
+                // hidden={true}
                 height="110"
                 width="80"
                 className={cn(
@@ -280,6 +287,8 @@ function SubmissionDetail() {
                 )}
               />
             ))}
+            {/* ----PDF Rendering---- */}
+            {/* <canvas key={submission.pdf} id="the-canvas" /> */}
           </Card>
         </div>
         <div className="md:h-[85vh] col-span-8 md:col-span-2 my-2 order-first md:order-last flex md:flex-col flex-row gap-4">

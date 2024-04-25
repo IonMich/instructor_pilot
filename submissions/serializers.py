@@ -22,7 +22,7 @@ class PaperSubmissionSerializer(serializers.ModelSerializer):
     submission_comments = SubmissionCommentSerializer(source='submissions_submissioncomment_related', many=True, read_only=True)
     class Meta:
         model = PaperSubmission
-        fields = ('id', 'student', 'canvas_id', 'canvas_url', 'question_grades', 'grade', 'version', 'assignment', 'papersubmission_images', 'submission_comments')
+        fields = ('id', 'student', 'canvas_id', 'canvas_url', 'question_grades', 'grade', 'version', 'assignment', 'pdf', 'papersubmission_images', 'submission_comments')
         depth = 1
 
 

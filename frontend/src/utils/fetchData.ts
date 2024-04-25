@@ -69,6 +69,7 @@ export interface Submission {
   canvas_url: string
   assignment: Assignment
   question_grades: string
+  pdf: string
   papersubmission_images: PaperSubmissionImage[]
   submission_comments: SubmissionComment[]
 }
