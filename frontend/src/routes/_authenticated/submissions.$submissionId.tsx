@@ -210,8 +210,10 @@ function SubmissionDetail() {
 
   React.useEffect(() => {
     const pdfUrl = submission.pdf
-    subPdfRender({ url: pdfUrl, zoom_percent: zoomImgPercent })
-    console.log("PDF Rendered")
+    subPdfRender({
+      url: pdfUrl,
+      zoom_percent: zoomImgPercent,
+    })
     setAllImgsLoaded(true)
   }, [submission.pdf, zoomImgPercent])
 

@@ -8,7 +8,7 @@ export const subPdfRender = ({
   zoom_percent = 100,
 }: {
   url: string
-  zoom_percent?: number
+  zoom_percent: number
 }) => {
   let currPage = 1 //Pages are 1-based not 0-based
   let numPages = 0
@@ -65,7 +65,11 @@ export const subPdfRender = ({
     canvas.style.width = `${zoom_percent}%`
 
     //Draw it on the canvas
-    page.render({ canvasContext: context, viewport: viewport })
+    const renderContext = {
+      canvasContext: context,
+      viewport: viewport,
+    }
+    page.render(renderContext)
 
     //Move to next page
     currPage++
