@@ -3,7 +3,13 @@ import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/legacy/build/pdf.mjs"
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
-export const subPdfRender = ({ url }: { url: string }) => {
+export const subPdfRender = ({
+  url,
+  zoom_percent = 100,
+}: {
+  url: string
+  zoom_percent?: number
+}) => {
   let currPage = 1 //Pages are 1-based not 0-based
   let numPages = 0
   let thePDF = null as PDFDocumentProxy | null
@@ -18,12 +24,13 @@ export const subPdfRender = ({ url }: { url: string }) => {
     console.log("# Number of pages: " + numPages)
     thePDF = pdf
     pdf.getPage(1).then((page) => {
-      handlePages(page)
+      handlePages(page, zoom_percent)
     })
   })
-  function handlePages(page: PDFPageProxy) {
+  function handlePages(page: PDFPageProxy, zoom_percent: number) {
     const canvasesRendered = document.querySelectorAll("canvas")
     // if the-canvas-{currPage} already exists, remove it
+    // since we are re-rendering the page
     canvasesRendered.forEach((canvas) => {
       if (canvas.id === `the-canvas-${currPage}`) {
         canvas.remove()
@@ -49,7 +56,7 @@ export const subPdfRender = ({ url }: { url: string }) => {
     canvas.width = viewport.width
     canvas.height = viewport.height
 
-    canvas.style.width = "100%"
+    canvas.style.width = `${zoom_percent}%`
 
     //Draw it on the canvas
     page.render({ canvasContext: context, viewport: viewport })
@@ -57,7 +64,9 @@ export const subPdfRender = ({ url }: { url: string }) => {
     //Move to next page
     currPage++
     if (thePDF !== null && currPage <= numPages) {
-      thePDF.getPage(currPage).then(handlePages)
+      thePDF.getPage(currPage).then((page) => {
+        handlePages(page, zoom_percent)
+      })
     }
   }
 }

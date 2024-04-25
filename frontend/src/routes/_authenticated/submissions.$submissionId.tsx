@@ -192,7 +192,7 @@ function SubmissionDetail() {
   const [initialQuestionFocus, setInitialQuestionFocus] = React.useState(0)
   const scrollHeightImgDiv = imgDivScrollHeights[initialQuestionFocus]
   const [pageValue, setPageValue] = React.useState(1)
-  const [zoomImgPercent, setZoomImgPercent] = React.useState(6)
+  const [zoomImgPercent, setZoomImgPercent] = React.useState(100)
 
   const images = submission?.papersubmission_images ?? []
   // const imagesLength = images.length
@@ -210,10 +210,10 @@ function SubmissionDetail() {
 
   React.useEffect(() => {
     const pdfUrl = submission.pdf
-    subPdfRender({ url: pdfUrl })
+    subPdfRender({ url: pdfUrl, zoom_percent: zoomImgPercent })
     console.log("PDF Rendered")
     setAllImgsLoaded(true)
-  }, [submission.pdf])
+  }, [submission.pdf, zoomImgPercent])
 
   // on all images loaded, scroll to the middle of the image div
   React.useEffect(() => {
@@ -262,10 +262,11 @@ function SubmissionDetail() {
             variant="outline"
             size="sm"
             onClick={() => {
-              setZoomImgPercent(zoomImgPercent === 3 ? 6 : zoomImgPercent - 1)
+              const newZoom = zoomImgPercent === 50 ? 100 : zoomImgPercent - 10
+              setZoomImgPercent(newZoom)
             }}
           >
-            Zoom {((zoomImgPercent / 6) * 100).toFixed(0)}%
+            Zoom {zoomImgPercent.toFixed(0)}%
           </Button>
         </Card>
         <div className="lg:col-span-5 md:col-span-6 col-span-8 md:py-2 py-0">
