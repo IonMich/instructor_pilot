@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { useRouter } from "@tanstack/react-router"
-import { useTheme } from "@/components/theme-provider"
+// import { useTheme } from "@/components/theme-provider"
 import { Submission, Assignment, Course, Student } from "@/utils/fetchData"
 import {
   submissionQueryOptions,
@@ -61,7 +61,7 @@ import {
 import { toast } from "@/components/ui/use-toast"
 import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
 
-// import { subPdfRender } from "@/components/pdf-viewer"
+import { subPdfRender } from "@/components/pdf-viewer"
 
 export const Route = createFileRoute(
   "/_authenticated/submissions/$submissionId"
@@ -160,7 +160,7 @@ function getBreadcrumbItems(
 }
 
 function SubmissionDetail() {
-  const { theme } = useTheme()
+  // const { theme } = useTheme()
   const [allImgsLoaded, setAllImgsLoaded] = React.useState(false)
   const submissionId = Route.useParams().submissionId
   const { data: submission } = useSuspenseQuery(
@@ -195,33 +195,38 @@ function SubmissionDetail() {
   const [zoomImgPercent, setZoomImgPercent] = React.useState(6)
 
   const images = submission?.papersubmission_images ?? []
-  const imagesLength = images.length
+  // const imagesLength = images.length
   const loadedImages = React.useRef(0)
-  const handleImageLoad = () => {
-    loadedImages.current += 1
-    if (loadedImages.current === imagesLength) {
-      setAllImgsLoaded(true)
-    }
-  }
+  // const handleImageLoad = () => {
+  //   loadedImages.current += 1
+  //   if (loadedImages.current === imagesLength) {
+  //     setAllImgsLoaded(true)
+  //   }
+  // }
   React.useEffect(() => {
     loadedImages.current = 0
     setAllImgsLoaded(false)
   }, [submission.id])
 
+  React.useEffect(() => {
+    const pdfUrl = submission.pdf
+    subPdfRender({ url: pdfUrl })
+    console.log("PDF Rendered")
+    setAllImgsLoaded(true)
+  }, [submission.pdf])
+
   // on all images loaded, scroll to the middle of the image div
   React.useEffect(() => {
     if (allImgsLoaded) {
-      const imgCard = document.querySelector("div > img")?.parentElement
-      const numImages = imgCard?.childElementCount
+      const canvasContainer = document.querySelector("canvas")?.parentElement
+      const numImages = canvasContainer?.childElementCount
+      const imgCard = canvasContainer?.parentElement
       if (imgCard && numImages) {
         imgCard.scrollTop =
           (imgCard.scrollHeight / numImages) * scrollHeightImgDiv
       }
     }
   }, [allImgsLoaded, scrollHeightImgDiv])
-
-  // ** PDF Rendering **
-  // subPdfRender({ url: submission.pdf })
 
   return (
     <>
@@ -233,7 +238,9 @@ function SubmissionDetail() {
             onClick={() => {
               const newPageValue = (pageValue % images.length) + 1
               setPageValue(newPageValue)
-              const imgCard = document.querySelector("div > img")?.parentElement
+              const imgCard =
+                document.querySelector("div > canvas")?.parentElement
+                  ?.parentElement
               if (imgCard) {
                 imgCard.scrollTop =
                   (imgCard.scrollHeight / images.length) * (newPageValue - 1)
@@ -263,15 +270,15 @@ function SubmissionDetail() {
         </Card>
         <div className="lg:col-span-5 md:col-span-6 col-span-8 md:py-2 py-0">
           <Card className="h-[70vh] md:h-[85vh] overflow-y-scroll bg-gray-500">
-            {submission?.papersubmission_images.map((image) => (
+            {/* {submission?.papersubmission_images.map((image) => (
               <img
                 key={image.id}
                 src={image.image}
                 alt={`Page ${image.page}`}
                 onLoad={handleImageLoad}
-                hidden={!allImgsLoaded}
+                // hidden={!allImgsLoaded}
                 // ----PDF Rendering----
-                // hidden={true}
+                hidden={true}
                 height="110"
                 width="80"
                 className={cn(
@@ -286,9 +293,9 @@ function SubmissionDetail() {
                         : "w-full"
                 )}
               />
-            ))}
+            ))} */}
             {/* ----PDF Rendering---- */}
-            {/* <canvas key={submission.pdf} id="the-canvas" /> */}
+            <div key={submission.pdf} id="the-canvas-div" />
           </Card>
         </div>
         <div className="md:h-[85vh] col-span-8 md:col-span-2 my-2 order-first md:order-last flex md:flex-col flex-row gap-4">
