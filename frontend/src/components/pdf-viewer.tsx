@@ -32,7 +32,7 @@ export const subPdfRender = ({ url }: { url: string }) => {
     const canvas = document.createElement("canvas")
     canvas.id = `the-canvas-${currPage}`
     canvas.classList.add("mx-auto")
-    const viewport = page.getViewport({ scale: 1.1 })
+    const viewport = page.getViewport({ scale: 3.0 })
     canvasDiv.appendChild(canvas)
 
     if (canvas === null) {
@@ -48,6 +48,8 @@ export const subPdfRender = ({ url }: { url: string }) => {
 
     canvas.width = viewport.width
     canvas.height = viewport.height
+
+    canvas.style.width = "100%"
 
     //Draw it on the canvas
     page.render({ canvasContext: context, viewport: viewport })
