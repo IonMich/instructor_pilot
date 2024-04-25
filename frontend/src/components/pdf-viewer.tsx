@@ -31,16 +31,22 @@ export const subPdfRender = ({
     const canvasesRendered = document.querySelectorAll("canvas")
     // if the-canvas-{currPage} already exists, remove it
     // since we are re-rendering the page
+    let existingCanvasPage = null as HTMLCanvasElement | null
     canvasesRendered.forEach((canvas) => {
       if (canvas.id === `the-canvas-${currPage}`) {
-        canvas.remove()
+        existingCanvasPage = canvas
+        // canvas.remove()
       }
     })
     const canvas = document.createElement("canvas")
     canvas.id = `the-canvas-${currPage}`
     canvas.classList.add("mx-auto")
     const viewport = page.getViewport({ scale: 3.0 })
-    canvasDiv.appendChild(canvas)
+    if (existingCanvasPage !== null) {
+      canvasDiv.replaceChild(canvas, existingCanvasPage)
+    } else {
+      canvasDiv.appendChild(canvas)
+    }
 
     if (canvas === null) {
       console.error("Canvas not found")
