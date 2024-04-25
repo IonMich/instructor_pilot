@@ -44,6 +44,7 @@ export const columns: ColumnDef<Submission>[] = [
     ),
   },
   {
+    id: "sub_short_id",
     accessorFn: (submission) => submission.id.split("-")[0],
     header: "Sub ID",
   },
@@ -84,14 +85,17 @@ export const columns: ColumnDef<Submission>[] = [
     ),
   },
   {
+    id: "q1",
     accessorFn: (submission) => submission.question_grades?.split(",")[0],
     header: "Q1",
   },
   {
+    id: "q2",
     accessorFn: (submission) => submission.question_grades?.split(",")[1],
     header: "Q2",
   },
   {
+    id: "q3",
     accessorKey: "grade",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Grade" />
