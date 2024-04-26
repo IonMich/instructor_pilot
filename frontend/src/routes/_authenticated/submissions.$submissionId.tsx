@@ -60,8 +60,7 @@ import {
 } from "@/components/ui/popover"
 import { toast } from "@/components/ui/use-toast"
 import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
-
-import { subPdfRender } from "@/components/pdf-viewer"
+import { PdfViewer } from "@/components/pdf-viewer"
 
 export const Route = createFileRoute(
   "/_authenticated/submissions/$submissionId"
@@ -209,11 +208,10 @@ function SubmissionDetail() {
   }, [submission.id])
 
   React.useEffect(() => {
-    const pdfUrl = submission.pdf
-    subPdfRender({
-      url: pdfUrl,
-      zoom_percent: zoomImgPercent,
-    })
+    // subPdfRender({
+    //   url: submission.pdf,
+    //   zoom_percent: zoomImgPercent,
+    // })
     setAllImgsLoaded(true)
   }, [submission.pdf, zoomImgPercent])
 
@@ -272,7 +270,7 @@ function SubmissionDetail() {
           </Button>
         </Card>
         <div className="lg:col-span-5 md:col-span-6 col-span-8 md:py-2 py-0">
-          <Card className="h-[70vh] md:h-[85vh] overflow-y-scroll bg-gray-500">
+          <Card className="h-[70vh] md:h-[85vh] overflow-y-auto bg-gray-500">
             {/* {submission?.papersubmission_images.map((image) => (
               <img
                 key={image.id}
@@ -298,7 +296,11 @@ function SubmissionDetail() {
               />
             ))} */}
             {/* ----PDF Rendering---- */}
-            <div key={submission.pdf} id="the-canvas-div" />
+            {/* <div key={submission.pdf} id="the-canvas-div" /> */}
+            <PdfViewer
+              url={submission.pdf}
+              zoom_percent={zoomImgPercent}
+            />
           </Card>
         </div>
         <div className="md:h-[85vh] col-span-8 md:col-span-2 my-2 order-first md:order-last flex md:flex-col flex-row gap-4">
@@ -325,7 +327,10 @@ function SubmissionDetail() {
               </Link>
             </Card>
           )}
-          <div className="flex md:flex-col flex-row gap-4 overflow-x-auto overflow-y-scroll">
+          <div 
+          className="flex md:flex-col flex-row gap-4 overflow-x-auto overflow-y-auto"
+          style={{scrollbarWidth: "none"}}
+          >
             {/* grade form */}
             {submission && assignment && (
               <>
@@ -558,7 +563,10 @@ function CommentsChat({ submission }: { submission: Submission }) {
         )}
       </div>
       <Separator orientation="horizontal" />
-      <div className="max-h-48 overflow-y-auto flex flex-col gap-2 px-4">
+      <div 
+      className="max-h-48 overflow-y-auto flex flex-col gap-2 px-4"
+      style={{scrollbarWidth: "none"}}
+      >
         {submission.submission_comments.map((comment) => (
           <div
             key={comment.id}

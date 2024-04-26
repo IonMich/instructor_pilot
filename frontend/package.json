@@ -32,14 +32,15 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "cmdk": "^1.0.0",
-    "pdfjs-dist": "^4.1.392",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.51.2",
     "react-icons": "^5.0.1",
+    "react-pdf": "^7.7.1",
     "react-resizable-panels": "^2.0.16",
     "tailwind-merge": "^2.2.2",
     "tailwindcss-animate": "^1.0.7",
+    "usehooks-ts": "^3.1.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

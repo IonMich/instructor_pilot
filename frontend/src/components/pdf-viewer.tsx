@@ -1,82 +1,66 @@
-const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs")
-import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/legacy/build/pdf.mjs"
+import * as React from "react"
+import { Document, Page, pdfjs } from "react-pdf"
+import { useDebounceCallback, useResizeObserver } from "usehooks-ts"
+import "react-pdf/dist/Page/AnnotationLayer.css"
+import "react-pdf/dist/Page/TextLayer.css"
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
 
-export const subPdfRender = ({
+const maxWidth = 800
+
+type Size = {
+  width?: number
+  height?: number
+}
+
+export const PdfViewer = ({
   url,
-  zoom_percent = 100,
+  zoom_percent,
 }: {
   url: string
   zoom_percent: number
 }) => {
-  let currPage = 1 //Pages are 1-based not 0-based
-  let numPages = 0
-  let thePDF = null as PDFDocumentProxy | null
-  const loadingTask = pdfjs.getDocument(url)
-  const canvasDiv = document.getElementById("the-canvas-div") as HTMLDivElement
-  if (canvasDiv === null) {
-    console.error("Canvas not found")
-    return
-  }
-  loadingTask.promise.then(function (pdf) {
-    numPages = pdf.numPages
-    console.log("# Number of pages: " + numPages)
-    thePDF = pdf
-    pdf.getPage(1).then((page) => {
-      handlePages(page, zoom_percent)
-    })
+  const docContainerRef = React.useRef<HTMLDivElement>(null)
+  const [numPages, setNumPages] = React.useState<number>(0)
+
+  const [{ width }, setSize] = React.useState<Size>({
+    width: undefined,
+    height: undefined,
   })
-  function handlePages(page: PDFPageProxy, zoom_percent: number) {
-    const canvasesRendered = document.querySelectorAll("canvas")
-    // if the-canvas-{currPage} already exists, remove it
-    // since we are re-rendering the page
-    let existingCanvasPage = null as HTMLCanvasElement | null
-    canvasesRendered.forEach((canvas) => {
-      if (canvas.id === `the-canvas-${currPage}`) {
-        existingCanvasPage = canvas
-        // canvas.remove()
-      }
-    })
-    const canvas = document.createElement("canvas")
-    canvas.id = `the-canvas-${currPage}`
-    canvas.classList.add("mx-auto")
-    const viewport = page.getViewport({ scale: 3.0 })
-    if (existingCanvasPage !== null) {
-      canvasDiv.replaceChild(canvas, existingCanvasPage)
-    } else {
-      canvasDiv.appendChild(canvas)
-    }
 
-    if (canvas === null) {
-      console.error("Canvas not found")
-      return
-    }
-    canvas.style.display = "block"
-    const context = canvas.getContext("2d")
-    if (context === null) {
-      console.error("Context not found")
-      return
-    }
+  const onResize = useDebounceCallback(setSize, 200)
 
-    canvas.width = viewport.width
-    canvas.height = viewport.height
+  useResizeObserver({
+    ref: docContainerRef,
+    onResize,
+  })
 
-    canvas.style.width = `${zoom_percent}%`
-
-    //Draw it on the canvas
-    const renderContext = {
-      canvasContext: context,
-      viewport: viewport,
-    }
-    page.render(renderContext)
-
-    //Move to next page
-    currPage++
-    if (thePDF !== null && currPage <= numPages) {
-      thePDF.getPage(currPage).then((page) => {
-        handlePages(page, zoom_percent)
-      })
-    }
+  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
+    setNumPages(numPages)
   }
+
+  return (
+    <div ref={docContainerRef} className="container mx-0 px-0">
+      <Document
+        file={url}
+        onLoadSuccess={onDocumentLoadSuccess}
+        className="flex flex-col justify-center items-center"
+      >
+        {Array.from(new Array(numPages), (_, index) => {
+          const pageWidth = Math.min(maxWidth, width || maxWidth)
+
+          return (
+            <Page
+              key={`page_${index + 1}`}
+              pageNumber={index + 1}
+              renderTextLayer={false}
+              renderAnnotationLayer={false}
+              canvasBackground="transparent"
+              width={pageWidth * (zoom_percent / 100)}
+            />
+          )
+        })}
+      </Document>
+    </div>
+  )
 }
