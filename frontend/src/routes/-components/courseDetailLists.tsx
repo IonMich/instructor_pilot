@@ -79,18 +79,20 @@ export function AssignmentList({ assignments }: { assignments: Assignment[] }) {
               {/* grade average */}
               <span className="whitespace-nowrap">
                 Avg.{" "}
-                {(group.assignments.reduce((acc, assignment) => {
-                  if (assignment.get_grading_progress !== 100.0) {
-                    return acc
-                  }
-                  return (
-                    acc + assignment.get_average_grade / assignment.max_score
-                  )
-                }, 0) /
-                  group.assignments.filter(
-                    (assignment) => assignment.get_grading_progress === 100.0
-                  ).length) *
-                  100 || "- "}
+                {(
+                  (group.assignments.reduce((acc, assignment) => {
+                    if (assignment.get_grading_progress !== 100.0) {
+                      return acc
+                    }
+                    return (
+                      acc + assignment.get_average_grade / assignment.max_score
+                    )
+                  }, 0) /
+                    group.assignments.filter(
+                      (assignment) => assignment.get_grading_progress === 100.0
+                    ).length) *
+                  100
+                ).toFixed(1) || "- "}
                 %
               </span>
             </div>
