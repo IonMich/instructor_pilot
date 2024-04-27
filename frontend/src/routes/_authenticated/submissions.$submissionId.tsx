@@ -162,6 +162,24 @@ function getBreadcrumbItems(
   ]
 }
 
+function navigateOnKey(e: React.KeyboardEvent) {
+  if (e.key === "ArrowLeft") {
+    e.preventDefault()
+    const prevButton = document.querySelector(
+      "button[aria-label='Previous']"
+    ) as HTMLButtonElement | null
+    prevButton?.focus()
+    prevButton?.click()
+  } else if (e.key === "ArrowRight") {
+    e.preventDefault()
+    const nextButton = document.querySelector(
+      "button[aria-label='Next']"
+    ) as HTMLButtonElement | null
+    nextButton?.focus()
+    nextButton?.click()
+  }
+}
+
 function SubmissionDetail() {
   // const { theme } = useTheme()
   const [allImgsLoaded, setAllImgsLoaded] = React.useState(false)
@@ -219,7 +237,10 @@ function SubmissionDetail() {
 
   return (
     <>
-      <div className="container grid grid-cols-8 md:gap-4 gap-1 md:px-8 px-0 py-0">
+      <div
+        onKeyDown={(e) => navigateOnKey(e)}
+        className="container grid grid-cols-8 md:gap-4 gap-1 md:px-8 px-0 py-0"
+      >
         <Card className="md:h-[85vh] col-span-1 p-4 hidden lg:flex my-2 text-center flex-col gap-4">
           <Button
             variant="outline"
@@ -303,7 +324,12 @@ function SubmissionDetail() {
                 disabled={!prevSubmission}
                 tabIndex={-1}
               >
-                <Button variant="outline" size="sm" disabled={!prevSubmission}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!prevSubmission}
+                  aria-label="Previous"
+                >
                   <LuChevronLeft className="h-4 w-4 inline" />
                 </Button>
               </Link>
@@ -312,7 +338,12 @@ function SubmissionDetail() {
                 disabled={!nextSubmission}
                 tabIndex={-1}
               >
-                <Button variant="outline" size="sm" disabled={!nextSubmission}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!nextSubmission}
+                  aria-label="Next"
+                >
                   <LuChevronRight className="h-4 w-4 inline" />
                 </Button>
               </Link>
