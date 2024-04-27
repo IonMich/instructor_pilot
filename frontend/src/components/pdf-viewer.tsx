@@ -47,8 +47,18 @@ export const PdfViewer = ({
     if (successRenderCount === numPages && numPages > 0) {
       console.log("FullRenderSuccess")
       setFullRenderSuccess(true)
+      const docContainer = docContainerRef.current
+      // remove hidden class from all pages
+      const pages = docContainer?.getElementsByClassName("react-pdf__Page")
+      if (pages) {
+        for (let i = 0; i < pages.length; i++) {
+          pages[i].classList.remove("hidden")
+        }
+      }
     }
   }, [successRenderCount, numPages, setFullRenderSuccess])
+
+  const isLoading = numPages === 0 || successRenderCount < numPages
 
   return (
     <div ref={docContainerRef} className="container mx-0 px-0">
@@ -60,7 +70,6 @@ export const PdfViewer = ({
       >
         {Array.from(new Array(numPages), (_, index) => {
           const pageWidth = Math.min(maxWidth, width || maxWidth)
-
           return (
             <Page
               key={`page_${index + 1}`}
@@ -73,6 +82,7 @@ export const PdfViewer = ({
               }}
               width={pageWidth * (zoom_percent / 100)}
               loading=""
+              className={isLoading ? "hidden" : ""}
             />
           )
         })}
