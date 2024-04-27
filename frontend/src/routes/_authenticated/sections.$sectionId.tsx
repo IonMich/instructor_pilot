@@ -5,20 +5,27 @@ import {
 } from "@/utils/queryOptions"
 import { StudentDeck } from "@/routes/-components/sectionDetailLists"
 import { Course, Section } from "@/utils/fetchData"
+import { TBreadcrumbItem } from "../-components/breadcrumbs"
 
-function getBreadcrumbItems(course: Course, section: Section) {
+function getBreadcrumbItems(
+  course: Course,
+  section: Section
+): TBreadcrumbItem[] {
   return [
     {
       title: "Home",
-      path: "/",
+      to: "/",
+      params: {},
     },
     {
       title: course.course_code,
-      path: `/courses/${course.id}`,
+      to: "/courses/$courseId",
+      params: { courseId: course.id },
     },
     {
       title: `${section.name}` ?? `Section ${section.id}` ?? "Section",
-      path: `/sections/${section.id}`,
+      to: "/sections/$sectionId",
+      params: { sectionId: section.id },
     },
   ]
 }
@@ -42,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/sections/$sectionId")({
       sectionPromise,
       studentsPromise,
     ])
-    const course = section.course
+    const course = section.course as Course
     return {
       section: section,
       course: course,

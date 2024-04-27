@@ -18,6 +18,7 @@ import {
 import { seo } from "@/utils/utils"
 import { Course } from "@/utils/fetchData"
 import { useSuspenseQueries } from "@tanstack/react-query"
+import { TBreadcrumbItem } from "../-components/breadcrumbs"
 
 export const Route = createFileRoute("/_authenticated/courses/$courseId/")({
   parseParams: (params) => ({
@@ -55,15 +56,17 @@ export const Route = createFileRoute("/_authenticated/courses/$courseId/")({
   component: CourseDashboard,
 })
 
-function getBreadcrumbItems(course: Course) {
+function getBreadcrumbItems(course: Course): TBreadcrumbItem[] {
   return [
     {
       title: "Home",
-      path: "/",
+      to: "/",
+      params: {},
     },
     {
       title: course.course_code,
-      path: `/courses/${course.id}`,
+      to: "/courses/$courseId",
+      params: { courseId: course.id },
     },
   ]
 }

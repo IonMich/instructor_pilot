@@ -6,20 +6,27 @@ import {
 import { SubmissionsTable } from "../-components/assignmentDetailLists"
 import { seo } from "@/utils/utils"
 import { Assignment, Course } from "@/utils/fetchData"
+import { TBreadcrumbItem } from "../-components/breadcrumbs"
 
-function getBreadcrumbItems(assignment: Assignment, course: Course) {
+function getBreadcrumbItems(
+  assignment: Assignment,
+  course: Course
+): TBreadcrumbItem[] {
   return [
     {
       title: "Home",
-      path: "/",
+      to: "/",
+      params: {},
     },
     {
       title: course.course_code,
-      path: `/courses/${course.id}`,
+      to: "/courses/$courseId",
+      params: { courseId: course.id },
     },
     {
       title: assignment.name,
-      path: `/assignments/${assignment.id}`,
+      to: "/assignments/$assignmentId",
+      params: { assignmentId: assignment.id },
     },
   ]
 }

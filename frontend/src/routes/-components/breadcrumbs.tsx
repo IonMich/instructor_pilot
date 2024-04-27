@@ -1,35 +1,32 @@
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
+  // BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-import { useMatches } from "@tanstack/react-router"
+import { Link, useMatches } from "@tanstack/react-router"
 
-type TBreadcrumbItem = {
+export type TBreadcrumbItem = {
   title: string
-  path: string
+  to: string
+  params: Record<string, string | number>
 }
 
 export const AppBreadcrumbs = () => {
   const matches = useMatches()
   const latestMatch = matches[matches.length - 1]
   const breadcrumb_items = []
-  if (latestMatch.routeId === "/_authenticated") {
-    breadcrumb_items.push({
-      title: "Home",
-      path: "/",
-    })
-  } else {
-    const loaderData = latestMatch.loaderData as {
-      breadcrumbItems: TBreadcrumbItem[]
-    }
-    for (const item of loaderData.breadcrumbItems) {
-      breadcrumb_items.push(item)
-    }
+  const loaderData = latestMatch.loaderData as {
+    breadcrumbItems: TBreadcrumbItem[]
+  }
+  if (!loaderData.breadcrumbItems) {
+    return null
+  }
+  for (const item of loaderData.breadcrumbItems) {
+    breadcrumb_items.push(item)
   }
 
   return (
@@ -42,9 +39,9 @@ export const AppBreadcrumbs = () => {
                 {index === breadcrumb_items.length - 1 ? (
                   <BreadcrumbPage>{breadcrumb.title}</BreadcrumbPage>
                 ) : (
-                  <BreadcrumbLink href={breadcrumb.path}>
+                  <Link to={breadcrumb.to} params={breadcrumb.params}>
                     {breadcrumb.title}
-                  </BreadcrumbLink>
+                  </Link>
                 )}
               </BreadcrumbItem>
               {index !== breadcrumb_items.length - 1 && <BreadcrumbSeparator />}

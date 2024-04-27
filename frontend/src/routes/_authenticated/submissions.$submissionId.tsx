@@ -139,21 +139,25 @@ function getBreadcrumbItems(
   return [
     {
       title: "Home",
-      path: "/",
+      to: "/",
+      params: {},
     },
     {
       title: course.course_code,
-      path: `/courses/${course.id}`,
+      to: "/courses/$courseId",
+      params: { courseId: course.id },
     },
     {
       title: assignment.name,
-      path: `/assignments/${assignment.id}`,
+      to: "/assignments/$assignmentId",
+      params: { assignmentId: assignment.id },
     },
     {
       title: submission.student
         ? `${submission.student.first_name} ${submission.student.last_name}`
         : `Submission ${submission.id.split("-")[0]}`,
-      path: `/submissions/${submission.id}`,
+      to: "/submissions/$submissionId",
+      params: { submissionId: submission.id },
     },
   ]
 }

@@ -11,31 +11,36 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { columns } from "@/routes/-components/columns"
 import { DataTable } from "@/routes/-components/submissions-data-table"
+import { TBreadcrumbItem } from "../-components/breadcrumbs"
 
 function getBreadcrumbItems(
   course: Course,
   section: Section,
   student: Student
-) {
+): TBreadcrumbItem[] {
   return [
     {
       title: "Home",
-      path: "/",
+      to: "/",
+      params: {},
     },
     {
       title: course.course_code,
-      path: `/courses/${course.id}`,
+      to: "/courses/$courseId",
+      params: { courseId: course.id },
     },
     {
       title: `${section.name}` ?? `Section ${section.id}` ?? "Section",
-      path: `/sections/${section.id}`,
+      to: "/sections/$sectionId",
+      params: { sectionId: section.id },
     },
     {
       title:
         student.first_name && student.last_name
           ? `${student.first_name} ${student.last_name}`
           : `Student ${student.id}`,
-      path: `/courses/${course.id}/students/${student.id}`,
+      to: `/courses/$courseId/students/$studentId`,
+      params: { courseId: course.id, studentId: student.id },
     },
   ]
 }
@@ -103,7 +108,9 @@ function StudentDetail() {
   const { data: submissions } = useSuspenseQuery(
     submissionsOfStudentInCourseQueryOptions(courseId, studentId)
   )
-  const columnsOfStudent = columns.filter((c) => c.id !== "student" && c.id !== "uni_id" && c.id !== "section")
+  const columnsOfStudent = columns.filter(
+    (c) => c.id !== "student" && c.id !== "uni_id" && c.id !== "section"
+  )
   return (
     <div className="container mx-auto">
       <p className="text-lg font-medium my-5 text-center">
@@ -117,7 +124,11 @@ function StudentDetail() {
           {student.last_name[0]}
         </AvatarFallback>
       </Avatar>
-      <DataTable columns={columnsOfStudent} data={submissions} searchby={["assignment"]} />
+      <DataTable
+        columns={columnsOfStudent}
+        data={submissions}
+        searchby={["assignment"]}
+      />
     </div>
   )
 }
