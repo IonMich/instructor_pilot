@@ -771,7 +771,7 @@ export function StudentComboboxForm({
       return
     }
 
-    const patchData = { id: submission.id, student: { id: student_id } }
+    const patchData = { id: submission.id, student_id: student_id }
 
     console.log(patchData)
 

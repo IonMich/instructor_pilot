@@ -20,17 +20,8 @@ class SubmissionCommentSerializer(serializers.ModelSerializer):
 class PaperSubmissionSerializer(serializers.ModelSerializer):
     papersubmission_images = PaperSubmissionImageSerializer(source='submissions_papersubmissionimage_related', many=True, read_only=True)
     submission_comments = SubmissionCommentSerializer(source='submissions_submissioncomment_related', many=True, read_only=True)
+    student_id = serializers.PrimaryKeyRelatedField(source="student", queryset = Student.objects.all())
     class Meta:
         model = PaperSubmission
-        fields = ('id', 'student', 'canvas_id', 'canvas_url', 'question_grades', 'grade', 'version', 'assignment', 'pdf', 'papersubmission_images', 'submission_comments')
+        fields = ('id', 'student', 'student_id', 'canvas_id', 'canvas_url', 'question_grades', 'grade', 'version', 'assignment', 'pdf', 'papersubmission_images', 'submission_comments')
         depth = 1
-
-
-    def update(self, instance, validated_data):
-        print("validated_data: ", validated_data)
-        # if student id is in validated_data, update student
-        if 'student' in validated_data:
-            student = validated_data.pop('student')
-            instance.student = student
-        
-        return super(PaperSubmissionSerializer, self).update(instance, validated_data)
