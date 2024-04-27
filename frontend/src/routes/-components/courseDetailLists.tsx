@@ -68,63 +68,64 @@ export function AssignmentList({ assignments }: { assignments: Assignment[] }) {
           )
         })}
       </TabsList>
-      {Object.entries(assignmentGroups).map(([groupId, group]) => (
-        <TabsContent value={groupId} key={groupId} className="mx-6">
-          <div className="flex flex-row items-center gap-4">
-            <p className="text-sm font-medium leading-none">{group.name}</p>
-            <div
-              className="ml-auto font-medium"
-              title="Naive grade average based on fully graded assignments assuming all assignments have the same weight and the same number of submissions."
-            >
-              {/* grade average */}
-              <span className="whitespace-nowrap">
-                Avg.{" "}
-                {(
-                  (group.assignments.reduce((acc, assignment) => {
-                    if (assignment.get_grading_progress !== 100.0) {
-                      return acc
-                    }
-                    return (
-                      acc + assignment.get_average_grade / assignment.max_score
-                    )
-                  }, 0) /
-                    group.assignments.filter(
-                      (assignment) => assignment.get_grading_progress === 100.0
-                    ).length) *
-                  100
-                ).toFixed(1) || "- "}
-                %
-              </span>
-            </div>
-            <div className="ml-auto font-medium">
-              {group.assignments.length} assignments
-            </div>
-          </div>
-          <ScrollArea className="max-h-56 overflow-y-auto">
-            {group.assignments.map((assignment) => (
-              <Link
-                to="/assignments/$assignmentId"
-                key={assignment.id}
-                params={{ assignmentId: assignment.id }}
-                className="flex items-center first:mt-2 hover:bg-muted/50 p-4 mx-1 rounded-lg duration-200"
+      {Object.entries(assignmentGroups).map(([groupId, group]) => {
+        const fullyGradedAssignments = group.assignments.filter(
+          (assignment) => assignment.get_grading_progress === 100.0
+        )
+        const sumFractionalGrades = fullyGradedAssignments.reduce(
+          (acc, assignment) =>
+            acc + assignment.get_average_grade / assignment.max_score,
+          0
+        )
+        const naiveGradeAverage =
+          sumFractionalGrades / fullyGradedAssignments.length
+        const naiveGradeAverageStr =
+          (Number.isNaN(naiveGradeAverage)
+            ? "- "
+            : (naiveGradeAverage * 100).toFixed(1)) + "%"
+        return (
+          <TabsContent value={groupId} key={groupId} className="mx-6">
+            <div className="flex flex-row items-center gap-4">
+              <p className="text-sm font-medium leading-none">{group.name}</p>
+              <div
+                className="ml-auto font-medium"
+                title="Naive grade average based on fully graded assignments assuming all assignments have the same weight and the same number of submissions."
               >
-                <div className="grid gap-1">
-                  <p className="text-sm font-medium leading-none">
-                    {assignment.name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {assignment.max_score} points
-                  </p>
-                </div>
-                <div className="ml-auto font-medium mr-4 flex items-center gap-1">
-                  {assignment.submission_count}{" "}
-                  <LuFile className="h-4 w-4 inline" />
-                </div>
-              </Link>
-            ))}
-          </ScrollArea>
-        </TabsContent>
-      ))}
+                {/* grade average */}
+                <span className="whitespace-nowrap">
+                  Avg. {naiveGradeAverageStr}
+                </span>
+              </div>
+              <div className="ml-auto font-medium">
+                {group.assignments.length} assignments
+              </div>
+            </div>
+            <ScrollArea className="max-h-56 overflow-y-auto">
+              {group.assignments.map((assignment) => (
+                <Link
+                  to="/assignments/$assignmentId"
+                  key={assignment.id}
+                  params={{ assignmentId: assignment.id }}
+                  className="flex items-center first:mt-2 hover:bg-muted/50 p-4 mx-1 rounded-lg duration-200"
+                >
+                  <div className="grid gap-1">
+                    <p className="text-sm font-medium leading-none">
+                      {assignment.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {assignment.max_score} points
+                    </p>
+                  </div>
+                  <div className="ml-auto font-medium mr-4 flex items-center gap-1">
+                    {assignment.submission_count}{" "}
+                    <LuFile className="h-4 w-4 inline" />
+                  </div>
+                </Link>
+              ))}
+            </ScrollArea>
+          </TabsContent>
+        )
+      })}
     </Tabs>
   )
 }
