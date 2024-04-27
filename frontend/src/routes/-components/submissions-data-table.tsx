@@ -75,8 +75,9 @@ export function DataTable<TData, TValue>({
           <div className="flex items-center justify-end space-x-2 py-4 pr-2">
             <div>
               <span className="text-sm text-muted-foreground">
-                {/* Showing Submissions {min}-{max} of {total} */}
-                Showing {topRowIdx}-{bottomRowIdx}
+                {/* Showing Submissions {min}-{max} of total*/}
+                Showing {topRowIdx}-{bottomRowIdx} of{" "}
+                {table.getRowCount() ?? "0"}
               </span>
             </div>
             <Button
@@ -145,7 +146,9 @@ export function DataTable<TData, TValue>({
         </div>
         <Input
           placeholder={`Search by ${searchby.join(", ")}`}
-          value={(table.getColumn(searchby[0])?.getFilterValue() as string) ?? ""}
+          value={
+            (table.getColumn(searchby[0])?.getFilterValue() as string) ?? ""
+          }
           onChange={(event) =>
             table.getColumn(searchby[0])?.setFilterValue(event.target.value)
           }
