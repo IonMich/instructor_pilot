@@ -16,19 +16,22 @@ type Size = {
 export const PdfViewer = ({
   url,
   zoom_percent,
+  setFullRenderSuccess,
 }: {
   url: string
   zoom_percent: number
+  setFullRenderSuccess: (value: boolean) => void
 }) => {
   const docContainerRef = React.useRef<HTMLDivElement>(null)
   const [numPages, setNumPages] = React.useState<number>(0)
+  const [successRenderCount, setSuccessRenderCount] = React.useState<number>(0)
 
   const [{ width }, setSize] = React.useState<Size>({
     width: undefined,
     height: undefined,
   })
 
-  const onResize = useDebounceCallback(setSize, 200)
+  const onResize = useDebounceCallback(setSize, 100)
 
   useResizeObserver({
     ref: docContainerRef,
@@ -37,7 +40,15 @@ export const PdfViewer = ({
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages)
+    setSuccessRenderCount(0)
   }
+
+  React.useEffect(() => {
+    if (successRenderCount === numPages && numPages > 0) {
+      console.log("FullRenderSuccess")
+      setFullRenderSuccess(true)
+    }
+  }, [successRenderCount, numPages, setFullRenderSuccess])
 
   return (
     <div ref={docContainerRef} className="container mx-0 px-0">
@@ -45,6 +56,7 @@ export const PdfViewer = ({
         file={url}
         onLoadSuccess={onDocumentLoadSuccess}
         className="flex flex-col justify-center items-center"
+        loading=""
       >
         {Array.from(new Array(numPages), (_, index) => {
           const pageWidth = Math.min(maxWidth, width || maxWidth)
@@ -56,7 +68,11 @@ export const PdfViewer = ({
               renderTextLayer={false}
               renderAnnotationLayer={false}
               canvasBackground="transparent"
+              onRenderSuccess={() => {
+                setSuccessRenderCount((prev) => prev + 1)
+              }}
               width={pageWidth * (zoom_percent / 100)}
+              loading=""
             />
           )
         })}

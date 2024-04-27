@@ -194,33 +194,18 @@ function SubmissionDetail() {
   const [zoomImgPercent, setZoomImgPercent] = React.useState(100)
 
   const images = submission?.papersubmission_images ?? []
-  // const imagesLength = images.length
-  const loadedImages = React.useRef(0)
-  // const handleImageLoad = () => {
-  //   loadedImages.current += 1
-  //   if (loadedImages.current === imagesLength) {
-  //     setAllImgsLoaded(true)
-  //   }
-  // }
-  React.useEffect(() => {
-    loadedImages.current = 0
-    setAllImgsLoaded(false)
-  }, [submission.id])
 
   React.useEffect(() => {
-    // subPdfRender({
-    //   url: submission.pdf,
-    //   zoom_percent: zoomImgPercent,
-    // })
-    setAllImgsLoaded(true)
-  }, [submission.pdf, zoomImgPercent])
+    setAllImgsLoaded(false)
+  }, [submission.id])
 
   // on all images loaded, scroll to the middle of the image div
   React.useEffect(() => {
     if (allImgsLoaded) {
-      const canvasContainer = document.querySelector("canvas")?.parentElement
+      const canvasContainer =
+        document.querySelector("canvas")?.parentElement?.parentElement
       const numImages = canvasContainer?.childElementCount
-      const imgCard = canvasContainer?.parentElement
+      const imgCard = canvasContainer?.parentElement?.parentElement
       if (imgCard && numImages) {
         imgCard.scrollTop =
           (imgCard.scrollHeight / numImages) * scrollHeightImgDiv
@@ -238,12 +223,13 @@ function SubmissionDetail() {
             onClick={() => {
               const newPageValue = (pageValue % images.length) + 1
               setPageValue(newPageValue)
-              const imgCard =
-                document.querySelector("div > canvas")?.parentElement
-                  ?.parentElement
-              if (imgCard) {
+              const canvasContainer =
+                document.querySelector("canvas")?.parentElement?.parentElement
+              const numImages = canvasContainer?.childElementCount
+              const imgCard = canvasContainer?.parentElement?.parentElement
+              if (imgCard && numImages) {
                 imgCard.scrollTop =
-                  (imgCard.scrollHeight / images.length) * (newPageValue - 1)
+                  (imgCard.scrollHeight / numImages) * (newPageValue - 1)
               }
             }}
           >
@@ -300,6 +286,7 @@ function SubmissionDetail() {
             <PdfViewer
               url={submission.pdf}
               zoom_percent={zoomImgPercent}
+              setFullRenderSuccess={setAllImgsLoaded}
             />
           </Card>
         </div>
@@ -327,9 +314,9 @@ function SubmissionDetail() {
               </Link>
             </Card>
           )}
-          <div 
-          className="flex md:flex-col flex-row gap-4 overflow-x-auto overflow-y-auto"
-          style={{scrollbarWidth: "none"}}
+          <div
+            className="flex md:flex-col flex-row gap-4 overflow-x-auto overflow-y-auto"
+            style={{ scrollbarWidth: "none" }}
           >
             {/* grade form */}
             {submission && assignment && (
@@ -563,9 +550,9 @@ function CommentsChat({ submission }: { submission: Submission }) {
         )}
       </div>
       <Separator orientation="horizontal" />
-      <div 
-      className="max-h-48 overflow-y-auto flex flex-col gap-2 px-4"
-      style={{scrollbarWidth: "none"}}
+      <div
+        className="max-h-48 overflow-y-auto flex flex-col gap-2 px-4"
+        style={{ scrollbarWidth: "none" }}
       >
         {submission.submission_comments.map((comment) => (
           <div
