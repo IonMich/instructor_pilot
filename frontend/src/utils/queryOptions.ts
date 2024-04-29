@@ -3,6 +3,7 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 import { queryClient } from "../app"
 
 import {
+  fetchCourseById,
   fetchCourses,
   fetchSectionsOfCourse,
   fetchSectionById,
@@ -31,6 +32,13 @@ export const coursesQueryOptions = () => {
   return queryOptions({
     queryKey: ["courses"],
     queryFn: () => fetchCourses(),
+  })
+}
+
+export const courseQueryOptions = (courseId: number) => {
+  return queryOptions({
+    queryKey: ["courses", courseId],
+    queryFn: () => fetchCourseById(courseId),
   })
 }
 

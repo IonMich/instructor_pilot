@@ -537,10 +537,17 @@ export function GradeForm({
                           className="md:pl-4 p-2 pr-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           placeholder="?"
                           type="number"
-                          key={`{submission.id}-{index}`}
+                          key={`${submission.id}-${index}`}
                           autoFocus={index === initialQuestionFocus}
                           onFocus={(e) => e.target.select()}
                           onClick={(e) => e.currentTarget.select()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              // submit form
+                              form.handleSubmit(onSubmit)()
+                            }
+                          }}
                         />
                       </FormControl>
                       <Button

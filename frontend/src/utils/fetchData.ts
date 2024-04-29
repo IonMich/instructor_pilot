@@ -136,6 +136,25 @@ const submissionUrlMapper = (submissionId: string) => {
   return `${baseAPIUrl}submissions/${submissionId}/`
 }
 
+export async function fetchCourseById(courseId: number) {
+  console.log("Fetching course by Id", courseId)
+  const course = loaderFn(() =>
+    Promise.resolve().then(async () => {
+      const item = await axios
+        .get<Course>(`${baseAPIUrl}courses/${courseId}/`)
+        .then((response) => response.data)
+        .catch((error) => {
+          if (error.response?.status === 404) {
+            throw new Error(`Course ${courseId} not found`)
+          }
+          throw error
+        })
+      return item
+    })
+  )
+  return course
+}
+
 export async function fetchCourses() {
   console.log("Fetching courses")
   const courses = loaderFn(() =>

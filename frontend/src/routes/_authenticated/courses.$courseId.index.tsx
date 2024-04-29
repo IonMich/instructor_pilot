@@ -14,6 +14,7 @@ import {
 import {
   sectionsQueryOptions,
   assignmentsQueryOptions,
+  courseQueryOptions,
 } from "@/utils/queryOptions"
 import { seo } from "@/utils/utils"
 import { Course } from "@/utils/fetchData"
@@ -29,18 +30,25 @@ export const Route = createFileRoute("/_authenticated/courses/$courseId/")({
   }),
   loader: async (opts) => {
     const courseId = opts.params.courseId
+    const coursePromise = opts.context.queryClient.ensureQueryData(
+      courseQueryOptions(courseId)
+    )
     const sectionsPromise = opts.context.queryClient.ensureQueryData(
       sectionsQueryOptions(courseId)
     )
     const assignmentsPromise = opts.context.queryClient.ensureQueryData(
       assignmentsQueryOptions(courseId)
     )
+
     // parallelize the two queries
-    const [sections, assignments] = await Promise.all([
+    const [course, sections, assignments] = await Promise.all([
+      coursePromise,
       sectionsPromise,
       assignmentsPromise,
     ])
-    const course = assignments[0]?.course as Course
+    console.log("course", course)
+    console.log("sections", sections)
+    console.log("assignments", assignments)
     return {
       course: course,
       sections: sections,
@@ -64,7 +72,7 @@ function getBreadcrumbItems(course: Course): TBreadcrumbItem[] {
       params: {},
     },
     {
-      title: course.course_code,
+      title: course.course_code ?? course.name ?? "Course",
       to: "/courses/$courseId",
       params: { courseId: course.id },
     },
