@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from profiles.serializers import UserSerializer
-from students.serializers import StudentSerializer
 from students.models import Student
 from .models import PaperSubmission, PaperSubmissionImage, SubmissionComment
 
@@ -11,10 +10,11 @@ class PaperSubmissionImageSerializer(serializers.ModelSerializer):
         depth = 1
 
 class SubmissionCommentSerializer(serializers.ModelSerializer):
+    submission_id = serializers.PrimaryKeyRelatedField(source="paper_submission", queryset = PaperSubmission.objects.all())
     class Meta:
         model = SubmissionComment
         author = UserSerializer(read_only=True)
-        fields = ('id', 'text', 'author', 'is_grade_summary', 'canvas_id', 'created_at', 'updated_at')
+        fields = ('id', 'text', 'author', 'is_grade_summary', 'canvas_id', 'created_at', 'updated_at', 'submission_id')
         depth = 1
 
 class PaperSubmissionSerializer(serializers.ModelSerializer):

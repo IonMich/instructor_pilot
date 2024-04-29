@@ -432,3 +432,27 @@ export async function deleteSubmission(submissionId: string) {
       })
   )
 }
+
+export async function createCommentOnSubmission({
+  submissionId,
+  text,
+}: {
+  submissionId: string
+  text: string
+}) {
+  // use auth to get the token
+  const token = auth.getToken()
+  return loaderFn(() =>
+    axios
+      .post(
+        `${baseAPIUrl}comments/`,
+        { submission_id: submissionId, text: text },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+      .then((response) => response.data)
+  )
+}

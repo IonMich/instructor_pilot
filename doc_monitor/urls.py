@@ -28,7 +28,7 @@ from courses.views import CourseViewSet
 from sections.views import SectionViewSet, SectionInCourseViewSet
 from assignments.views import AssignmentInCourseViewSet, AssignmentViewSet
 from students.views import StudentInSectionViewSet, StudentInCourseViewSet
-from submissions.views import PaperSubmissionViewSet, PaperSubmissionInAssignmentViewSet, PaperSubmissionOfStudentInCourseViewSet
+from submissions.views import PaperSubmissionViewSet, PaperSubmissionInAssignmentViewSet, PaperSubmissionOfStudentInCourseViewSet, CommentViewSet
 
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
@@ -37,6 +37,7 @@ router.register(r'courses', CourseViewSet)
 router.register(r'sections', SectionViewSet, basename='section')
 router.register(r'assignments', AssignmentViewSet, basename='assignment')
 router.register(r'submissions', PaperSubmissionViewSet, basename='submission')
+router.register(r'comments', CommentViewSet, basename='comment')
 course_router = routers.NestedDefaultRouter(router, r'courses', lookup='course')
 course_router.register(r'sections', SectionInCourseViewSet, basename='course-section')
 course_router.register(r'assignments', AssignmentInCourseViewSet, basename='course-assignment')

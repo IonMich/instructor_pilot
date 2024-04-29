@@ -23,7 +23,7 @@ from .models import (CanvasQuizSubmission, PaperSubmission, ScantronSubmission,
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework import permissions
-from submissions.serializers import PaperSubmissionSerializer
+from submissions.serializers import PaperSubmissionSerializer, SubmissionCommentSerializer
 # Create your views here.
 class PaperSubmissionInAssignmentViewSet(viewsets.ModelViewSet):
     """
@@ -76,6 +76,34 @@ class PaperSubmissionViewSet(viewsets.ModelViewSet):
     queryset = PaperSubmission.objects.all()
     serializer_class = PaperSubmissionSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+class CommentViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = SubmissionComment.objects.all()
+    serializer_class = SubmissionCommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+    def get_queryset(self):
+        submission_id = self.kwargs['submission_pk']
+        return SubmissionComment.objects.filter(paper_submission=submission_id)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new Comment with the text and the files
+        """
+        submission_pk = request.data.get("submission_id")
+        submission = PaperSubmission.objects.get(pk=submission_pk)
+        text = request.data.get("text")
+        comment = SubmissionComment(
+            paper_submission=submission,
+            author=request.user,
+            text=text,
+        )
+        comment.save()
+        return Response(status=200, data={"comment_id": comment.pk})
 
 def _random1000():
     yield random.randint(0, 100)

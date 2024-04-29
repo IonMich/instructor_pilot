@@ -7,6 +7,7 @@ import {
   submissionQueryOptions,
   assignmentQueryOptions,
   useUpdateSubmissionMutation,
+  useCreateCommentMutation,
   studentsInCourseQueryOptions,
   submissionsQueryOptions,
 } from "@/utils/queryOptions"
@@ -611,30 +612,52 @@ function CommentsChat({ submission }: { submission: Submission }) {
         ))}
       </div>
       <Separator orientation="horizontal" />
-      <ChatForm />
+      <ChatForm submission={submission} />
     </Card>
   )
 }
 
-function ChatForm() {
+function ChatForm({ submission }: { submission: Submission }) {
+  const router = useRouter()
+  const { toast } = useToast()
+  const createCommentMutation = useCreateCommentMutation(submission.id)
   const CommentFormSchema = z.object({
-    text: z.string({
-      required_error: "Please enter a message.",
-    }),
+    text: z
+      .string()
+      .min(1),
   })
   const form = useForm<z.infer<typeof CommentFormSchema>>({
     resolver: zodResolver(CommentFormSchema),
+    defaultValues: {
+      text: "",
+    },
   })
 
   function onSubmit(data: z.infer<typeof CommentFormSchema>) {
-    toast({
-      title: "You submitted the following values:",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
+    createCommentMutation.mutate(data.text, {
+      onError: (error) => {
+        console.error(error)
+        toast({
+          title: "Error creating comment",
+          description: "An error occurred while creating the comment.",
+          variant: "destructive",
+        })
+      },
+      onSuccess: () => {
+        toast({
+          title: "Comment created successfully",
+          description: (
+            <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+              <code className="text-white">
+                {JSON.stringify(data, null, 2)}
+              </code>
+            </pre>
+          ),
+        })
+      },
     })
+    router.invalidate()
+    form.reset()
   }
   return (
     <Form {...form}>
@@ -655,19 +678,10 @@ function ChatForm() {
                   {...field}
                 />
               </FormControl>
-              <FormMessage />
+              <FormMessage className="p-2" />
             </FormItem>
           )}
         />
-        {/*         
-        <Label htmlFor="text" className="sr-only">
-          Message
-        </Label>
-        <Textarea
-          id="text"
-          placeholder="Type your comment here..."
-          className="min-h-12 resize-none border-0 p-3 shadow-none focus-visible:ring-0"
-        /> */}
         <div className="flex items-center p-3 pt-0">
           <Tooltip>
             <TooltipTrigger asChild>

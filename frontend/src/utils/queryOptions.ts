@@ -16,6 +16,7 @@ import {
   fetchSubmissionsOfStudentInCourse,
   fetchSubmissionById,
   createSubmissionsBySplittingPDFs,
+  createCommentOnSubmission,
   patchSubmission,
   deleteSubmission,
   Submission,
@@ -189,6 +190,17 @@ export const useIdentifySubmissionMutation = () => {
       // wait for 1 second
       await new Promise((resolve) => setTimeout(resolve, 1000))
       console.log("Identifying submission", submissionId)
+    },
+    onSuccess: () => queryClient.invalidateQueries(),
+    gcTime: 1000 * 10,
+  })
+}
+
+export const useCreateCommentMutation = (submissionId: string) => {
+  return useMutation({
+    mutationKey: ["comments", "create"],
+    mutationFn: async (comment: string) => {
+      await createCommentOnSubmission({ submissionId, text: comment })
     },
     onSuccess: () => queryClient.invalidateQueries(),
     gcTime: 1000 * 10,
