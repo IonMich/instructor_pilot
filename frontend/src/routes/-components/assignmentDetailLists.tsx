@@ -71,7 +71,11 @@ export function SubmissionsTable() {
           assignment={assignment}
           submissions={submissions}
         />
-        <DataTable columns={columnsOfAssignment} data={submissions} searchby={["student", "uni_id"]} />
+        <DataTable
+          columns={columnsOfAssignment}
+          data={submissions}
+          searchby={["student", "uni_id"]}
+        />
       </div>
     </>
   )
@@ -119,7 +123,7 @@ function AssignmentDetailCards({
             {assignment && (
               <AllSubmissionsDropdownMenu assignment={assignment} />
             )}
-            <AddSubmissionsDialogWithTrigger />
+            <AddSubmissionsDialogWithTrigger assignment={assignment} />
           </div>
         </CardContent>
       </Card>
@@ -311,9 +315,14 @@ function DeleteAllDialogContent({
   )
 }
 
-function AddSubmissionsDialogWithTrigger() {
+function AddSubmissionsDialogWithTrigger({
+  assignment,
+}: {
+  assignment: Assignment
+}) {
+  const [addDialogOpen, setAddDialogOpen] = React.useState(false)
   return (
-    <Dialog>
+    <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
       <DialogTrigger asChild>
         <Button title="Upload a new submission" size="sm">
           <LuFilePlus2 className="h-4 w-4" />
@@ -323,7 +332,10 @@ function AddSubmissionsDialogWithTrigger() {
         <DialogHeader>
           <DialogTitle>Add Submissions</DialogTitle>
         </DialogHeader>
-        <SubmissionPDFsForm />
+        <SubmissionPDFsForm
+          assignment={assignment}
+          setAddDialogOpen={setAddDialogOpen}
+        />
       </DialogContent>
     </Dialog>
   )

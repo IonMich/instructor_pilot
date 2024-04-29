@@ -388,6 +388,34 @@ export async function patchSubmission({
   )
 }
 
+export async function createSubmissionsBySplittingPDFs({
+  assignmentId,
+  pagesPerSubmission,
+  filesToSplit,
+}: {
+  assignmentId: number
+  pagesPerSubmission: number
+  filesToSplit: FileList
+}) {
+  // use auth to get the token
+  const token = auth.getToken()
+  const formData = new FormData()
+  Array.from(filesToSplit).forEach((file) => {
+    formData.append("submission_PDFs", file)
+  })
+  formData.append("num_pages_per_submission", pagesPerSubmission.toString())
+  return loaderFn(() =>
+    axios
+      .post(submissionsUrlMapper(assignmentId), formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      })
+      .then((response) => response.data)
+  )
+}
+
 export async function deleteSubmission(submissionId: string) {
   // use auth to get the token
   const token = auth.getToken()

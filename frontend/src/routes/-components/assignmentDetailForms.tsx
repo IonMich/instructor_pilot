@@ -14,6 +14,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import { useRouter } from "@tanstack/react-router"
+import { Assignment } from "@/utils/fetchData"
+import { useCreateSubmissionsInAssignmentMutation } from "@/utils/queryOptions"
 
 const ACCEPTED_FILE_TYPES = ["application/pdf"]
 const MAX_FILE_SIZE = 20 //In MegaBytes
@@ -39,28 +42,62 @@ const submissionPDFsSchema = z.object({
         ACCEPTED_FILE_TYPES.includes(file.type)
       )
     }, "File type is not supported"),
+  pagesPerSubmission: z.coerce.number().int().positive(),
 })
 
-export const SubmissionPDFsForm = () => {
+export const SubmissionPDFsForm = ({
+  assignment,
+  setAddDialogOpen,
+}: {
+  assignment: Assignment
+  setAddDialogOpen: (open: boolean) => void
+}) => {
+  const router = useRouter()
+  const createSubmissionsInAssignmentMutation =
+    useCreateSubmissionsInAssignmentMutation(assignment.id)
   const form = useForm<z.infer<typeof submissionPDFsSchema>>({
     resolver: zodResolver(submissionPDFsSchema),
     defaultValues: {
       submission_PDFs: [] as unknown as FileList,
+      pagesPerSubmission: 2,
     },
   })
 
   const { toast } = useToast()
 
   function onSubmit(data: z.infer<typeof submissionPDFsSchema>) {
-    console.log(data)
-    toast({
-      title: "Submission updated successfully",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    })
+    console.log("data", data)
+
+    createSubmissionsInAssignmentMutation.mutate(
+      {
+        pagesPerSubmission: data.pagesPerSubmission,
+        filesToSplit: data.submission_PDFs,
+      },
+      {
+        onError: (error) => {
+          console.error(error)
+          toast({
+            title: "Error updating assignment",
+            description: "An error occurred while updating the assignment.",
+            variant: "destructive",
+          })
+        },
+        onSuccess: () => {
+          toast({
+            title: "Assignment submission PDFs added",
+            description: (
+              <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+                <code className="text-white">
+                  {data.submission_PDFs.length} files processed
+                </code>
+              </pre>
+            ),
+          })
+          setAddDialogOpen(false)
+        },
+      }
+    )
+    router.invalidate()
   }
 
   return (
@@ -86,7 +123,7 @@ export const SubmissionPDFsForm = () => {
                   <FormControl>
                     <Input
                       {...fieldProps}
-                      placeholder="Picture"
+                      placeholder="Submission File(s)"
                       type="file"
                       multiple
                       accept={ACCEPTED_FILE_TYPES.join(", ")}
@@ -97,6 +134,21 @@ export const SubmissionPDFsForm = () => {
                 </FormItem>
               )
             }}
+          />
+          <FormField
+            control={form.control}
+            name="pagesPerSubmission"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor="pagesPerSubmission">
+                  Pages per submission
+                </FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="?" type="number" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
           <Button type="submit">Add</Button>
         </form>

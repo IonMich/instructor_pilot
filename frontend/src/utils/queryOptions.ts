@@ -15,6 +15,7 @@ import {
   fetchSubmissionsOfAssignment,
   fetchSubmissionsOfStudentInCourse,
   fetchSubmissionById,
+  createSubmissionsBySplittingPDFs,
   patchSubmission,
   deleteSubmission,
   Submission,
@@ -149,6 +150,32 @@ export const useDeleteAllSubmissionsMutation = () => {
       await Promise.all(
         submissions.map((submission) => deleteSubmission(submission.id))
       )
+    },
+    onSuccess: () => queryClient.invalidateQueries(),
+    gcTime: 1000 * 10,
+  })
+}
+
+export const useCreateSubmissionsInAssignmentMutation = (
+  assignmentId: number
+) => {
+  return useMutation({
+    mutationKey: ["submissions", "create"],
+    mutationFn: async ({
+      pagesPerSubmission,
+      filesToSplit,
+    }: {
+      pagesPerSubmission: number
+      filesToSplit: FileList
+    }) => {
+      console.log("Creating submissions for assignment", assignmentId)
+      console.log("Pages per submission", pagesPerSubmission)
+      console.log("Files to split", filesToSplit)
+      await createSubmissionsBySplittingPDFs({
+        assignmentId,
+        pagesPerSubmission,
+        filesToSplit,
+      })
     },
     onSuccess: () => queryClient.invalidateQueries(),
     gcTime: 1000 * 10,

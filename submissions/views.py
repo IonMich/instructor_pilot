@@ -38,6 +38,22 @@ class PaperSubmissionInAssignmentViewSet(viewsets.ModelViewSet):
         assignment_id = self.kwargs['assignment_pk']
         return PaperSubmission.objects.filter(assignment=assignment_id)
     
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new PaperSubmissions by splitting
+        the PDFs into multiple submissions
+        """
+        num_pages_per_submission = int(request.data.get("num_pages_per_submission"))
+        assignment_pk = self.kwargs.get("assignment_pk")
+        assignment = Assignment.objects.get(pk=assignment_pk)
+        uploaded_files = request.data.getlist("submission_PDFs")
+        sub_ids = PaperSubmission.add_papersubmissions_to_db(
+            assignment_target=assignment,
+            num_pages_per_submission=num_pages_per_submission,
+            uploaded_files=uploaded_files,
+        )
+        return Response(status=200, data={"submission_ids": sub_ids})
+    
 class PaperSubmissionOfStudentInCourseViewSet(viewsets.ModelViewSet):
     """
     This ViewSet automatically provides `list`, `create`, `retrieve`,
