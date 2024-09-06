@@ -506,10 +506,10 @@ if (retrieveCanvasInfoButton) {
                 <strong>Gradeable Students:</strong> ${canvasGradeableStudents.length}
             </li>
             <li class="list-group-item">
-                <strong>Graded Submissions:</strong> ${canvasGradedSubs.length}
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Graded:</strong> ${canvasGradedSubs.length}
             </li>
             <li class="list-group-item">
-                <strong>Ungraded Submissions:</strong> ${canvasUngradedSubs.length}
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;Ungraded:</strong> ${canvasUngradedSubs.length}
             </li>
         `;
         const dbInfoList = document.getElementById('db-info-list');
