@@ -24,8 +24,8 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from profiles.views import UserViewSet
-from courses.views import CourseViewSet
-from sections.views import SectionViewSet, SectionInCourseViewSet
+from courses.views import CourseViewSet, ListCanvasCourses
+from sections.views import SectionViewSet, SectionInCourseViewSet, ListCanvasCourseSections
 from assignments.views import AssignmentInCourseViewSet, AssignmentViewSet
 from students.views import StudentInSectionViewSet, StudentInCourseViewSet
 from submissions.views import PaperSubmissionViewSet, PaperSubmissionInAssignmentViewSet, PaperSubmissionOfStudentInCourseViewSet, CommentViewSet
@@ -66,6 +66,9 @@ urlpatterns = [
     path('', include('courses.urls', namespace='courses')),
     path('', include('assignments.urls', namespace='assignments')),
     path('', include('sections.urls', namespace='sections')),
+    # canvas api
+    path('api/canvas/courses/', ListCanvasCourses.as_view(), name='canvas-courses'),
+    path('api/canvas/courses/<int:course_id>/sections/', ListCanvasCourseSections.as_view(), name='canvas-course-sections'),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

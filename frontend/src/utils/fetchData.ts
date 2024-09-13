@@ -36,6 +36,26 @@ export interface Course {
   sections: Section[]
 }
 
+export interface CanvasCourse {
+  canvas_id: number
+  name: string
+  course_code: string
+  term: {
+    name: string
+  }
+  total_students: number
+  teachers: {
+    display_name: string
+  }[]
+  already_exists: boolean
+}
+
+export interface CanvasSection {
+  canvas_id: number
+  name: string
+  total_students: number
+}
+
 export interface Assignment {
   id: number
   url: string
@@ -456,3 +476,37 @@ export async function createCommentOnSubmission({
       .then((response) => response.data)
   )
 }
+
+export async function fetchCanvasCourses() {
+  console.log("Fetching Canvas Courses of user")
+  const canvas_courses = loaderFn(() =>
+    Promise.resolve().then(async () => {
+      const items = await axios
+        .get<CanvasCourse[]>(`${baseAPIUrl}canvas/courses/`)
+        .then((response) => response.data)
+        .catch((error) => {
+          throw error
+        })
+      return items
+    })
+  )
+  return canvas_courses
+}
+
+// fetchCanvasSectionsOfCourse
+export async function fetchCanvasSectionsOfCourse(courseId: number) {
+  console.log("Fetching Canvas Sections of course", courseId)
+  const canvas_sections = loaderFn(() =>
+    Promise.resolve().then(async () => {
+      const items = await axios
+        .get<CanvasSection[]>(`${baseAPIUrl}canvas/courses/${courseId}/sections/`)
+        .then((response) => response.data)
+        .catch((error) => {
+          throw error
+        })
+      return items
+    })
+  )
+  return canvas_sections
+}
+

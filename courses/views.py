@@ -12,8 +12,9 @@ from courses.utils import get_canvas_object
 
 from .models import Course
 
-from rest_framework import viewsets
-from rest_framework import permissions
+from rest_framework import viewsets, permissions
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from courses.serializers import CourseSerializer
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -25,6 +26,46 @@ class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly,
                           ]
+
+class ListCanvasCourses(APIView):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request):
+        canvas = get_canvas_object()
+        list_to_include = [
+            "course_image",
+            "teachers","total_students",
+            "sections","course_progress",
+            "term","public_description"]
+        canvas_courses = []
+        try:
+            canvas_courses = canvas.get_courses( 
+                include=list_to_include)
+        except Exception as e:
+            print(e)
+            return Response(
+                data=None,
+                status=500,
+            )
+        canvas_courses_serialized = []
+        for canvas_course in canvas_courses:
+            retrieved_dict = canvas_course.__dict__
+            course_dict = {
+                'canvas_id': canvas_course.id,
+                'name': retrieved_dict.get('name', ''),
+                'course_code': retrieved_dict.get('course_code', ''),
+                'term': retrieved_dict.get('term', ''),
+                'total_students': retrieved_dict.get('total_students', 0),
+                'teachers': retrieved_dict.get('teachers', []),
+            }
+            try:
+                Course.objects.get(canvas_id=canvas_course.id)
+                course_dict['already_exists'] = True
+            except Course.DoesNotExist:
+                course_dict['already_exists'] = False
+            canvas_courses_serialized.append(course_dict)
+        return Response(canvas_courses_serialized, status=200)
+
 
 @login_required
 def course_detail_view(request, pk):

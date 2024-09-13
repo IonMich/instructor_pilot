@@ -1,14 +1,16 @@
 import json
-import re
 
 from django.apps import apps
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 
+from courses.utils import get_canvas_object
 from sections.models import Meeting, Section
 
-from rest_framework import viewsets
-from rest_framework import permissions
+from rest_framework import viewsets, permissions
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 
 from sections.permissions import IsOwnerOrReadOnly
 from sections.serializers import SectionSerializer
@@ -46,6 +48,46 @@ class SectionInCourseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         course_id = self.kwargs["course_pk"]
         return Section.objects.filter(course_id=course_id)
+
+class ListCanvasCourseSections(APIView):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request, course_id):
+        canvas = get_canvas_object()
+        list_to_include = [
+            "enrollments", "total_students", 
+            "passback_status", "permissions",
+        ]
+        canvas_course = None
+        try:
+            canvas_course = canvas.get_course(
+                course_id, 
+                use_sis_id=False,
+                include=list_to_include)
+        except Exception as e:
+            print(e)
+            return Response(
+                data=None,
+                status=500,
+            )
+        canvas_sections = canvas_course.get_sections(
+            include=list_to_include)
+        canvas_sections_serialized = []
+        for section in canvas_sections:
+            retrieved_dict = section.__dict__
+            
+            section_dict = {
+                'canvas_id': section.id,
+                'name': retrieved_dict.get('name', ''),
+                'course_id': retrieved_dict.get('course_id', ''),
+                'total_students': retrieved_dict.get('total_students', 0),
+                'enrollments': retrieved_dict.get('enrollments', []),
+            }
+            canvas_sections_serialized.append(section_dict)
+        return Response(canvas_sections_serialized, status=200)
+    
+
+
 
 
 @login_required

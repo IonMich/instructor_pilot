@@ -20,6 +20,8 @@ import {
   patchSubmission,
   deleteSubmission,
   Submission,
+  fetchCanvasCourses,
+  fetchCanvasSectionsOfCourse,
 } from "./fetchData"
 
 const subKeys = {
@@ -206,3 +208,18 @@ export const useCreateCommentMutation = (submissionId: string) => {
     gcTime: 1000 * 10,
   })
 }
+
+export const canvasCoursesQueryOptions = () => {
+  return queryOptions({
+    queryKey: ["canvas", "courses"],
+    queryFn: fetchCanvasCourses,
+  })
+}
+
+export const canvasCourseSectionsQueryOptions = (courseId: number) => {
+  return queryOptions({
+    queryKey: ["canvas", "sections", "list", `courseId=${courseId}`],
+    queryFn: () => fetchCanvasSectionsOfCourse(courseId),
+  })
+}
+
