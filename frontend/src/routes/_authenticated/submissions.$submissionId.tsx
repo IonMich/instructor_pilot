@@ -622,9 +622,7 @@ function ChatForm({ submission }: { submission: Submission }) {
   const { toast } = useToast()
   const createCommentMutation = useCreateCommentMutation(submission.id)
   const CommentFormSchema = z.object({
-    text: z
-      .string()
-      .min(1),
+    text: z.string().min(1),
   })
   const form = useForm<z.infer<typeof CommentFormSchema>>({
     resolver: zodResolver(CommentFormSchema),

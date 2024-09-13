@@ -102,7 +102,8 @@ export function DataTable<TData, TValue>({
         <div
           className={cn(
             "flex items-center gap-0 mr-2",
-            locationListType === "rows" && "hidden"
+            (locationListType === "rows" || table.getRowModel().rows.length === 0) &&
+              "hidden" 
           )}
         >
           {Array.from({ length: maxPage }, (_, i) => i + 1).map(
@@ -257,7 +258,7 @@ function RenderTableAsCards({
           </div>
         ))
       ) : (
-        <div className="h-24 text-center">
+        <div className="h-24 text-center col-span-full m-4">
           {
             // if filter is applied
             table.getColumn("student")?.getFilterValue()
