@@ -1,12 +1,21 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LuPlus, LuUser2 } from "react-icons/lu"
+import { LuCheckCircle, LuPlus, LuUser2 } from "react-icons/lu"
 import { RxReload } from "react-icons/rx"
-import { Link, createFileRoute, useLoaderData } from "@tanstack/react-router"
+import {
+  Link,
+  createFileRoute,
+  useLoaderData,
+  useRouter,
+} from "@tanstack/react-router"
 import {
   canvasCourseSectionsQueryOptions,
   canvasCoursesQueryOptions,
   coursesQueryOptions,
+  useCreateCourseWithCanvasSectionsMutation,
+  usePopulateStudentsCanvasMutation,
+  useCreateAssignmentsCanvasMutation,
+  useCreateAnnouncementsCanvasMutation,
 } from "@/utils/queryOptions"
 import { useQuery } from "@tanstack/react-query"
 import { CanvasCourse, Course } from "@/utils/fetchData"
@@ -37,7 +46,7 @@ import {
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { toast } from "@/components/ui/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 
 function getBreadcrumbItems() {
   return []
@@ -85,7 +94,7 @@ function CoursesDeck({ courses, user }: { courses: Course[]; user: string }) {
         <span
           role="img"
           aria-label="wave"
-          className="mx-2 inline-block hover:transform hover:scale-110 duration-200"
+          className="mx-2 inline-block hover:transform hover:scale-125 duration-200"
         >
           👋
         </span>
@@ -123,6 +132,8 @@ function AddCourseDialogWithTrigger() {
   const [addType, setAddType] = React.useState("")
   const [selectedCourse, setSelectedCourse] =
     React.useState<CanvasCourse | null>(null)
+  const [selectedSections, setSelectedSections] = React.useState<number[]>([])
+  const [finishedAll, setFinishedAll] = React.useState(false)
   return (
     <Dialog
       open={addDialogOpen}
@@ -160,8 +171,15 @@ function AddCourseDialogWithTrigger() {
           )}
           {step === 1 && addType === "manual" && <div>Manual</div>}
           {step === 2 && selectedCourse && (
-            <SelectCourseSections selectedCourse={selectedCourse} />
+            <SelectCourseSections
+              selectedCourse={selectedCourse}
+              setSelectedSections={setSelectedSections}
+              setStep={setStep}
+              finishedAll={finishedAll}
+              setFinishedAll={setFinishedAll}
+            />
           )}
+          {step === 3 && <AllProgressCompleted />}
         </div>
       </DialogContent>
     </Dialog>
@@ -294,14 +312,29 @@ function SelectCanvasCourse({
 
 function SelectCourseSections({
   selectedCourse,
+  setSelectedSections,
+  setStep,
+  finishedAll,
+  setFinishedAll,
 }: {
   selectedCourse: CanvasCourse
+  setSelectedSections: (sections: number[]) => void
+  setStep: (step: number) => void
+  finishedAll: boolean
+  setFinishedAll: (finished: boolean) => void
 }) {
   const { queryKey, queryFn } = canvasCourseSectionsQueryOptions(
     selectedCourse.canvas_id
   )
+  const router = useRouter()
+  const { toast } = useToast()
+  const createCourseCanvasMutation = useCreateCourseWithCanvasSectionsMutation()
+  const populateStudentsCanvasMutation = usePopulateStudentsCanvasMutation()
+  const createAssignmentsCanvasMutation = useCreateAssignmentsCanvasMutation()
+  const createAnnouncementsCanvasMutation =
+    useCreateAnnouncementsCanvasMutation()
   const formSchema = z.object({
-    sections: z.array(z.string()),
+    sections: z.array(z.number()),
   })
   const response = useQuery({
     queryKey,
@@ -327,29 +360,81 @@ function SelectCourseSections({
     )
   }
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values)
-    toast({
-      title: "You submitted the following values:",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(values, null, 2)}</code>
-        </pre>
-      ),
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const mutationData = {
+      courseId: selectedCourse.canvas_id,
+      sectionIds: values.sections,
+    }
+    setSelectedSections(values.sections)
+    await createCourseCanvasMutation.mutateAsync(mutationData, {
+      onError: (error) => {
+        console.error(error)
+        toast({
+          title: "Error creating course",
+          description: "An error occurred while creating the course.",
+          variant: "destructive",
+        })
+      },
     })
+    await populateStudentsCanvasMutation.mutateAsync(mutationData, {
+      onError: (error) => {
+        console.error(error)
+        toast({
+          title: "Error creating course",
+          description: "An error occurred while creating the course.",
+          variant: "destructive",
+        })
+      },
+    })
+    await createAssignmentsCanvasMutation.mutateAsync(mutationData, {
+      onError: (error) => {
+        console.error(error)
+        toast({
+          title: "Error creating course",
+          description: "An error occurred while creating the course.",
+          variant: "destructive",
+        })
+      },
+    })
+    await createAnnouncementsCanvasMutation.mutateAsync(mutationData, {
+      onError: (error) => {
+        console.error(error)
+        toast({
+          title: "Error creating course",
+          description: "An error occurred while creating the course.",
+          variant: "destructive",
+        })
+      },
+      onSuccess: () => {
+        setFinishedAll(true)
+        setStep(3)
+        router.invalidate()
+      },
+    })
+  }
+
+  // if any of the steps is not finished, show the progress
+  if (!finishedAll && !createCourseCanvasMutation.isIdle) {
+    return (
+      <ProgressAddFromCanvas
+        finishedItems={{
+          sections: createCourseCanvasMutation.isSuccess,
+          students: populateStudentsCanvasMutation.isSuccess,
+          assignments: createAssignmentsCanvasMutation.isSuccess,
+          announcements: createAnnouncementsCanvasMutation.isSuccess,
+        }}
+      />
+    )
   }
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="overflow-y-auto h-full space-y-8"
-      >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full space-y-8">
         <FormField
           control={form.control}
           name="sections"
           render={() => (
-            <FormItem>
+            <FormItem className="overflow-y-auto h-5/6">
               <div className="mb-4">
                 <FormLabel className="text-base">Course Sections</FormLabel>
                 <FormDescription>
@@ -370,19 +455,16 @@ function SelectCourseSections({
                         >
                           <FormControl>
                             <Checkbox
-                              checked={field.value?.includes(
-                                section.canvas_id.toString()
-                              )}
+                              checked={field.value?.includes(section.canvas_id)}
                               onCheckedChange={(checked) => {
                                 return checked
                                   ? field.onChange([
                                       ...field.value,
-                                      section.canvas_id.toString(),
+                                      section.canvas_id,
                                     ])
                                   : field.onChange(
                                       field.value?.filter(
-                                        (value) =>
-                                          value !== section.canvas_id.toString()
+                                        (value) => value !== section.canvas_id
                                       )
                                     )
                               }}
@@ -416,5 +498,68 @@ function SelectCourseSections({
         </Button>
       </form>
     </Form>
+  )
+}
+
+function ProgressAddFromCanvas({
+  finishedItems,
+}: {
+  finishedItems: {
+    sections: boolean
+    students: boolean
+    assignments: boolean
+    announcements: boolean
+  }
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4 h-full justify-center items-center">
+      <div className="flex flex-col justify-start items-start gap-4 h-full">
+        <p className="text-lg font-bold">Creating course:</p>
+
+        <div className="flex flex-row justify-start items-start gap-4">
+          {finishedItems.sections ? (
+            <LuCheckCircle className="text-green-500" />
+          ) : (
+            <Loader />
+          )}
+          <p>Creating Student Sections...</p>
+        </div>
+        <div className="flex flex-row justify-start items-start gap-4">
+          {finishedItems.students ? (
+            <LuCheckCircle className="text-green-500" />
+          ) : (
+            <Loader />
+          )}
+          <p>Populating Sections with Students...</p>
+        </div>
+        <div className="flex flex-row justify-start items-start gap-4">
+          {finishedItems.assignments ? (
+            <LuCheckCircle className="text-green-500" />
+          ) : (
+            <Loader />
+          )}
+          <p>Creating Assignments...</p>
+        </div>
+        <div className="flex flex-row justify-start items-start gap-4">
+          {finishedItems.announcements ? (
+            <LuCheckCircle className="text-green-500" />
+          ) : (
+            <Loader />
+          )}
+          <p>Creating Announcements...</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AllProgressCompleted() {
+  return (
+    <div className="grid grid-cols-1 h-full">
+      <div className="flex justify-center items-center gap-4">
+        <LuCheckCircle className="text-green-500" />
+        <p className="text-lg font-bold">Course created successfully!</p>
+      </div>
+    </div>
   )
 }

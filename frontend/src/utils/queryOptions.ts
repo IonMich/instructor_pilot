@@ -223,3 +223,74 @@ export const canvasCourseSectionsQueryOptions = (courseId: number) => {
   })
 }
 
+export const useCreateCourseWithCanvasSectionsMutation = () => {
+  return useMutation({
+    mutationKey: ["canvas", "createCourse"],
+    mutationFn: async ({
+      courseId,
+      sectionIds,
+    }: {
+      courseId: number
+      sectionIds: number[]
+    }) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      console.log("Creating course with sections", courseId, sectionIds)
+    },
+    // onSuccess: () => {
+    //   console.log("Course created")
+    //   queryClient.invalidateQueries()
+    // },
+    gcTime: 1000 * 10,
+  })
+}
+
+export const usePopulateStudentsCanvasMutation = () => {
+  return useMutation({
+    mutationKey: ["canvas", "populateStudents"],
+    mutationFn: async ({
+      courseId,
+      sectionIds,
+    }: {
+      courseId: number
+      sectionIds: number[]
+    }) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      console.log("Populating students for course", courseId, "section", sectionIds)
+    },
+    gcTime: 1000 * 10,
+  })
+}
+
+export const useCreateAssignmentsCanvasMutation = () => {
+  return useMutation({
+    mutationKey: ["canvas", "createAssignments"],
+    mutationFn: async ({
+      courseId,
+      sectionIds,
+    }: {
+      courseId: number
+      sectionIds: number[]
+    }) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      console.log("Creating assignments for course", courseId, "section", sectionIds)
+    },
+    gcTime: 1000 * 10,
+  })
+}
+
+export const useCreateAnnouncementsCanvasMutation = () => {
+  return useMutation({
+    mutationKey: ["canvas", "createAnnouncements"],
+    mutationFn: async ({
+      courseId,
+      sectionIds,
+    }: {
+      courseId: number
+      sectionIds: number[]
+    }) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      console.log("Creating announcements for course", courseId, "section", sectionIds)
+    },
+    gcTime: 1000 * 10,
+  })
+}
