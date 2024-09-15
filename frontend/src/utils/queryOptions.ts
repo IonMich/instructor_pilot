@@ -22,6 +22,7 @@ import {
   Submission,
   fetchCanvasCourses,
   fetchCanvasSectionsOfCourse,
+  createCourseWithSectionsCanvas,
 } from "./fetchData"
 
 const subKeys = {
@@ -227,19 +228,24 @@ export const useCreateCourseWithCanvasSectionsMutation = () => {
   return useMutation({
     mutationKey: ["canvas", "createCourse"],
     mutationFn: async ({
-      courseId,
-      sectionIds,
+      courseCanvasId,
+      sectionCanvasIds,
     }: {
-      courseId: number
-      sectionIds: number[]
+      courseCanvasId: number
+      sectionCanvasIds: number[]
     }) => {
       await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log("Creating course with sections", courseId, sectionIds)
+      console.log(
+        "Creating course with sections",
+        courseCanvasId,
+        sectionCanvasIds
+      )
+      const data = await createCourseWithSectionsCanvas({
+        courseCanvasId,
+        sectionCanvasIds,
+      })
+      return data
     },
-    // onSuccess: () => {
-    //   console.log("Course created")
-    //   queryClient.invalidateQueries()
-    // },
     gcTime: 1000 * 10,
   })
 }
@@ -248,14 +254,19 @@ export const usePopulateStudentsCanvasMutation = () => {
   return useMutation({
     mutationKey: ["canvas", "populateStudents"],
     mutationFn: async ({
-      courseId,
-      sectionIds,
+      courseCanvasId,
+      sectionCanvasIds,
     }: {
-      courseId: number
-      sectionIds: number[]
+      courseCanvasId: number
+      sectionCanvasIds: number[]
     }) => {
       await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log("Populating students for course", courseId, "section", sectionIds)
+      console.log(
+        "Populating students for course",
+        courseCanvasId,
+        "section",
+        sectionCanvasIds
+      )
     },
     gcTime: 1000 * 10,
   })
@@ -265,14 +276,19 @@ export const useCreateAssignmentsCanvasMutation = () => {
   return useMutation({
     mutationKey: ["canvas", "createAssignments"],
     mutationFn: async ({
-      courseId,
-      sectionIds,
+      courseCanvasId,
+      sectionCanvasIds,
     }: {
-      courseId: number
-      sectionIds: number[]
+      courseCanvasId: number
+      sectionCanvasIds: number[]
     }) => {
       await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log("Creating assignments for course", courseId, "section", sectionIds)
+      console.log(
+        "Creating assignments for course",
+        courseCanvasId,
+        "section",
+        sectionCanvasIds
+      )
     },
     gcTime: 1000 * 10,
   })
@@ -282,14 +298,19 @@ export const useCreateAnnouncementsCanvasMutation = () => {
   return useMutation({
     mutationKey: ["canvas", "createAnnouncements"],
     mutationFn: async ({
-      courseId,
-      sectionIds,
+      courseCanvasId,
+      sectionCanvasIds,
     }: {
-      courseId: number
-      sectionIds: number[]
+      courseCanvasId: number
+      sectionCanvasIds: number[]
     }) => {
       await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log("Creating announcements for course", courseId, "section", sectionIds)
+      console.log(
+        "Creating announcements for course",
+        courseCanvasId,
+        "section",
+        sectionCanvasIds
+      )
     },
     gcTime: 1000 * 10,
   })

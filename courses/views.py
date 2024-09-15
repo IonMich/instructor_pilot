@@ -65,6 +65,36 @@ class ListCanvasCourses(APIView):
                 course_dict['already_exists'] = False
             canvas_courses_serialized.append(course_dict)
         return Response(canvas_courses_serialized, status=200)
+    
+class GetCanvasCourse(APIView):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request, course_id):
+        canvas = get_canvas_object()
+        list_to_include = [
+                "course_image","observed_users",
+                "teachers","total_students",
+                "sections","course_progress",
+                "term","public_description",
+                "course_image", "public_description",
+        ]
+        canvas_course = None
+        try:
+            canvas_course = canvas.get_course(
+                    int(course_id), 
+                    use_sis_id=False,
+                    include=list_to_include)
+        except Exception as e:
+            print(e)
+            return JsonResponse(
+                {
+                    'message': 'Something went wrong while fetching course from Canvas.',
+                    'success': False,
+            })
+        course_dict = canvas_course.__dict__
+        # remove the _requester object
+        course_dict.pop('_requester')
+        return Response(course_dict, status=200)
 
 
 @login_required

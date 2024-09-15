@@ -132,8 +132,6 @@ function AddCourseDialogWithTrigger() {
   const [addType, setAddType] = React.useState("")
   const [selectedCourse, setSelectedCourse] =
     React.useState<CanvasCourse | null>(null)
-  const [selectedSections, setSelectedSections] = React.useState<number[]>([])
-  const [finishedAll, setFinishedAll] = React.useState(false)
   return (
     <Dialog
       open={addDialogOpen}
@@ -173,10 +171,7 @@ function AddCourseDialogWithTrigger() {
           {step === 2 && selectedCourse && (
             <SelectCourseSections
               selectedCourse={selectedCourse}
-              setSelectedSections={setSelectedSections}
               setStep={setStep}
-              finishedAll={finishedAll}
-              setFinishedAll={setFinishedAll}
             />
           )}
           {step === 3 && <AllProgressCompleted />}
@@ -312,16 +307,10 @@ function SelectCanvasCourse({
 
 function SelectCourseSections({
   selectedCourse,
-  setSelectedSections,
   setStep,
-  finishedAll,
-  setFinishedAll,
 }: {
   selectedCourse: CanvasCourse
-  setSelectedSections: (sections: number[]) => void
   setStep: (step: number) => void
-  finishedAll: boolean
-  setFinishedAll: (finished: boolean) => void
 }) {
   const { queryKey, queryFn } = canvasCourseSectionsQueryOptions(
     selectedCourse.canvas_id
@@ -362,15 +351,14 @@ function SelectCourseSections({
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     const mutationData = {
-      courseId: selectedCourse.canvas_id,
-      sectionIds: values.sections,
+      courseCanvasId: selectedCourse.canvas_id,
+      sectionCanvasIds: values.sections,
     }
-    setSelectedSections(values.sections)
     await createCourseCanvasMutation.mutateAsync(mutationData, {
       onError: (error) => {
         console.error(error)
         toast({
-          title: "Error creating course",
+          title: "Error creating course or course sections",
           description: "An error occurred while creating the course.",
           variant: "destructive",
         })
@@ -380,7 +368,7 @@ function SelectCourseSections({
       onError: (error) => {
         console.error(error)
         toast({
-          title: "Error creating course",
+          title: "Error populating students in sections",
           description: "An error occurred while creating the course.",
           variant: "destructive",
         })
@@ -390,7 +378,7 @@ function SelectCourseSections({
       onError: (error) => {
         console.error(error)
         toast({
-          title: "Error creating course",
+          title: "Error creating assignments or assignment groups",
           description: "An error occurred while creating the course.",
           variant: "destructive",
         })
@@ -400,13 +388,12 @@ function SelectCourseSections({
       onError: (error) => {
         console.error(error)
         toast({
-          title: "Error creating course",
+          title: "Error creating announcements",
           description: "An error occurred while creating the course.",
           variant: "destructive",
         })
       },
       onSuccess: () => {
-        setFinishedAll(true)
         setStep(3)
         router.invalidate()
       },
@@ -414,7 +401,7 @@ function SelectCourseSections({
   }
 
   // if any of the steps is not finished, show the progress
-  if (!finishedAll && !createCourseCanvasMutation.isIdle) {
+  if (form.formState.isSubmitting) {
     return (
       <ProgressAddFromCanvas
         finishedItems={{
@@ -493,7 +480,11 @@ function SelectCourseSections({
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={form.formState.isSubmitting}
+        >
           Add Course
         </Button>
       </form>
@@ -511,43 +502,25 @@ function ProgressAddFromCanvas({
     announcements: boolean
   }
 }) {
+  const descriptions = {
+    sections: "Creating course sections",
+    students: "Populating students",
+    assignments: "Creating assignments",
+    announcements: "Creating announcements",
+  }
   return (
     <div className="grid grid-cols-1 gap-4 h-full justify-center items-center">
       <div className="flex flex-col justify-start items-start gap-4 h-full">
         <p className="text-lg font-bold">Creating course:</p>
-
-        <div className="flex flex-row justify-start items-start gap-4">
-          {finishedItems.sections ? (
-            <LuCheckCircle className="text-green-500" />
-          ) : (
-            <Loader />
-          )}
-          <p>Creating Student Sections...</p>
-        </div>
-        <div className="flex flex-row justify-start items-start gap-4">
-          {finishedItems.students ? (
-            <LuCheckCircle className="text-green-500" />
-          ) : (
-            <Loader />
-          )}
-          <p>Populating Sections with Students...</p>
-        </div>
-        <div className="flex flex-row justify-start items-start gap-4">
-          {finishedItems.assignments ? (
-            <LuCheckCircle className="text-green-500" />
-          ) : (
-            <Loader />
-          )}
-          <p>Creating Assignments...</p>
-        </div>
-        <div className="flex flex-row justify-start items-start gap-4">
-          {finishedItems.announcements ? (
-            <LuCheckCircle className="text-green-500" />
-          ) : (
-            <Loader />
-          )}
-          <p>Creating Announcements...</p>
-        </div>
+        {Object.entries(finishedItems).map(([key, value]) => (
+          <div
+            key={key}
+            className="flex flex-row justify-start items-start gap-4"
+          >
+            {value ? <LuCheckCircle className="text-green-500" /> : <Loader />}
+            <p>{descriptions[key as keyof typeof descriptions]}</p>
+          </div>
+        ))}
       </div>
     </div>
   )

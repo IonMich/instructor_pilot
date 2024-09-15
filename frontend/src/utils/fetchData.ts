@@ -1,6 +1,12 @@
 import axios from "axios"
 import { loaderFn } from "./utils"
 import { auth } from "./auth"
+import {
+  getCanvasCourseLegacyAPI,
+  handleCreateCourseSubmitLegacyAPI,
+  getAvailableSectionInfoLegacyAPI,
+  handleCreateSectionsSubmitLegacyAPI,
+} from "./legacyAPI"
 export interface Section {
   id: number
   url: string
@@ -54,6 +60,14 @@ export interface CanvasSection {
   canvas_id: number
   name: string
   total_students: number
+}
+
+export interface CanvasStudent {
+  canvas_id: number
+  name: string
+  enrollments: {
+    course_section_id: number
+  }[]
 }
 
 export interface Assignment {
@@ -499,7 +513,9 @@ export async function fetchCanvasSectionsOfCourse(courseId: number) {
   const canvas_sections = loaderFn(() =>
     Promise.resolve().then(async () => {
       const items = await axios
-        .get<CanvasSection[]>(`${baseAPIUrl}canvas/courses/${courseId}/sections/`)
+        .get<CanvasSection[]>(
+          `${baseAPIUrl}canvas/courses/${courseId}/sections/`
+        )
         .then((response) => response.data)
         .catch((error) => {
           throw error
@@ -510,3 +526,48 @@ export async function fetchCanvasSectionsOfCourse(courseId: number) {
   return canvas_sections
 }
 
+export async function createCourseWithSectionsCanvas({
+  courseCanvasId,
+  sectionCanvasIds,
+}: {
+  courseCanvasId: number
+  sectionCanvasIds: number[]
+}) {
+  const responseCanvasCourse = await getCanvasCourseLegacyAPI(courseCanvasId)
+  // const courseCreationData =
+  //   await handleCreateCourseSubmitLegacyAPI(responseCanvasCourse)
+  // const courseId = courseCreationData.course_id
+  const response = (await getAvailableSectionInfoLegacyAPI(courseCanvasId)) as {
+    sections: CanvasSection[]
+    students: CanvasStudent[]
+    course_description: string
+  }
+
+  const [responseCanvasSections, responseCanvasStudents, responseDescription] =
+    [response.sections, response.students, response.course_description]
+  if (responseCanvasCourse.id !== courseCanvasId) {
+    throw new Error("Canvas course ID does not match.")
+  }
+  if (responseDescription) {
+    console.log(`responseDescription: ${responseDescription}`)
+    responseCanvasCourse.description = responseDescription
+  }
+  if (!responseCanvasStudents || responseCanvasStudents.length === 0) {
+    throw new Error("No Canvas sections found.")
+  }
+  const selectedCanvasSections = responseCanvasSections.filter((section) =>
+    sectionCanvasIds.includes(section.id)
+  )
+  const selectedCanvasStudents = responseCanvasStudents.filter((student) =>
+    sectionCanvasIds.includes(student.enrollments[0].course_section_id)
+  )
+  // const sectionsCreationData = await handleCreateSectionsSubmitLegacyAPI(
+  //   selectedCanvasSections,
+  //   courseId
+  // )
+  return {
+    course: courseCreationData,
+    sections: sectionsCreationData,
+    students: selectedCanvasStudents,
+  }
+}
