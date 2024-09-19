@@ -2,6 +2,8 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 
 import { queryClient } from "../app"
 
+import { CanvasStudent } from "./types"
+
 import {
   fetchCourseById,
   fetchCourses,
@@ -24,6 +26,13 @@ import {
   fetchCanvasSectionsOfCourse,
   createCourseWithSectionsCanvas,
 } from "./fetchData"
+
+import {
+  populateStudentsCanvas,
+  createAssignmentGroupsCanvas,
+  createAssignmentsCanvas,
+  createAnnouncementsCanvas,
+} from "./legacyAPI"
 
 const subKeys = {
   all: "all" as const,
@@ -234,7 +243,6 @@ export const useCreateCourseWithCanvasSectionsMutation = () => {
       courseCanvasId: number
       sectionCanvasIds: number[]
     }) => {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
       console.log(
         "Creating course with sections",
         courseCanvasId,
@@ -254,19 +262,18 @@ export const usePopulateStudentsCanvasMutation = () => {
   return useMutation({
     mutationKey: ["canvas", "populateStudents"],
     mutationFn: async ({
-      courseCanvasId,
-      sectionCanvasIds,
+      selectedCanvasStudents,
+      courseId,
     }: {
-      courseCanvasId: number
-      sectionCanvasIds: number[]
+      selectedCanvasStudents: CanvasStudent[]
+      courseId: number
     }) => {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log(
-        "Populating students for course",
-        courseCanvasId,
-        "section",
-        sectionCanvasIds
-      )
+      await populateStudentsCanvas({
+        selectedCanvasStudents,
+        courseId,
+      })
+
+      console.log("Populating students for course", courseId)
     },
     gcTime: 1000 * 10,
   })
@@ -277,17 +284,16 @@ export const useCreateAssignmentsCanvasMutation = () => {
     mutationKey: ["canvas", "createAssignments"],
     mutationFn: async ({
       courseCanvasId,
-      sectionCanvasIds,
+      courseId,
     }: {
       courseCanvasId: number
-      sectionCanvasIds: number[]
+      courseId: number
     }) => {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await createAssignmentGroupsCanvas({ courseCanvasId, courseId })
+      await createAssignmentsCanvas({ courseCanvasId, courseId })
       console.log(
-        "Creating assignments for course",
-        courseCanvasId,
-        "section",
-        sectionCanvasIds
+        "Creating assignment groups and assignments for course",
+        courseId
       )
     },
     gcTime: 1000 * 10,
@@ -299,18 +305,13 @@ export const useCreateAnnouncementsCanvasMutation = () => {
     mutationKey: ["canvas", "createAnnouncements"],
     mutationFn: async ({
       courseCanvasId,
-      sectionCanvasIds,
+      courseId,
     }: {
       courseCanvasId: number
-      sectionCanvasIds: number[]
+      courseId: number
     }) => {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log(
-        "Creating announcements for course",
-        courseCanvasId,
-        "section",
-        sectionCanvasIds
-      )
+      await createAnnouncementsCanvas({ courseCanvasId, courseId })
+      console.log("Creating announcements for course", courseId)
     },
     gcTime: 1000 * 10,
   })

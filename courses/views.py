@@ -69,7 +69,7 @@ class ListCanvasCourses(APIView):
 class GetCanvasCourse(APIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    def get(self, request, course_id):
+    def get(self, request, canvas_id):
         canvas = get_canvas_object()
         list_to_include = [
                 "course_image","observed_users",
@@ -81,20 +81,364 @@ class GetCanvasCourse(APIView):
         canvas_course = None
         try:
             canvas_course = canvas.get_course(
-                    int(course_id), 
+                    int(canvas_id), 
                     use_sis_id=False,
                     include=list_to_include)
         except Exception as e:
             print(e)
-            return JsonResponse(
-                {
-                    'message': 'Something went wrong while fetching course from Canvas.',
-                    'success': False,
-            })
+            return Response(
+                data=None,
+                status=500,
+            )
         course_dict = canvas_course.__dict__
         # remove the _requester object
         course_dict.pop('_requester')
         return Response(course_dict, status=200)
+    
+    
+class ListCanvasCourseAssignmentGroups(APIView):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request, canvas_id):
+        canvas = get_canvas_object()
+        try:
+            canvas_course = canvas.get_course(canvas_id)
+            canvas_assignment_groups = canvas_course.get_assignment_groups()
+        except Exception as e:
+            print(e)
+            return Response(
+                data=None,
+                status=500,
+            )
+        canvas_assignment_groups_serialized = []
+        for assignment_group in canvas_assignment_groups:
+            assignment_group_dict = assignment_group.__dict__
+            # remove the _requester object
+            assignment_group_dict.pop('_requester')
+            canvas_assignment_groups_serialized.append(assignment_group_dict)
+        return Response(canvas_assignment_groups_serialized, status=200)
+    
+class ListCanvasCourseAssignments(APIView):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request, canvas_id):
+        canvas = get_canvas_object()
+        try:
+            canvas_course = canvas.get_course(canvas_id)
+            canvas_assignments = canvas_course.get_assignments()
+        except Exception as e:
+            print(e)
+            return Response(
+                data=None,
+                status=500,
+            )
+        canvas_assignments_serialized = []
+        for assignment in canvas_assignments:
+            assignment_dict = assignment.__dict__
+            # remove the _requester object
+            assignment_dict.pop('_requester')
+            canvas_assignments_serialized.append(assignment_dict)
+        return Response(canvas_assignments_serialized, status=200)
+
+class ListCanvasCourseAnnouncements(APIView):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get(self, request, canvas_id):
+        canvas = get_canvas_object()
+        try:
+            canvas_course = canvas.get_course(canvas_id)
+            canvas_announcements = canvas_course.get_discussion_topics(
+                only_announcements=True
+            )
+        except Exception as e:
+            print(e)
+            return Response(
+                data=None,
+                status=500,
+            )
+        canvas_announcements_serialized = []
+        for announcement in canvas_announcements:
+            announcement_dict = announcement.__dict__
+            # remove the _requester object
+            announcement_dict.pop('_requester')
+            canvas_announcements_serialized.append(announcement_dict)
+        return Response(canvas_announcements_serialized, status=200)
+    
+class PostCanvasCourse(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request):
+
+        data = json.loads(request.body)
+        course_canvas_id = data.pop('canvas_id')
+        print(data)
+        course_image_url = data.pop('image_url')
+        
+        try:
+            course, created = Course.objects.update_or_create(
+                canvas_id=course_canvas_id,
+                defaults={
+                    **data,
+                }
+            )
+        except Exception as e:
+            print("Handling exception: ", e)
+            response = {
+                'message': 'Error creating course!',
+                'success': False,
+            }
+            return Response(response, status=500)
+
+        try:
+            update_course_image(course, course_image_url)
+        except Exception as e:
+            print("Handling exception: ", e)
+            pass
+
+        if created:
+            message = 'Course created successfully!'
+        else:
+            message = 'Course found and updated successfully!'
+
+        response_data = {
+            'message': message,
+            'course_id': course.pk,
+            'category': "course",
+            'created': created,
+            'success': True,
+        }
+
+        return Response(response_data, status=200)
+
+class PostCanvasSection(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request, course_id):
+        data = json.loads(request.body)
+        course = Course.objects.get(pk=course_id)
+        Section = apps.get_model('sections', 'Section')
+        section, created = Section.objects.update_or_create(
+            canvas_id=data.get('canvas_id'),
+            defaults={
+                **data,
+                'course': course,
+                'teaching_assistant': request.user,
+            }
+        )
+
+        if created:
+            message = 'Section created successfully!'
+        else:
+            message = 'Section found and updated successfully!'
+        print(message)
+        response = {
+            'message': message,
+            'section_id': section.pk,
+            'category': "sections",
+            'created': created,
+            'success': True,
+        }
+
+        return Response(response, status=200)
+    
+class PostCanvasCourseEnrollments(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request, course_id):
+        """create a view that creates a student in a course"""
+        Course = apps.get_model("courses", "Course")
+        data = json.loads(request.body)
+        students_data_str = data.get("students")
+        students_data = json.loads(students_data_str)
+        course = Course.objects.get(pk=course_id)
+        Student = apps.get_model("students", "Student")
+        Section = apps.get_model("sections", "Section")
+
+        profiles = []
+        print(f"lenght of students_data: {len(students_data)}")
+        created_list = []
+        for student_data in students_data:
+            section_id = student_data.pop("section_id")
+            try:
+                new_course_section = Section.objects.get(canvas_id=section_id)
+            except Section.DoesNotExist:
+                print(f"Section with canvas_id {section_id} does not exist")
+                response = {
+                    "message": f"Section with canvas_id {section_id} does not exist",
+                    "success": False,
+                }
+                return Response(response, status=500)
+            except Section.MultipleObjectsReturned:
+                print(f"Multiple sections with canvas_id {section_id} exist")
+                response = {
+                    "message": f"Multiple sections with canvas_id {section_id} exist",
+                    "success": False,
+                }
+                return Response(response, status=500)
+            except Exception as e:
+                print(e)
+                response = {
+                    "message": "Something went wrong!",
+                    "success": False,
+                }
+                return Response(response, status=500)
+            bio = student_data.pop("bio")
+            avatar_url = student_data.pop("avatar_url")
+            defaults = {
+                **student_data,
+            }
+            student, created = Student.objects.get_or_create(
+                canvas_id=student_data.get("canvas_id"), defaults=defaults
+            )
+            # if student exists and uni_id is numeric, update uni_id only if defaults['uni_id'] is also numeric
+            if (not created) and (student.uni_id) and (student.uni_id.isnumeric()):
+                data_uni_id = student_data.get("uni_id", "")
+                if data_uni_id and (not data_uni_id.isnumeric()):
+                    print(
+                        f"uni_id {data_uni_id} is not numeric, not overridding existing numeric id {student.uni_id}"
+                    )
+                    defaults.pop("uni_id")
+            if not created:
+                for key, value in defaults.items():
+                    print(f"setting {key} from {getattr(student, key)} to {value}")
+                    setattr(student, key, value)
+                student.save()
+
+            created_list.append(created)
+
+            student_course_sections = student.sections.filter(course=course)
+            student.sections.remove(*student_course_sections)
+            student.sections.add(new_course_section)
+
+            profiles.append(
+                {
+                    "profile": student.profile,
+                    "bio": bio,
+                    "new_avatar_url": avatar_url,
+                }
+            )
+
+        print("Updating avatars from canvas ...")
+        Student.update_profiles_from_canvas(profiles)
+        print("Done updating avatars from canvas ...")
+
+        response = {
+            "message": "All students enrolled successfully!",
+            "created": created_list,
+            "success": True,
+        }
+        return Response(response, status=200)
+    
+class PostCanvasAssignmentGroup(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request, course_id):
+        data = json.loads(request.body)
+        course = Course.objects.get(pk=course_id)
+        AssignmentGroup = apps.get_model('assignments', 'AssignmentGroup')
+        assignment_group, created = AssignmentGroup.objects.update_or_create(
+            canvas_id=data.get('canvas_id'),
+            defaults={
+                **data,
+                'course': course,
+            }
+        )
+
+        if created:
+            message = 'Assignment Group created successfully!'
+        else:
+            message = 'Assignment Group found and updated successfully!'
+
+        response = {
+            'message': message,
+            'assignment_group_id': assignment_group.pk,
+            'created': created,
+            'category': "assignment_groups",
+            'success': True,
+        }
+
+        return Response(response, status=200)
+    
+class PostCanvasAssignment(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request, course_id):
+        data = json.loads(request.body)
+        assignment_group_id = data.pop('assignment_group_object_id')
+        AssignmentGroup = apps.get_model('assignments', 'AssignmentGroup')
+        assignment_group = AssignmentGroup.objects.get(canvas_id=assignment_group_id)
+        course = Course.objects.get(pk=course_id)
+        Assignment = apps.get_model('assignments', 'Assignment')
+
+        
+        defaults={
+            **data,
+            'assignment_group_object': assignment_group,
+            'course': course,
+        }
+
+        try:
+            assignment, created = Assignment.objects.get_or_create(
+                canvas_id=data.get('canvas_id'),
+                defaults=defaults
+            )
+            num_subs_with_grader = assignment.get_all_submissions().filter(graded_by__isnull=False).count()
+            num_subs_with_question_grades = assignment.get_all_submissions().filter(question_grades__isnull=False).count()
+            if (not created) and (num_subs_with_grader > 0 or num_subs_with_question_grades > 0):
+                defaults.pop('max_question_scores')
+                print("Assignment has graded submissions. Not updating max_question_scores.")
+            if (not created):
+                print(assignment)
+                print("Assignment is updated")
+                for key, value in defaults.items():
+                    setattr(assignment, key, value)
+                assignment.save()
+
+        except Exception as e:
+            print("Handling exception: ", e)
+            return Response({
+                'message': 'Error creating or updating assignment.',
+                'success': False,
+            }, status=500)
+
+        if created:
+            message = 'Assignment created successfully!'
+        else:
+            message = 'Assignment found and updated successfully!'
+
+        response = {
+            'message': message,
+            'assignment_id': assignment.pk,
+            'category': "assignments",
+            'created': created,
+            'success': True,
+        }
+
+        return Response(response, status=200)
+    
+class PostCanvasAnnouncement(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request, course_id):
+        data = json.loads(request.body)
+        course = Course.objects.get(pk=course_id)
+        Announcement = apps.get_model('courses', 'Announcement')
+        announcement, created = Announcement.objects.update_or_create(
+            canvas_id=data.get('canvas_id'),
+            defaults={
+                **data,
+                'course': course,
+            }
+        )
+
+        if created:
+            message = 'Announcement created successfully!'
+        else:
+            message = 'Announcement found and updated successfully!'
+
+        response = {
+            'message': message,
+            'announcement_id': announcement.pk,
+            'category': "announcements",
+            'created': created,
+            'success': True,
+        }
+
+        return Response(response, status=200)
 
 
 @login_required

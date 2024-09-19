@@ -1,6 +1,7 @@
 import axios from "axios"
 import { loaderFn } from "./utils"
 import { auth } from "./auth"
+import { CanvasSection, CanvasStudent } from "./types"
 import {
   getCanvasCourseLegacyAPI,
   handleCreateCourseSubmitLegacyAPI,
@@ -54,20 +55,6 @@ export interface CanvasCourse {
     display_name: string
   }[]
   already_exists: boolean
-}
-
-export interface CanvasSection {
-  canvas_id: number
-  name: string
-  total_students: number
-}
-
-export interface CanvasStudent {
-  canvas_id: number
-  name: string
-  enrollments: {
-    course_section_id: number
-  }[]
 }
 
 export interface Assignment {
@@ -409,7 +396,6 @@ export async function patchSubmission({
     id: number
   }
 }) {
-  // use auth to get the token
   const token = auth.getToken()
   return loaderFn(() =>
     axios
@@ -431,7 +417,6 @@ export async function createSubmissionsBySplittingPDFs({
   pagesPerSubmission: number
   filesToSplit: FileList
 }) {
-  // use auth to get the token
   const token = auth.getToken()
   const formData = new FormData()
   Array.from(filesToSplit).forEach((file) => {
@@ -451,7 +436,6 @@ export async function createSubmissionsBySplittingPDFs({
 }
 
 export async function deleteSubmission(submissionId: string) {
-  // use auth to get the token
   const token = auth.getToken()
   return await loaderFn(() =>
     axios
@@ -474,7 +458,6 @@ export async function createCommentOnSubmission({
   submissionId: string
   text: string
 }) {
-  // use auth to get the token
   const token = auth.getToken()
   return loaderFn(() =>
     axios
@@ -534,9 +517,15 @@ export async function createCourseWithSectionsCanvas({
   sectionCanvasIds: number[]
 }) {
   const responseCanvasCourse = await getCanvasCourseLegacyAPI(courseCanvasId)
-  // const courseCreationData =
-  //   await handleCreateCourseSubmitLegacyAPI(responseCanvasCourse)
-  // const courseId = courseCreationData.course_id
+
+  const courseCreationData =
+    await handleCreateCourseSubmitLegacyAPI(responseCanvasCourse)
+  const courseId = courseCreationData.course_id
+  if (!courseId) {
+    throw new Error("Course ID not found.")
+  }
+  console.log(`courseId: ${courseId}`)
+
   const response = (await getAvailableSectionInfoLegacyAPI(courseCanvasId)) as {
     sections: CanvasSection[]
     students: CanvasStudent[]
@@ -555,16 +544,18 @@ export async function createCourseWithSectionsCanvas({
   if (!responseCanvasStudents || responseCanvasStudents.length === 0) {
     throw new Error("No Canvas sections found.")
   }
+  console.log(responseCanvasSections)
   const selectedCanvasSections = responseCanvasSections.filter((section) =>
-    sectionCanvasIds.includes(section.id)
+    sectionCanvasIds.includes(section.canvas_id)
   )
+  console.log(selectedCanvasSections)
   const selectedCanvasStudents = responseCanvasStudents.filter((student) =>
     sectionCanvasIds.includes(student.enrollments[0].course_section_id)
   )
-  // const sectionsCreationData = await handleCreateSectionsSubmitLegacyAPI(
-  //   selectedCanvasSections,
-  //   courseId
-  // )
+  const sectionsCreationData = await handleCreateSectionsSubmitLegacyAPI(
+    selectedCanvasSections,
+    courseId
+  )
   return {
     course: courseCreationData,
     sections: sectionsCreationData,

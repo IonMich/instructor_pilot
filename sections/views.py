@@ -54,7 +54,7 @@ class SectionInCourseViewSet(viewsets.ModelViewSet):
 class ListCanvasCourseSections(APIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    def get(self, request, course_id):
+    def get(self, request, canvas_id):
         canvas = get_canvas_object()
         list_to_include = [
             "enrollments",
@@ -65,7 +65,7 @@ class ListCanvasCourseSections(APIView):
         canvas_course = None
         try:
             canvas_course = canvas.get_course(
-                course_id, use_sis_id=False, include=list_to_include
+                canvas_id, use_sis_id=False, include=list_to_include
             )
         except Exception as e:
             print(e)
@@ -125,6 +125,7 @@ class ListCanvasCourseSectionsDetailed(APIView):
             section_dict = section.__dict__
             # remove the _requester object
             section_dict.pop("_requester")
+            section_dict["canvas_id"] = section_dict["id"]
             canvas_sections_serialized.append(section_dict)
         canvas_sections = canvas_course.sections
         for section in canvas_sections:
@@ -163,6 +164,7 @@ class ListCanvasCourseSectionsDetailed(APIView):
             user_dict = user.__dict__
             # remove the _requester object
             user_dict.pop("_requester")
+            user_dict["canvas_id"] = user_dict["id"]
             student_section_enrollments = user_dict["enrollments"]
             for enrollment in student_section_enrollments:
                 if enrollment["type"] != "StudentEnrollment":
@@ -357,4 +359,73 @@ def api_section_meetings(request, pk):
     else:
         return JsonResponse(
             {"error": "Invalid request method: {}".format(request.method)}
+        )
+
+class SectionMeetingsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, section_id):
+        try:
+            section = Section.objects.get(pk=section_id)
+        except Section.DoesNotExist:
+            return Response(
+                {"error": "Section with pk {} does not exist".format(section_id)},
+                status=404,
+            )
+        try:
+            print(f"Deleting meetings for section: {section}")
+            print(section.meetings.all())
+            section.meetings.all().delete()
+        except Exception as e:
+            return Response(
+                {
+                    "message": "Error deleting meetings: {}".format(e),
+                    "success": False,
+                },
+                status=500,
+            )
+        print(f"Deleted meetings for section: {section}")
+        return Response(
+            {
+                "message": "Meetings deleted successfully!",
+                "success": True,
+            },
+            status=200,
+        )
+    
+    def put(self, request, section_id):
+        try:
+            section = Section.objects.get(pk=section_id)
+        except Section.DoesNotExist:
+            return Response(
+                {"error": "Section with pk {} does not exist".format(section_id)},
+                status=404,
+            )
+        try:
+            print(f"Creating meetings for section: {section}")
+            print(request)
+            print(request.data)
+            body = request.data
+            meeting = Meeting.objects.create(**body)
+            section.meetings.add(meeting)
+            print(f"Created meeting: {meeting}")
+        except Exception as e:
+            print(e)
+            section.meetings.all().delete()
+            return Response(
+                {
+                    "message": "Error creating meeting: {}".format(e),
+                    "success": False,
+                },
+                status=500,
+            )
+        meeting_id = meeting.pk
+
+        return Response(
+            {
+                "message": "Course synced successfully!",
+                "meeting_id": meeting_id,
+                "success": True,
+            },
+            status=200,
         )

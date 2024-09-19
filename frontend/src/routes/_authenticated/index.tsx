@@ -354,7 +354,7 @@ function SelectCourseSections({
       courseCanvasId: selectedCourse.canvas_id,
       sectionCanvasIds: values.sections,
     }
-    await createCourseCanvasMutation.mutateAsync(mutationData, {
+    const data = await createCourseCanvasMutation.mutateAsync(mutationData, {
       onError: (error) => {
         console.error(error)
         toast({
@@ -364,7 +364,14 @@ function SelectCourseSections({
         })
       },
     })
-    await populateStudentsCanvasMutation.mutateAsync(mutationData, {
+    console.log("Course created", data)
+    const courseId = data.course.course_id
+    const populateMutationData = {
+      selectedCanvasStudents: data.students,
+      courseId,
+    }
+
+    await populateStudentsCanvasMutation.mutateAsync(populateMutationData, {
       onError: (error) => {
         console.error(error)
         toast({
@@ -374,7 +381,11 @@ function SelectCourseSections({
         })
       },
     })
-    await createAssignmentsCanvasMutation.mutateAsync(mutationData, {
+    const assignmentMutationData = {
+      courseCanvasId: selectedCourse.canvas_id,
+      courseId,
+    }
+    await createAssignmentsCanvasMutation.mutateAsync(assignmentMutationData, {
       onError: (error) => {
         console.error(error)
         toast({
@@ -384,7 +395,11 @@ function SelectCourseSections({
         })
       },
     })
-    await createAnnouncementsCanvasMutation.mutateAsync(mutationData, {
+    const announceMutationData = {
+      courseCanvasId: selectedCourse.canvas_id,
+      courseId,
+    }
+    await createAnnouncementsCanvasMutation.mutateAsync(announceMutationData, {
       onError: (error) => {
         console.error(error)
         toast({
