@@ -409,8 +409,9 @@ function SelectCourseSections({
         })
       },
       onSuccess: () => {
-        setStep(3)
         router.invalidate()
+        setStep(3)
+        router.navigate({to: "/courses/$courseId", params: {courseId}})
       },
     })
   }
@@ -541,13 +542,16 @@ function ProgressAddFromCanvas({
   )
 }
 
-function AllProgressCompleted() {
+function AllProgressCompleted(courseId: number) {
   return (
     <div className="grid grid-cols-1 h-full">
       <div className="flex justify-center items-center gap-4">
         <LuCheckCircle className="text-green-500" />
         <p className="text-lg font-bold">Course created successfully!</p>
       </div>
+      <Link to="/courses/$courseId" params={{ courseId }}>
+        <Button>View Course</Button>
+      </Link>
     </div>
   )
 }
