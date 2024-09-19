@@ -11,6 +11,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             'description', 
             'max_score', 
             'assignment_group_object', 
+            'assignment_group', 
             'position', 
             'submission_count', 
             'course', 

@@ -81,6 +81,9 @@ function getBreadcrumbItems(course: Course): TBreadcrumbItem[] {
 
 function CourseDashboard() {
   const courseId = Route.useParams().courseId
+  const [{ data: course }] = useSuspenseQueries({
+    queries: [courseQueryOptions(courseId)],
+  })
   const [{ data: sections }, { data: assignments }] = useSuspenseQueries({
     queries: [
       sectionsQueryOptions(courseId),
@@ -93,6 +96,9 @@ function CourseDashboard() {
   )
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+      <h1 className="text-5xl font-bold py-8 text-center">
+        {course?.name ?? "Course with ID" + course?.canvas_id}
+      </h1>
       <div className="grid gap-4 grid-cols-2 md:gap-8 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

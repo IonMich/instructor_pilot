@@ -69,6 +69,7 @@ export interface Assignment {
   get_average_grade: number
   get_grading_progress: number
   assignment_group_object: AssignmentGroup
+  assignment_group: string
 }
 
 export interface PaperSubmissionImage {

@@ -31,20 +31,30 @@ export function SectionList({ sections }: { sections: Section[] }) {
 
 export function AssignmentList({ assignments }: { assignments: Assignment[] }) {
   const userPreferedGroup = "Quizzes"
-  const preferredKey = assignments.find(
+  const getAssignmentGroupName = (assignment: Assignment) => {
+    // if the assignment has no assignment_group_object, return assignment.assignment_group
+    // if the assignment has no assignment_group, return "Assignments"
+    return assignment.assignment_group_object?.name ?? assignment.assignment_group ?? "Assignments"
+  }
+  const getAssignmentGroupId = (assignment: Assignment) => {
+    // if the assignment has no assignment_group_object, return a hash of assignment.assignment_group
+    // if the assignment has no assignment_group, return hash of "Assignments"
+    return assignment.assignment_group_object?.id ?? assignment.assignment_group ?? "Assignments"
+  }
+  const preferredKey = getAssignmentGroupId(assignments.find(
     (assignment) =>
-      assignment.assignment_group_object.name === userPreferedGroup
-  )?.assignment_group_object.id
+      getAssignmentGroupName(assignment) === userPreferedGroup
+  )??assignments[0])
   const [tabValue, setTabValue] = React.useState(preferredKey)
   const assignmentGroups = assignments.reduce(
     (acc, assignment) => {
-      if (!acc[assignment.assignment_group_object.id]) {
-        acc[assignment.assignment_group_object.id] = {
-          name: assignment.assignment_group_object.name,
+      if (!acc[getAssignmentGroupId(assignment)]) {
+        acc[getAssignmentGroupId(assignment)] = {
+          name: getAssignmentGroupName(assignment),
           assignments: [],
         }
       }
-      acc[assignment.assignment_group_object.id].assignments.push(assignment)
+      acc[getAssignmentGroupId(assignment)].assignments.push(assignment)
       return acc
     },
     {} as Record<string, { name: string; assignments: Assignment[] }>
