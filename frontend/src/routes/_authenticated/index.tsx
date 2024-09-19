@@ -2,12 +2,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LuCheckCircle, LuPlus, LuUser2 } from "react-icons/lu"
 import { RxReload } from "react-icons/rx"
-import {
-  Link,
-  createFileRoute,
-  useLoaderData,
-  useRouter,
-} from "@tanstack/react-router"
+import { Link, createFileRoute, useRouter } from "@tanstack/react-router"
 import {
   canvasCourseSectionsQueryOptions,
   canvasCoursesQueryOptions,
@@ -17,7 +12,7 @@ import {
   useCreateAssignmentsCanvasMutation,
   useCreateAnnouncementsCanvasMutation,
 } from "@/utils/queryOptions"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useSuspenseQueries } from "@tanstack/react-query"
 import { CanvasCourse, Course } from "@/utils/fetchData"
 import { auth } from "@/utils/auth"
 import {
@@ -62,9 +57,11 @@ const Loader = ({ className }: { className?: string }) => {
 
 export const Route = createFileRoute("/_authenticated/")({
   loader: async (opts) => {
-    const coursesPromise = opts.context.queryClient.ensureQueryData(
-      coursesQueryOptions()
-    )
+    const coursesPromise = opts.context.queryClient.ensureQueryData({
+      ...coursesQueryOptions(),
+      // If set to true, stale data will be refetched in the background, but cached data will be returned immediately.
+      revalidateIfStale: true,
+    })
     const courses = await coursesPromise
     return {
       courses: courses,
@@ -77,7 +74,9 @@ export const Route = createFileRoute("/_authenticated/")({
 
 function Index() {
   const user = auth.getUsername() || ""
-  const { courses } = useLoaderData({ from: "/_authenticated/" })
+  const [{ data: courses }] = useSuspenseQueries({
+    queries: [coursesQueryOptions()],
+  })
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4">
       <CoursesDeck courses={courses} user={user} />
@@ -130,6 +129,9 @@ function AddCourseDialogWithTrigger() {
   // if add manually, show the form to add the course
   const [step, setStep] = React.useState(0)
   const [addType, setAddType] = React.useState("")
+  const [createdCourseId, setCreatedCourseId] = React.useState<number | null>(
+    null
+  )
   const [selectedCourse, setSelectedCourse] =
     React.useState<CanvasCourse | null>(null)
   return (
@@ -172,9 +174,10 @@ function AddCourseDialogWithTrigger() {
             <SelectCourseSections
               selectedCourse={selectedCourse}
               setStep={setStep}
+              setCreatedCourseId={setCreatedCourseId}
             />
           )}
-          {step === 3 && <AllProgressCompleted />}
+          {step === 3 && <AllProgressCompleted courseId={createdCourseId!} />}
         </div>
       </DialogContent>
     </Dialog>
@@ -308,9 +311,11 @@ function SelectCanvasCourse({
 function SelectCourseSections({
   selectedCourse,
   setStep,
+  setCreatedCourseId,
 }: {
   selectedCourse: CanvasCourse
   setStep: (step: number) => void
+  setCreatedCourseId: (courseId: number) => void
 }) {
   const { queryKey, queryFn } = canvasCourseSectionsQueryOptions(
     selectedCourse.canvas_id
@@ -410,8 +415,9 @@ function SelectCourseSections({
       },
       onSuccess: () => {
         router.invalidate()
+        setCreatedCourseId(courseId)
         setStep(3)
-        router.navigate({to: "/courses/$courseId", params: {courseId}})
+        // router.navigate({to: "/courses/$courseId", params: {courseId}})
       },
     })
   }
@@ -542,7 +548,7 @@ function ProgressAddFromCanvas({
   )
 }
 
-function AllProgressCompleted(courseId: number) {
+function AllProgressCompleted({ courseId }: { courseId: number }) {
   return (
     <div className="grid grid-cols-1 h-full">
       <div className="flex justify-center items-center gap-4">
