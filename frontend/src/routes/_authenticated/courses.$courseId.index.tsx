@@ -96,9 +96,14 @@ function CourseDashboard() {
   )
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      <h1 className="text-5xl font-bold py-8 text-center">
-        {course?.name ?? "Course with ID" + course?.canvas_id}
-      </h1>
+      <div className="flex flex-col gap-4 text-center">
+        <h1 className="text-5xl font-bold">
+          {course?.name ?? "Course with ID" + course?.canvas_id}
+        </h1>
+        <p className="text-2xl text-muted-foreground">
+          {course?.course_code} {course?.term ? `(${course?.term})` : ""}
+        </p>
+      </div>
       <div className="grid gap-4 grid-cols-2 md:gap-8 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -134,7 +139,7 @@ function CourseDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">999</div>
-            <p className="text-xs text-muted-foreground">99 from last month</p>
+            <p className="text-xs text-muted-foreground">99 this week</p>
           </CardContent>
         </Card>
         <Card>
@@ -144,7 +149,7 @@ function CourseDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">999</div>
-            <p className="text-xs text-muted-foreground">99 since last hour</p>
+            <p className="text-xs text-muted-foreground">99 this week</p>
           </CardContent>
         </Card>
       </div>

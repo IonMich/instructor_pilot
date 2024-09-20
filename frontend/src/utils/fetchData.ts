@@ -13,11 +13,19 @@ export interface Section {
   url: string
   name: string
   teaching_assistant: string
-  meetings: string
+  meetings: Meeting[]
   course: Course | number
   class_number: string
   canvas_id: string
   students_count: number
+}
+
+export interface Meeting {
+  id: number
+  day: string
+  start_time: string
+  end_time: string
+  section: Section
 }
 
 export interface Student {

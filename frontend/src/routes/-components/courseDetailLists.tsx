@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Link } from "@tanstack/react-router"
 import { LuFile } from "react-icons/lu"
+import { Badge } from "@/components/ui/badge"
 
 export function SectionList({ sections }: { sections: Section[] }) {
   return (
@@ -23,6 +24,13 @@ export function SectionList({ sections }: { sections: Section[] }) {
               </p>
             </div>
           </div>
+          <div className="ml-auto font-medium mr-4 flex flex-col items-center gap-1">
+            {section.meetings.map((meeting) => (
+              <p className="text-sm font-medium leading-none" key={meeting.id}>
+                {meeting.day} {meeting.start_time} - {meeting.end_time}
+              </p>
+            ))}
+          </div>
         </Link>
       ))}
     </>
@@ -34,17 +42,26 @@ export function AssignmentList({ assignments }: { assignments: Assignment[] }) {
   const getAssignmentGroupName = (assignment: Assignment) => {
     // if the assignment has no assignment_group_object, return assignment.assignment_group
     // if the assignment has no assignment_group, return "Assignments"
-    return assignment.assignment_group_object?.name ?? assignment.assignment_group ?? "Assignments"
+    return (
+      assignment.assignment_group_object?.name ??
+      assignment.assignment_group ??
+      "Assignments"
+    )
   }
   const getAssignmentGroupId = (assignment: Assignment) => {
     // if the assignment has no assignment_group_object, return a hash of assignment.assignment_group
     // if the assignment has no assignment_group, return hash of "Assignments"
-    return assignment.assignment_group_object?.id ?? assignment.assignment_group ?? "Assignments"
+    return (
+      assignment.assignment_group_object?.id ??
+      assignment.assignment_group ??
+      "Assignments"
+    )
   }
-  const preferredKey = getAssignmentGroupId(assignments.find(
-    (assignment) =>
-      getAssignmentGroupName(assignment) === userPreferedGroup
-  )??assignments[0])
+  const preferredKey = getAssignmentGroupId(
+    assignments.find(
+      (assignment) => getAssignmentGroupName(assignment) === userPreferedGroup
+    ) ?? assignments[0]
+  )
   const [tabValue, setTabValue] = React.useState(preferredKey)
   const assignmentGroups = assignments.reduce(
     (acc, assignment) => {
@@ -112,30 +129,61 @@ export function AssignmentList({ assignments }: { assignments: Assignment[] }) {
             </div>
             <ScrollArea className="max-h-56 overflow-y-auto">
               {group.assignments.map((assignment) => (
-                <Link
-                  to="/assignments/$assignmentId"
+                <AssignmentListElement
+                  assignment={assignment}
                   key={assignment.id}
-                  params={{ assignmentId: assignment.id }}
-                  className="flex items-center first:mt-2 hover:bg-muted/50 p-4 mx-1 rounded-lg duration-200"
-                >
-                  <div className="grid gap-1">
-                    <p className="text-sm font-medium leading-none">
-                      {assignment.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {assignment.max_score} points
-                    </p>
-                  </div>
-                  <div className="ml-auto font-medium mr-4 flex items-center gap-1">
-                    {assignment.submission_count}{" "}
-                    <LuFile className="h-4 w-4 inline" />
-                  </div>
-                </Link>
+                />
               ))}
             </ScrollArea>
           </TabsContent>
         )
       })}
     </Tabs>
+  )
+}
+
+
+function AssignmentListElement({ assignment }: { assignment: Assignment }) {
+  return (
+    <Link
+      to="/assignments/$assignmentId"
+      params={{ assignmentId: assignment.id }}
+      className="flex items-center first:mt-2 hover:bg-muted/50 p-4 rounded-lg duration-200"
+    >
+      <div className="grid gap-1">
+        <p className="text-sm font-medium leading-none">{assignment.name}</p>
+        <p className="text-sm text-muted-foreground">
+          {assignment.max_score} point
+          {assignment.max_score == 1 ? "" : "s"} (
+          {assignment.max_question_scores.split(",").length} question
+          {assignment.max_question_scores.split(",").length > 1 ? "s" : ""}
+          )
+        </p>
+      </div>
+      <div className="ml-auto font-medium mr-4 flex items-center gap-1">
+        {assignment.submission_count > 0 && (
+          <>
+            <Badge
+              color="primary"
+              className="hover:bg-primary"
+              title="Average grade"
+            >
+              Avg. {assignment.get_average_grade.toFixed(1)} /{" "}
+              {assignment.max_score}
+            </Badge>
+            <Badge
+              color="primary"
+              className="hover:bg-primary"
+              title="Grading progress"
+            >
+              {assignment.get_grading_progress.toFixed(1)}%
+            </Badge>
+          </>
+        )}
+        <Badge color="primary" className="hover:bg-primary">
+          {assignment.submission_count} <LuFile className="h-4 w-4 inline" />
+        </Badge>
+      </div>
+    </Link>
   )
 }

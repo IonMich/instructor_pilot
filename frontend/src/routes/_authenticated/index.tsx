@@ -59,7 +59,8 @@ export const Route = createFileRoute("/_authenticated/")({
   loader: async (opts) => {
     const coursesPromise = opts.context.queryClient.ensureQueryData({
       ...coursesQueryOptions(),
-      // If set to true, stale data will be refetched in the background, but cached data will be returned immediately.
+      // If set to true, stale data will be refetched in the background, 
+      // but cached data will be returned immediately.
       revalidateIfStale: true,
     })
     const courses = await coursesPromise
@@ -108,7 +109,7 @@ function CoursesDeck({ courses, user }: { courses: Course[]; user: string }) {
           params={{ courseId: course.id }}
         >
           <Card className="flex flex-col items-center justify-center h-40 p-4 hover:bg-accent duration-200">
-            <p className="text-xl font-bold">{course.course_code}</p>
+            <p className="text-xl font-bold">{course.course_code} {course?.term ? course?.term : ""}</p>
             <p title={course.name}>
               {course.name.length > 40
                 ? course.name.slice(0, 40) + "..."
