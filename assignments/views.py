@@ -28,6 +28,8 @@ from .utils import delete_versions
 
 from rest_framework import viewsets
 from rest_framework import permissions
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from assignments.serializers import AssignmentSerializer
 # Create your views here.
 
@@ -52,6 +54,14 @@ class AssignmentInCourseViewSet(viewsets.ModelViewSet):
         course_id = self.kwargs['course_pk']
         return Assignment.objects.filter(course_id=course_id)
 
+class ListAssignmentScoresViewSet(APIView):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+    def get(self, request, assignment_id):
+        assignment = get_object_or_404(Assignment, pk=assignment_id)
+        scores = assignment.get_all_grades()
+        return Response(scores)
+    
 @login_required
 def assignment_detail_view(request,  course_pk, assignment_pk):
     # course = get_object_or_404(Course, pk=course_pk)

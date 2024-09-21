@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Link } from "@tanstack/react-router"
 import { LuFile } from "react-icons/lu"
 import { Badge } from "@/components/ui/badge"
+import { assignmentScoresQueryOptions } from "@/utils/queryOptions"
 
 export function SectionList({ sections }: { sections: Section[] }) {
   return (
@@ -160,12 +161,15 @@ function AssignmentListElement({ assignment }: { assignment: Assignment }) {
           )
         </p>
       </div>
+      {assignment.submission_count > 0 && (
+          <AssignmentScoresHistogram assignmentId={assignment.id} />
+        )}
       <div className="ml-auto font-medium mr-4 flex items-center gap-1">
         {assignment.submission_count > 0 && (
           <>
             <Badge
               color="primary"
-              className="hover:bg-primary"
+              className="hover:bg-primary whitespace-nowrap"
               title="Average grade"
             >
               Avg. {assignment.get_average_grade.toFixed(1)} /{" "}
@@ -186,5 +190,39 @@ function AssignmentListElement({ assignment }: { assignment: Assignment }) {
         </Badge>
       </div>
     </Link>
+  )
+}
+
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
+import { Bar, BarChart } from "recharts"
+import { useSuspenseQuery } from "@tanstack/react-query"
+ 
+const chartConfig = {
+  total: {
+    label: "Total",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig
+
+function AssignmentScoresHistogram({ assignmentId }: { assignmentId: number }) {
+  // random scores from assignment.submission_count and assignment.max_score
+  const {data: scores} = useSuspenseQuery(
+    assignmentScoresQueryOptions(assignmentId)
+  )
+  if (!scores) {
+    return null
+  }
+  const maxScore = Math.max(...scores)
+  const scoreCounts = Array.from({ length: maxScore + 1 }, () => 0)
+  scores.forEach((score) => {
+    scoreCounts[score] += 1
+  })
+  const scoreCountsData = scoreCounts.map((total, score) => ({ total, score }))
+  return (
+    <ChartContainer config={chartConfig} className="h-[40px] w-1/4 ml-auto">
+      <BarChart accessibilityLayer data={scoreCountsData}>
+        <Bar dataKey="total" fill="var(--color-total)" radius={4} />
+      </BarChart>
+    </ChartContainer>
   )
 }

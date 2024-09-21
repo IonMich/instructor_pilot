@@ -35,7 +35,7 @@ from courses.views import (
     PostCanvasAssignmentGroup,
     PostCanvasAssignment,
     PostCanvasAnnouncement,
-    ListCanvasCourseAssignmentGroups, 
+    ListCanvasCourseAssignmentGroups,
     ListCanvasCourseAssignments,
     ListCanvasCourseAnnouncements,
 )
@@ -46,7 +46,11 @@ from sections.views import (
     ListCanvasCourseSectionsDetailed,
     SectionMeetingsView,
 )
-from assignments.views import AssignmentInCourseViewSet, AssignmentViewSet
+from assignments.views import (
+    AssignmentInCourseViewSet,
+    AssignmentViewSet,
+    ListAssignmentScoresViewSet,
+)
 from students.views import StudentInSectionViewSet, StudentInCourseViewSet
 from submissions.views import (
     PaperSubmissionViewSet,
@@ -105,6 +109,11 @@ urlpatterns = [
     path("", include("courses.urls", namespace="courses")),
     path("", include("assignments.urls", namespace="assignments")),
     path("", include("sections.urls", namespace="sections")),
+    path(
+        "api/assignments/<int:assignment_id>/scores/",
+        ListAssignmentScoresViewSet.as_view(),
+        name="assignment-scores",
+    ),
     # canvas api
     path("api/canvas/courses/", ListCanvasCourses.as_view(), name="canvas-courses"),
     path(

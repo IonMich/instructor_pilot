@@ -277,6 +277,25 @@ export async function fetchAssignmentById(assignmentId: number) {
   return assignment
 }
 
+export async function fetchAssignmentScoresById(assignmentId: number) {
+  console.log("Fetching assignment scores by Id", assignmentId)
+  const assignmentScores = loaderFn(() =>
+    Promise.resolve().then(async () => {
+      const result = await axios
+        .get<number[]>(`${assignmentUrlMapper(assignmentId)}scores/`)
+        .then((response) => response.data)
+        .catch((error) => {
+          if (error.response?.status === 404) {
+            throw new Error(`Assignment ${assignmentId} not found`)
+          }
+          throw error
+        })
+      return result
+    })
+  )
+  return assignmentScores
+}
+
 export const ensureStudents = async (sectionId: number) => {
   if (!studentsPromise[sectionId]) {
     studentsPromise[sectionId] = Promise.resolve().then(async () => {

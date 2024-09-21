@@ -11,6 +11,7 @@ import {
   fetchSectionById,
   fetchAssignmentsOfCourse,
   fetchAssignmentById,
+  fetchAssignmentScoresById,
   fetchStudents,
   fetchStudentsOfCourse,
   fetchStudentOfCourseById,
@@ -83,6 +84,14 @@ export const assignmentQueryOptions = (assignmentId: number) => {
   return queryOptions({
     queryKey: ["assignment", assignmentId],
     queryFn: () => fetchAssignmentById(assignmentId),
+    enabled: !!assignmentId,
+  })
+}
+
+export const assignmentScoresQueryOptions = (assignmentId: number) => {
+  return queryOptions({
+    queryKey: ["assignment", assignmentId, "scores"],
+    queryFn: () => fetchAssignmentScoresById(assignmentId),
     enabled: !!assignmentId,
   })
 }
