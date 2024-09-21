@@ -25,6 +25,7 @@ import {
   fetchCanvasCourses,
   fetchCanvasSectionsOfCourse,
   createCourseWithSectionsCanvas,
+  fetchCanvasCourse,
 } from "./fetchData"
 
 import {
@@ -223,6 +224,13 @@ export const canvasCoursesQueryOptions = () => {
   return queryOptions({
     queryKey: ["canvas", "courses"],
     queryFn: fetchCanvasCourses,
+  })
+}
+
+export const canvasCourseQueryOptions = (canvasCourseId: string) => {
+  return queryOptions({
+    queryKey: ["canvas", "course", canvasCourseId],
+    queryFn: () => fetchCanvasCourse(canvasCourseId),
   })
 }
 

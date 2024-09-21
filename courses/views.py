@@ -93,6 +93,7 @@ class GetCanvasCourse(APIView):
         course_dict = canvas_course.__dict__
         # remove the _requester object
         course_dict.pop('_requester')
+        course_dict['canvas_id'] = canvas_course.id
         return Response(course_dict, status=200)
     
     

@@ -1,5 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { LuFiles, LuMail, LuMegaphone, LuUsers } from "react-icons/lu"
+import {
+  LuFiles,
+  LuMail,
+  LuMegaphone,
+  LuRefreshCcw,
+  LuUsers,
+} from "react-icons/lu"
 import {
   Card,
   CardContent,
@@ -15,11 +21,27 @@ import {
   sectionsQueryOptions,
   assignmentsQueryOptions,
   courseQueryOptions,
+  canvasCourseQueryOptions,
 } from "@/utils/queryOptions"
 import { seo } from "@/utils/utils"
-import { Course } from "@/utils/fetchData"
-import { useSuspenseQueries } from "@tanstack/react-query"
+import { CanvasCourse, Course, Section } from "@/utils/fetchData"
+import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
 import { TBreadcrumbItem } from "../-components/breadcrumbs"
+import { Button } from "@/components/ui/button"
+import React from "react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
+import {
+  AllProgressCompleted,
+  SelectCourseSections,
+} from "../-components/syncCanvasCourse"
 
 export const Route = createFileRoute("/_authenticated/courses/$courseId/")({
   parseParams: (params) => ({
@@ -100,9 +122,12 @@ function CourseDashboard() {
         <h1 className="text-5xl font-bold">
           {course?.name ?? "Course with ID" + course?.canvas_id}
         </h1>
-        <p className="text-2xl text-muted-foreground">
-          {course?.course_code} {course?.term ? `(${course?.term})` : ""}
-        </p>
+        <div className="flex flex-row items-center justify-center gap-2">
+          <p className="text-2xl text-muted-foreground">
+            {course?.course_code} {course?.term ? `(${course?.term})` : ""}
+          </p>
+          {course.canvas_id && <SyncCourseDialogWithTrigger course={course} existing_sections={sections} />}
+        </div>
       </div>
       <div className="grid gap-4 grid-cols-2 md:gap-8 lg:grid-cols-4">
         <Card>
@@ -155,9 +180,6 @@ function CourseDashboard() {
       </div>
       <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
         <Card className="xl:col-span-2 lg:order-last">
-          {/* <CardHeader>
-              <CardTitle>Assignments</CardTitle>
-            </CardHeader> */}
           <CardContent className="grid gap-0 px-0">
             <AssignmentList assignments={assignments} />
           </CardContent>
@@ -168,12 +190,6 @@ function CourseDashboard() {
               <CardTitle>Sections</CardTitle>
               <CardDescription></CardDescription>
             </div>
-            {/* <Button asChild size="sm" className="ml-auto gap-1">
-                <Link href="#">
-                  View All
-                  <LuArrowUpRight className="h-4 w-4" />
-                </Link>
-              </Button> */}
           </CardHeader>
           <CardContent className="grid gap-4">
             <SectionList sections={sections} />
@@ -182,4 +198,98 @@ function CourseDashboard() {
       </div>
     </main>
   )
+}
+
+function SyncCourseDialogWithTrigger({ course, existing_sections }: { course: Course, existing_sections: Section[] }) {
+  const defaultStep = 1
+  const [addDialogOpen, setAddDialogOpen] = React.useState(false)
+  const [step, setStep] = React.useState(defaultStep)
+  const [courseId, setCourseId] = React.useState(course.id)
+  const [canvasCourse, setCanvasCourse] = React.useState<CanvasCourse | null>(
+    null
+  )
+  const courseCanvasId = course.canvas_id
+  // define the three steps of the dialog
+  // choose the type (sync from canvas or add manually)
+  // if sync from canvas, show the list of courses to choose from
+  // if add manually, show the form to add the course
+  return (
+    <Dialog
+      open={addDialogOpen}
+      onOpenChange={(open) => {
+        setAddDialogOpen(open)
+        if (!open) {
+          // should also abort any ongoing requests
+          setStep(defaultStep)
+          setCanvasCourse(null)
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1"
+          title="Sync Course with Canvas"
+        >
+          Sync with Canvas <LuRefreshCcw className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Sync Course {step}</DialogTitle>
+          <DialogDescription></DialogDescription>
+        </DialogHeader>
+        <Separator />
+        <div className="h-96">
+          {step === 1 && (
+            <FetchCanvasCourse
+              setStep={setStep}
+              setCanvasCourse={setCanvasCourse}
+              courseCanvasId={courseCanvasId}
+            />
+          )}
+          {step === 2 && canvasCourse && (
+            <SelectCourseSections
+              existingSections={existing_sections}
+              selectedCanvasCourse={canvasCourse}
+              setStep={setStep}
+              setCourseId={setCourseId}
+            />
+          )}
+          {step === 3 && <AllProgressCompleted courseId={courseId} setAddDialogOpen={setAddDialogOpen} />}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function FetchCanvasCourse({
+  courseCanvasId,
+  setStep,
+  setCanvasCourse,
+}: {
+  courseCanvasId: string
+  setStep: React.Dispatch<React.SetStateAction<number>>
+  setCanvasCourse: React.Dispatch<React.SetStateAction<CanvasCourse | null>>
+}) {
+  const { data: canvasCourse } = useSuspenseQuery(
+    canvasCourseQueryOptions(courseCanvasId)
+  )
+  React.useEffect(() => {
+    if (canvasCourse) {
+      console.log("canvasCourse", canvasCourse)
+      setCanvasCourse(canvasCourse)
+      setStep(2)
+    }
+  }, [canvasCourse, setCanvasCourse, setStep])
+  if (!canvasCourse) {
+    return (
+      <div className="grid grid-cols-1 h-full">
+        <div className="flex justify-center items-center">
+          <p>Loading course details from Canvas. This may take a while...</p>
+        </div>
+      </div>
+    )
+  }
 }

@@ -499,6 +499,22 @@ export async function fetchCanvasCourses() {
   return canvas_courses
 }
 
+export async function fetchCanvasCourse(canvasId: string) {
+  console.log("Fetching Canvas Course", canvasId)
+  const canvas_course = loaderFn(() =>
+    Promise.resolve().then(async () => {
+      const item = await axios
+        .get<CanvasCourse>(`${baseAPIUrl}canvas/courses/${canvasId}/`)
+        .then((response) => response.data)
+        .catch((error) => {
+          throw error
+        })
+      return item
+    })
+  )
+  return canvas_course
+}
+
 // fetchCanvasSectionsOfCourse
 export async function fetchCanvasSectionsOfCourse(courseId: number) {
   console.log("Fetching Canvas Sections of course", courseId)

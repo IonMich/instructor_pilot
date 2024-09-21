@@ -180,8 +180,9 @@ function AssignmentListElement({ assignment }: { assignment: Assignment }) {
             </Badge>
           </>
         )}
-        <Badge color="primary" className="hover:bg-primary">
-          {assignment.submission_count} <LuFile className="h-4 w-4 inline" />
+        <Badge color="primary" className="gap-1 hover:bg-primary">
+            {assignment.submission_count}
+          <LuFile className="h-4 w-4 inline" />
         </Badge>
       </div>
     </Link>
