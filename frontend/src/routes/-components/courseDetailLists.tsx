@@ -212,7 +212,9 @@ function AssignmentScoresHistogram({ assignmentId }: { assignmentId: number }) {
   if (!scores) {
     return null
   }
+  // should be replaced with assignment.max_score
   const maxScore = Math.max(...scores)
+  // should be replaced with (a max of) ten bins
   const scoreCounts = Array.from({ length: maxScore + 1 }, () => 0)
   scores.forEach((score) => {
     scoreCounts[score] += 1

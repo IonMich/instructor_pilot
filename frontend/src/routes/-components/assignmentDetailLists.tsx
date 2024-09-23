@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useRouter } from "@tanstack/react-router"
+import { Link, useRouter } from "@tanstack/react-router"
 
 import {
   assignmentQueryOptions,
@@ -16,10 +16,13 @@ import {
   LuMoreHorizontal,
   LuFileBarChart2,
   LuFileScan,
+  LuArrowUpRight,
+  LuRocket,
+  LuInfo,
 } from "react-icons/lu"
 import { FaTasks } from "react-icons/fa"
+import { Toggle } from "@/components/ui/toggle"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import {
@@ -44,6 +47,13 @@ import { Separator } from "@/components/ui/separator"
 import { SubmissionPDFsForm } from "./assignmentDetailForms"
 import { useSuspenseQueries } from "@tanstack/react-query"
 import { getRouteApi } from "@tanstack/react-router"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+} from "@/components/ui/form"
 
 const route = getRouteApi("/_authenticated/assignments/$assignmentId")
 
@@ -108,6 +118,26 @@ function AssignmentDetailCards({
         )
       )
     : 0
+
+  const gradedChartData = [
+    // graded
+    { label: "Graded", count: subsGraded.length, fill: "var(--color-safari)" },
+  ]
+  const identifiedChartData = [
+    // identified
+    {
+      label: "Identified",
+      count: subsIdentified.length,
+      fill: "var(--color-safari)",
+    },
+  ]
+  const chartConfig = {
+    safari: {
+      label: "Safari",
+      color: "hsl(var(--primary))",
+    },
+  } satisfies ChartConfig
+
   return (
     <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
       <Card>
@@ -168,35 +198,23 @@ function AssignmentDetailCards({
           <CardTitle className="text-sm font-medium">Tasks</CardTitle>
           <FaTasks className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {assignment && submissions && (
-            <div className="text-xs">
-              <ul>
-                <li className="my-2">
-                  <Progress value={percentGraded} />
-                  <p className="text-xs text-muted-foreground">
-                    <span className="whitespace-nowrap">
-                      {subsGraded.length} graded
-                    </span>
-                    ,&nbsp;
-                    <span className="whitespace-nowrap">
-                      {assignment?.submission_count - subsGraded.length}{" "}
-                      remaining
-                    </span>
-                  </p>
+            <div className="text-xs flex flex-col gap-2 items-center">
+              <ul className="flex flex-row gap-4">
+                <li className="mb-2">
+                  <ProgressPieChart
+                    chartData={gradedChartData}
+                    chartConfig={chartConfig}
+                    percentDone={percentGraded}
+                  />
                 </li>
                 <li className="mb-2">
-                  <Progress value={percentIdentified} />
-                  <p className="text-xs text-muted-foreground">
-                    <span className="whitespace-nowrap">
-                      {subsIdentified.length} identified
-                    </span>
-                    ,&nbsp;
-                    <span className="whitespace-nowrap">
-                      {assignment?.submission_count - subsIdentified.length}{" "}
-                      remaining
-                    </span>
-                  </p>
+                  <ProgressPieChart
+                    chartData={identifiedChartData}
+                    chartConfig={chartConfig}
+                    percentDone={percentIdentified}
+                  />
                 </li>
               </ul>
             </div>
@@ -212,13 +230,10 @@ function AssignmentDetailCards({
           <div className="text-xs">
             <div className="mt-1 mb-1 flex flex-row justify-between items-center">
               <div className="font-bold">Identify Students By ID</div>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={submissions.length === 0}
-              >
-                Run
-              </Button>
+              <IdentifySubmissionsDialogWithTrigger
+                assignment={assignment}
+                submissions={submissions}
+              />
             </div>
             <Separator orientation="horizontal" />
             <div className="mt-1 flex flex-row justify-between items-center">
@@ -338,5 +353,381 @@ function AddSubmissionsDialogWithTrigger({
         />
       </DialogContent>
     </Dialog>
+  )
+}
+
+function IdentifySubmissionsDialogWithTrigger({
+  assignment,
+  submissions,
+}: {
+  assignment: Assignment
+  submissions: Submission[]
+}) {
+  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [step, setStep] = React.useState(1)
+  return (
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" disabled={submissions.length === 0}>
+          Run
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Identify Student IDs in Submissions</DialogTitle>
+        </DialogHeader>
+        <DialogDescription>
+          This will attempt to identify students in the submissions based on
+          their university ID. More information can be found in the{" "}
+          <a
+            href="https://github.com/IonMich/instructor_pilot/wiki/Grading-Workflow"
+            className="text-blue-500"
+          >
+            wiki
+          </a>
+          .
+        </DialogDescription>
+        {step === 1 && (
+          <IdentifySubmissionsForm
+            assignment={assignment}
+            submissions={submissions}
+            setDialogOpen={setDialogOpen}
+            setStep={setStep}
+          />
+        )}
+        {step === 2 && (
+          <IdentifyOverview
+            assignment={assignment}
+            submissions={submissions}
+            setDialogOpen={setDialogOpen}
+            setStep={setStep}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function IdentifySubmissionsForm({
+  assignment,
+  submissions,
+  setDialogOpen,
+  setStep,
+}: {
+  assignment: Assignment
+  submissions: Submission[]
+  setDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
+  setStep: React.Dispatch<React.SetStateAction<number>>
+}) {
+  const maxPages = assignment.max_page_number
+  const remainingSubmissionsToIdentify = submissions.filter(
+    (submission) => submission.student === null
+  )
+  const formSchema = z.object({
+    pages: z.array(z.number()),
+  })
+  const { toast } = useToast()
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      pages: [...Array(maxPages)].map((_, i) => i + 1).filter((v) => v == 1),
+    },
+  })
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log("Submitting", values)
+    toast({
+      title: "Identifying students...",
+      description: "Searching for student IDs in pages: " + values.pages.join(),
+    })
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    setStep(2)
+  }
+
+  if (form.formState.isSubmitting) {
+    return <IdentifyAnimation num_digits={8} />
+  }
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full space-y-8">
+        <FormField
+          control={form.control}
+          name="pages"
+          render={() => (
+            <FormItem>
+              <div className="flex flex-col gap-4">
+                <div className="grid gap-4 py-2">
+                  <div className="flex flex-row gap-2 items-center">
+                      {remainingSubmissionsToIdentify.length > 0 ? (
+                        <Alert>
+                          <LuInfo className="h-4 w-4" />
+                          <AlertTitle>Status</AlertTitle>
+                          <AlertDescription>
+                            {remainingSubmissionsToIdentify.length} submission(s) remaining to identify.
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <Alert>
+                          <LuRocket className="h-4 w-4" />
+                          <AlertTitle>Status</AlertTitle>
+                          <AlertDescription>
+                            All submissions have already been associated with a
+                            student.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    {remainingSubmissionsToIdentify.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setStep(2)
+                        }}
+                      >
+                        View
+                      </Button>
+                    )}
+                  </div>
+
+                  <FormDescription>
+                    Choose the pages that contain the student ID:
+                  </FormDescription>
+                  <div className="flex flex-row gap-2 flex-wrap justify-center">
+                    {[...Array(maxPages)].map((_, i) => (
+                      <FormField
+                        key={i + 1}
+                        control={form.control}
+                        name="pages"
+                        render={({ field }) => {
+                          return (
+                            <FormItem key={i + 1}>
+                              <FormControl>
+                                <Toggle
+                                  pressed={field.value.includes(i + 1)}
+                                  variant="primary"
+                                  size="lg"
+                                  className="rounded-none rounded-tl-sm rounded-br-sm"
+                                  title={`Page ${i + 1}`}
+                                  onPressedChange={(pressed) => {
+                                    return pressed
+                                      ? field.onChange([...field.value, i + 1])
+                                      : field.onChange(
+                                          field.value.filter((v) => v !== i + 1)
+                                        )
+                                  }}
+                                >
+                                  {i + 1}
+                                </Toggle>
+                              </FormControl>
+                            </FormItem>
+                          )
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="grid gap-4">
+                  <div className="flex flex-row gap-2 items-center">
+                    <DialogDescription>
+                      Focusing on the top left corner of the page.
+                    </DialogDescription>
+                    <Button variant="outline" size="sm" disabled>
+                      Change
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-row justify-center gap-4">
+                  <Button type="submit">Identify</Button>
+                </div>
+              </div>
+            </FormItem>
+          )}
+        />
+      </form>
+    </Form>
+  )
+}
+
+function IdentifyOverview({
+  assignment,
+  submissions,
+  setDialogOpen,
+  setStep,
+}: {
+  assignment: Assignment
+  submissions: Submission[]
+  setDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
+  setStep: React.Dispatch<React.SetStateAction<number>>
+}) {
+  const numIdentified = submissions.filter(
+    (submission) => submission.student !== null
+  ).length
+  const numSubmissions = assignment.submission_count
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-4 py-2">
+        <DialogDescription>
+          Number of submissions identified: <span>{numIdentified}</span> out of{" "}
+          {numSubmissions}.
+        </DialogDescription>
+      </div>
+      <Separator orientation="horizontal" />
+      {/* remaining subs */}
+      <div className="grid gap-4 overflow-y-auto max-h-[400px]">
+        <DialogDescription className="sticky top-0 bg-background my-0 py-2">
+          Remaining submissions to identify:
+        </DialogDescription>
+        {submissions
+          .filter((submission) => submission.student === null)
+          .map((submission) => (
+            <div
+              key={submission.id}
+              className="flex flex-row gap-2 items-center justify-center"
+            >
+              <DialogDescription className="text-bold">
+                Submission {submission.id.split("-")[0]}
+              </DialogDescription>
+              {/* open in new tab */}
+              <Link
+                to={`/submissions/$submissionId`}
+                params={{ submissionId: submission.id }}
+                target="_blank"
+              >
+                <Button variant="outline" size="icon">
+                  <LuArrowUpRight size={12} />
+                </Button>
+              </Link>
+            </div>
+          ))}
+      </div>
+      <div className="flex flex-row justify-center gap-4">
+        <Button
+          onClick={() => {
+            setStep(1)
+          }}
+        >
+          Back
+        </Button>
+        <Button
+          onClick={() => {
+            setDialogOpen(false)
+          }}
+        >
+          Close
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function IdentifyAnimation({ num_digits }: { num_digits: number }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-4 py-2">
+        <DialogDescription>Running Workflow...</DialogDescription>
+        {/* row table of 1 by `num_digits` showing digits changing constantly */}
+        <div className="flex flex-row gap-1 justify-center">
+          {[...Array(num_digits)].map((_, i) => (
+            <ChangingDigit
+              key={i}
+              className="h-8 w-8 border border-gray-200 rounded-none flex items-center justify-center"
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ChangingDigit({ className }: { className: string }) {
+  const [digit, setDigit] = React.useState(Math.floor(Math.random() * 10))
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setDigit(Math.floor(Math.random() * 10))
+    }, 50)
+    return () => clearInterval(interval)
+  }, [])
+  return <div className={className}>{digit}</div>
+}
+
+import {
+  Label,
+  PolarGrid,
+  PolarRadiusAxis,
+  RadialBar,
+  RadialBarChart,
+} from "recharts"
+import { ChartConfig, ChartContainer } from "@/components/ui/chart"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { useToast } from "@/components/ui/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
+export function ProgressPieChart({
+  percentDone,
+  chartData,
+  chartConfig,
+}: {
+  percentDone: number
+  chartData: { label: string; count: number; fill: string }[]
+  chartConfig: ChartConfig
+}) {
+  const startAngle = 90
+  const endAngle = 360 * (percentDone / 100) + startAngle
+  return (
+    <ChartContainer
+      config={chartConfig}
+      className="me-auto aspect-square h-[100px]"
+    >
+      <RadialBarChart
+        title={percentDone + "%"}
+        data={chartData}
+        startAngle={90}
+        endAngle={endAngle}
+        innerRadius={43}
+        outerRadius={60}
+      >
+        <PolarGrid
+          gridType="circle"
+          radialLines={false}
+          stroke="none"
+          className="first:fill-muted last:fill-background"
+          polarRadius={[48, 37]}
+        />
+        <RadialBar dataKey="count" background cornerRadius={10} />
+        <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+          <Label
+            content={({ viewBox }) => {
+              if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                return (
+                  <text
+                    x={viewBox.cx}
+                    y={viewBox.cy}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    <tspan
+                      x={viewBox.cx}
+                      y={viewBox.cy}
+                      className="fill-foreground text-xl font-bold"
+                    >
+                      {chartData[0].count}
+                    </tspan>
+                    <tspan
+                      x={viewBox.cx}
+                      y={(viewBox.cy || 0) + 24}
+                      className="fill-muted-foreground"
+                    >
+                      {chartData[0].label}
+                    </tspan>
+                  </text>
+                )
+              }
+            }}
+          />
+        </PolarRadiusAxis>
+      </RadialBarChart>
+    </ChartContainer>
   )
 }

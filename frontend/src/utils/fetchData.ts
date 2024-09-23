@@ -78,6 +78,7 @@ export interface Assignment {
   get_grading_progress: number
   assignment_group_object: AssignmentGroup
   assignment_group: string
+  max_page_number: number
 }
 
 export interface PaperSubmissionImage {
