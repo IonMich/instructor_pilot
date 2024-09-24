@@ -437,6 +437,29 @@ export async function patchSubmission({
   )
 }
 
+export async function identifySubmissionsWorkflow({
+  assignmentId,
+  ...data
+}: {
+  assignmentId: number
+  pages_selected: number[]
+}) {
+  const token = auth.getToken()
+  return loaderFn(() =>
+    axios
+      .patch(
+        `${assignmentUrlMapper(assignmentId)}identify_submissions/`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+      .then((response) => response.data)
+  )
+}
+
 export async function createSubmissionsBySplittingPDFs({
   assignmentId,
   pagesPerSubmission,

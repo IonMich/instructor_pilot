@@ -65,10 +65,10 @@ export const SubmissionPDFsForm = ({
 
   const { toast } = useToast()
 
-  function onSubmit(data: z.infer<typeof submissionPDFsSchema>) {
+  async function onSubmit(data: z.infer<typeof submissionPDFsSchema>) {
     console.log("data", data)
 
-    createSubmissionsInAssignmentMutation.mutate(
+    await createSubmissionsInAssignmentMutation.mutateAsync(
       {
         pagesPerSubmission: data.pagesPerSubmission,
         filesToSplit: data.submission_PDFs,
@@ -150,7 +150,9 @@ export const SubmissionPDFsForm = ({
               </FormItem>
             )}
           />
-          <Button type="submit">Add</Button>
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? "Adding..." : "Add"}
+          </Button>
         </form>
       </Form>
     </div>

@@ -42,12 +42,14 @@ export const Route = createFileRoute(
   }),
   loader: async (opts) => {
     const assignmentId = opts.params.assignmentId
-    const assignmentPromise = opts.context.queryClient.ensureQueryData(
-      assignmentQueryOptions(assignmentId)
-    )
-    const submissionsPromise = opts.context.queryClient.ensureQueryData(
-      submissionsQueryOptions(assignmentId)
-    )
+    const assignmentPromise = opts.context.queryClient.ensureQueryData({
+      ...assignmentQueryOptions(assignmentId),
+      revalidateIfStale: true,
+    })
+    const submissionsPromise = opts.context.queryClient.ensureQueryData({
+      ...submissionsQueryOptions(assignmentId),
+      revalidateIfStale: true,
+    })
     const [assignment, submissions] = await Promise.all([
       assignmentPromise,
       submissionsPromise,

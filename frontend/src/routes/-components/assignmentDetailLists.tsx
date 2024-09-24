@@ -5,6 +5,7 @@ import {
   assignmentQueryOptions,
   submissionsQueryOptions,
   useDeleteAllSubmissionsMutation,
+  useIdentifyAutomationWorkflowMutation,
 } from "@/utils/queryOptions"
 
 import { columns } from "./columns"
@@ -98,6 +99,7 @@ function AssignmentDetailCards({
   assignment: Assignment
   submissions: Submission[]
 }) {
+  const num_questions = assignment?.max_question_scores.split(",").length
   const subsGraded =
     submissions.filter((submission) => submission.grade !== null) || []
   const subsIdentified =
@@ -163,9 +165,9 @@ function AssignmentDetailCards({
           <LuFileBarChart2 className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent className="flex flex-row justify-between">
-          <div>
-            {submissions && (
-              <div className="text-2xl font-bold">
+          <div className="flex flex-col gap-2">
+            {submissions && subsGraded.length > 0 && (
+              <div className="text-2xl font-bold" title="Average grade">
                 {subsAverage.toFixed(2) != "NaN" ? (
                   subsAverage.toFixed(2)
                 ) : (
@@ -178,15 +180,16 @@ function AssignmentDetailCards({
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              {assignment?.max_question_scores.split(",").length} question
-              {assignment?.max_question_scores.split(",").length
-                ? assignment?.max_question_scores.split(",").length > 1
-                  ? "s"
-                  : ""
-                : ""}{" "}
+              {num_questions} question
+              {num_questions > 1 && "s"}{" "}
+              {subsGraded.length === 0 &&
+                "| Max score: " + assignment?.max_score}{" "}
+              {num_questions > 1 && `(${assignment.max_question_scores})`}
             </p>
           </div>
           <div className="mt-8">
+            {/* - compare graph with other assignment would be nice*/}
+            {/* - change questions in assignment*/}
             <Button variant="ghost" size="sm">
               <LuMoreHorizontal className="h-4 w-4" />
             </Button>
@@ -318,9 +321,14 @@ function DeleteAllDialogContent({
         <Button
           onClick={async (e) => {
             e.preventDefault()
-            deleteAllSubmissionsMutation.mutate(assignment.id)
-            setDialog(null)
-            router.invalidate()
+            const data = await deleteAllSubmissionsMutation.mutateAsync(
+              assignment.id, {
+              onSuccess: () => {
+                router.invalidate()
+                setDialog(null)
+              }
+            })
+            console.log("data", data)
           }}
         >
           Delete All
@@ -347,6 +355,11 @@ function AddSubmissionsDialogWithTrigger({
         <DialogHeader>
           <DialogTitle>Add Submissions</DialogTitle>
         </DialogHeader>
+        <DialogDescription>
+          Upload PDFs to create submissions for assignment {assignment.name}.
+          Each PDF will be split into the specified number of pages per
+          submission.
+        </DialogDescription>
         <SubmissionPDFsForm
           assignment={assignment}
           setAddDialogOpen={setAddDialogOpen}
@@ -374,24 +387,12 @@ function IdentifySubmissionsDialogWithTrigger({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Identify Student IDs in Submissions</DialogTitle>
+          <DialogTitle>Identify Student in Submissions</DialogTitle>
         </DialogHeader>
-        <DialogDescription>
-          This will attempt to identify students in the submissions based on
-          their university ID. More information can be found in the{" "}
-          <a
-            href="https://github.com/IonMich/instructor_pilot/wiki/Grading-Workflow"
-            className="text-blue-500"
-          >
-            wiki
-          </a>
-          .
-        </DialogDescription>
         {step === 1 && (
           <IdentifySubmissionsForm
             assignment={assignment}
             submissions={submissions}
-            setDialogOpen={setDialogOpen}
             setStep={setStep}
           />
         )}
@@ -411,14 +412,14 @@ function IdentifySubmissionsDialogWithTrigger({
 function IdentifySubmissionsForm({
   assignment,
   submissions,
-  setDialogOpen,
   setStep,
 }: {
   assignment: Assignment
   submissions: Submission[]
-  setDialogOpen: React.Dispatch<React.SetStateAction<boolean>>
   setStep: React.Dispatch<React.SetStateAction<number>>
 }) {
+  const router = useRouter()
+  const identifyMutation = useIdentifyAutomationWorkflowMutation(assignment.id)
   const maxPages = assignment.max_page_number
   const remainingSubmissionsToIdentify = submissions.filter(
     (submission) => submission.student === null
@@ -434,12 +435,16 @@ function IdentifySubmissionsForm({
     },
   })
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("Submitting", values)
     toast({
       title: "Identifying students...",
-      description: "Searching for student IDs in pages: " + values.pages.join(),
+      description:
+        "Searching for student IDs in page(s): " + values.pages.join(),
     })
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    const data = await identifyMutation.mutateAsync(values.pages, {
+      onSuccess: () => {},
+    })
+    console.log("data", data)
+    router.invalidate()
     setStep(2)
   }
 
@@ -448,6 +453,17 @@ function IdentifySubmissionsForm({
   }
   return (
     <Form {...form}>
+      <DialogDescription>
+        This will attempt to identify students in the submissions based on their
+        university ID. More information can be found in the{" "}
+        <a
+          href="https://github.com/IonMich/instructor_pilot/wiki/Grading-Workflow"
+          className="text-blue-500"
+        >
+          wiki
+        </a>
+        .
+      </DialogDescription>
       <form onSubmit={form.handleSubmit(onSubmit)} className="h-full space-y-8">
         <FormField
           control={form.control}
@@ -457,24 +473,26 @@ function IdentifySubmissionsForm({
               <div className="flex flex-col gap-4">
                 <div className="grid gap-4 py-2">
                   <div className="flex flex-row gap-2 items-center">
-                      {remainingSubmissionsToIdentify.length > 0 ? (
-                        <Alert>
-                          <LuInfo className="h-4 w-4" />
-                          <AlertTitle>Status</AlertTitle>
-                          <AlertDescription>
-                            {remainingSubmissionsToIdentify.length} submission(s) remaining to identify.
-                          </AlertDescription>
-                        </Alert>
-                      ) : (
-                        <Alert>
-                          <LuRocket className="h-4 w-4" />
-                          <AlertTitle>Status</AlertTitle>
-                          <AlertDescription>
-                            All submissions have already been associated with a
-                            student.
-                          </AlertDescription>
-                        </Alert>
-                      )}
+                    {remainingSubmissionsToIdentify.length > 0 ? (
+                      <Alert>
+                        <LuInfo />
+                        <AlertTitle>Status</AlertTitle>
+                        <AlertDescription>
+                          {remainingSubmissionsToIdentify.length} of{" "}
+                          {assignment.submission_count} submissions remain
+                          unidentified.
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <Alert>
+                        <LuRocket />
+                        <AlertTitle>Status</AlertTitle>
+                        <AlertDescription>
+                          All submissions have already been associated with a
+                          student.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     {remainingSubmissionsToIdentify.length > 0 && (
                       <Button
                         type="button"
@@ -566,40 +584,57 @@ function IdentifyOverview({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 py-2">
-        <DialogDescription>
-          Number of submissions identified: <span>{numIdentified}</span> out of{" "}
-          {numSubmissions}.
-        </DialogDescription>
+        {numIdentified === numSubmissions ? (
+          <Alert>
+            <LuRocket />
+            <AlertTitle>Status</AlertTitle>
+            <AlertDescription>
+              All submissions have been associated with a student.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert>
+            <LuInfo />
+            <AlertTitle>Status</AlertTitle>
+            <AlertDescription>
+              {numIdentified} of {numSubmissions} submissions have been
+              associated with a student.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
-      <Separator orientation="horizontal" />
-      {/* remaining subs */}
-      <div className="grid gap-4 overflow-y-auto max-h-[400px]">
-        <DialogDescription className="sticky top-0 bg-background my-0 py-2">
-          Remaining submissions to identify:
-        </DialogDescription>
-        {submissions
-          .filter((submission) => submission.student === null)
-          .map((submission) => (
-            <div
-              key={submission.id}
-              className="flex flex-row gap-2 items-center justify-center"
-            >
-              <DialogDescription className="text-bold">
-                Submission {submission.id.split("-")[0]}
-              </DialogDescription>
-              {/* open in new tab */}
-              <Link
-                to={`/submissions/$submissionId`}
-                params={{ submissionId: submission.id }}
-                target="_blank"
-              >
-                <Button variant="outline" size="icon">
-                  <LuArrowUpRight size={12} />
-                </Button>
-              </Link>
-            </div>
-          ))}
-      </div>
+      {numIdentified < numSubmissions && (
+        <>
+          <Separator orientation="horizontal" />
+          <div className="grid gap-4 overflow-y-auto max-h-[400px]">
+            <DialogDescription className="sticky top-0 bg-background my-0 py-2">
+              Remaining submissions to identify:
+            </DialogDescription>
+            {submissions
+              .filter((submission) => submission.student === null)
+              .map((submission) => (
+                <div
+                  key={submission.id}
+                  className="flex flex-row gap-2 items-center justify-center"
+                >
+                  <DialogDescription className="text-bold">
+                    Submission {submission.id.split("-")[0]}
+                  </DialogDescription>
+                  {/* open in new tab */}
+                  <Link
+                    to={`/submissions/$submissionId`}
+                    params={{ submissionId: submission.id }}
+                    target="_blank"
+                  >
+                    <Button variant="outline" size="icon">
+                      <LuArrowUpRight size={12} />
+                    </Button>
+                  </Link>
+                </div>
+              ))}
+          </div>
+        </>
+      )}
       <div className="flex flex-row justify-center gap-4">
         <Button
           onClick={() => {
@@ -611,6 +646,7 @@ function IdentifyOverview({
         <Button
           onClick={() => {
             setDialogOpen(false)
+            setStep(1)
           }}
         >
           Close

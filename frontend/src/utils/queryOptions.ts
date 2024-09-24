@@ -22,6 +22,7 @@ import {
   createCommentOnSubmission,
   patchSubmission,
   deleteSubmission,
+  identifySubmissionsWorkflow,
   Submission,
   fetchCanvasCourses,
   fetchCanvasSectionsOfCourse,
@@ -170,7 +171,7 @@ export const useDeleteAllSubmissionsMutation = () => {
     mutationKey: ["submissions", "deleteAll"],
     mutationFn: async (assignmentId: number) => {
       const submissions = await fetchSubmissionsOfAssignment(assignmentId)
-      await Promise.all(
+      return await Promise.all(
         submissions.map((submission) => deleteSubmission(submission.id))
       )
     },
@@ -194,7 +195,7 @@ export const useCreateSubmissionsInAssignmentMutation = (
       console.log("Creating submissions for assignment", assignmentId)
       console.log("Pages per submission", pagesPerSubmission)
       console.log("Files to split", filesToSplit)
-      await createSubmissionsBySplittingPDFs({
+      return await createSubmissionsBySplittingPDFs({
         assignmentId,
         pagesPerSubmission,
         filesToSplit,
@@ -212,6 +213,23 @@ export const useIdentifySubmissionMutation = () => {
       // wait for 1 second
       await new Promise((resolve) => setTimeout(resolve, 1000))
       console.log("Identifying submission", submissionId)
+    },
+    onSuccess: () => queryClient.invalidateQueries(),
+    gcTime: 1000 * 10,
+  })
+}
+export const useIdentifyAutomationWorkflowMutation = (assignmentId: number) => {
+  return useMutation({
+    mutationKey: ["submissions", "identify", `assignmentId=${assignmentId}`],
+    mutationFn: async (pages_selected: number[]) => {
+      // wait for 1 second
+      console.log("Automation workflow -Identify- for assignment", assignmentId)
+      // await new Promise((resolve) => setTimeout(resolve, 1000))
+      return await identifySubmissionsWorkflow({
+        assignmentId,
+        pages_selected
+      })
+      
     },
     onSuccess: () => queryClient.invalidateQueries(),
     gcTime: 1000 * 10,

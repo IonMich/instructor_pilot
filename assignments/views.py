@@ -62,6 +62,33 @@ class ListAssignmentScoresViewSet(APIView):
         scores = assignment.get_all_grades()
         return Response(scores)
     
+class AssignmentIdentifySubmissions(APIView):
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
+
+    def patch(self, request, assignment_id):
+        assignment = get_object_or_404(Assignment, pk=assignment_id)
+        pages_selected = request.data.get("pages_selected")
+        max_page_num = PaperSubmissionImage.get_max_page_number(assignment)
+        print(f"pages_selected: {pages_selected}")
+        pages_to_skip = tuple(
+            i for i in range(max_page_num) if i + 1 not in pages_selected
+        )
+        print(f"pages_to_skip: {pages_to_skip}")
+        classified_submission_pks, not_classified_submission_pks = (
+            PaperSubmission.classify(
+                assignment,
+                skip_pages=pages_to_skip,
+            )
+        )
+        return Response(
+            {
+                "classified_submission_pks": classified_submission_pks,
+                "not_classified_submission_pks": not_classified_submission_pks,
+            }
+        )
+    
 @login_required
 def assignment_detail_view(request,  course_pk, assignment_pk):
     # course = get_object_or_404(Course, pk=course_pk)
