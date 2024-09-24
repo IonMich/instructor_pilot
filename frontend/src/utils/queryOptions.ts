@@ -23,6 +23,7 @@ import {
   patchSubmission,
   deleteSubmission,
   identifySubmissionsWorkflow,
+  versionSubmissionsWorkflow,
   Submission,
   fetchCanvasCourses,
   fetchCanvasSectionsOfCourse,
@@ -222,10 +223,24 @@ export const useIdentifyAutomationWorkflowMutation = (assignmentId: number) => {
   return useMutation({
     mutationKey: ["submissions", "identify", `assignmentId=${assignmentId}`],
     mutationFn: async (pages_selected: number[]) => {
-      // wait for 1 second
       console.log("Automation workflow -Identify- for assignment", assignmentId)
-      // await new Promise((resolve) => setTimeout(resolve, 1000))
       return await identifySubmissionsWorkflow({
+        assignmentId,
+        pages_selected
+      })
+      
+    },
+    onSuccess: () => queryClient.invalidateQueries(),
+    gcTime: 1000 * 10,
+  })
+}
+
+export const useVersionAutomationWorkflowMutation = (assignmentId: number) => {
+  return useMutation({
+    mutationKey: ["submissions", "version", `assignmentId=${assignmentId}`],
+    mutationFn: async (pages_selected: number[]) => {
+      console.log("Automation workflow -Version- for assignment", assignmentId)
+      return await versionSubmissionsWorkflow({
         assignmentId,
         pages_selected
       })

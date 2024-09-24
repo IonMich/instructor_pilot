@@ -92,10 +92,7 @@ export interface Submission {
   url: string
   student?: Student
   grade: number
-  version?: {
-    id: number
-    name: string
-  }
+  version?: Version
   canvas_id: string
   canvas_url: string
   assignment: Assignment
@@ -103,6 +100,12 @@ export interface Submission {
   pdf: string
   papersubmission_images: PaperSubmissionImage[]
   submission_comments: SubmissionComment[]
+}
+
+export interface Version {
+  id: string
+  name: string
+  version_image: URL
 }
 
 export interface SubmissionComment {
@@ -456,6 +459,25 @@ export async function identifySubmissionsWorkflow({
           },
         }
       )
+      .then((response) => response.data)
+  )
+}
+
+export async function versionSubmissionsWorkflow({
+  assignmentId,
+  ...data
+}: {
+  assignmentId: number
+  pages_selected: number[]
+}) {
+  const token = auth.getToken()
+  return loaderFn(() =>
+    axios
+      .patch(`${assignmentUrlMapper(assignmentId)}version_submissions/`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((response) => response.data)
   )
 }

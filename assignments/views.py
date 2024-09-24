@@ -89,6 +89,26 @@ class AssignmentIdentifySubmissions(APIView):
             }
         )
     
+class AssignmentVersionSubmissions(APIView):
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
+
+    def patch(self, request, assignment_id):
+        assignment = get_object_or_404(Assignment, pk=assignment_id)
+        pages_selected = request.data.get("pages_selected")
+        print(f"pages_selected: {pages_selected}")
+
+        submissions_serialized, outliers = PaperSubmission.perform_versioning(
+            assignment, selected_pages=(3,)
+        )
+        return Response(
+            {
+                "submissions": submissions_serialized,
+                "outliers": outliers,
+            }
+        )
+    
 @login_required
 def assignment_detail_view(request,  course_pk, assignment_pk):
     # course = get_object_or_404(Course, pk=course_pk)
