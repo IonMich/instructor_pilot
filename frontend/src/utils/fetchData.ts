@@ -72,7 +72,7 @@ export interface Assignment {
   max_score: number
   position: number
   submission_count: number
-  course: Course | number
+  course: Course
   max_question_scores: string
   get_average_grade: number
   get_grading_progress: number

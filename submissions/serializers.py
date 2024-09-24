@@ -24,4 +24,4 @@ class PaperSubmissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaperSubmission
         fields = ('id', 'student', 'student_id', 'canvas_id', 'canvas_url', 'question_grades', 'grade', 'version', 'assignment', 'pdf', 'papersubmission_images', 'submission_comments')
-        depth = 1
+        depth = 2

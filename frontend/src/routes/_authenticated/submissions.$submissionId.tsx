@@ -79,7 +79,7 @@ export const Route = createFileRoute(
     )
     const submission = await submissionPromise
     const assignmentId = submission.assignment.id
-    const courseId = submission.assignment.course as number
+    const courseId = submission.assignment.course.id
     const assignmentPromise = opts.context.queryClient.ensureQueryData(
       assignmentQueryOptions(assignmentId)
     )
@@ -94,7 +94,7 @@ export const Route = createFileRoute(
       submissionsPromise,
       studentsPromise,
     ])
-    const course = assignment.course as Course
+    const course = assignment.course
     return {
       submission,
       assignment,
@@ -189,7 +189,7 @@ function SubmissionDetail() {
     submissionQueryOptions(submissionId)
   )
   const assignmentId = submission.assignment.id
-  const courseId = submission.assignment.course as number
+  const courseId = submission.assignment.course.id
   const [{ data: assignment }, { data: submissions }, { data: students }] =
     useSuspenseQueries({
       queries: [
@@ -729,7 +729,14 @@ export function StudentComboboxForm({
 
   function getSection(student: Student, courseId: number) {
     const section = student.sections.find(
-      (section) => section.course === courseId
+      (section) => {
+        const sectionCourse = section.course
+        if (typeof sectionCourse === "object") {
+          return sectionCourse.id === courseId
+        } else {
+          return sectionCourse === courseId
+        }
+      }
     )
     if (!section) {
       throw new Error(
@@ -738,7 +745,7 @@ export function StudentComboboxForm({
     }
     return section
   }
-  const courseId = submission.assignment.course as number
+  const courseId = submission.assignment.course.id
 
   const studentsSectionsLabelVals: StudentSectionLabelVal[] = students.map(
     (student) => {

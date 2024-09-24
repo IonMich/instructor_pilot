@@ -743,19 +743,24 @@ function VersioningDialogWithTrigger({
   )
 }
 
-function isDefined<T>(argument: T | undefined): argument is T {
-  return argument !== undefined
-}
+type VersioningWithSubmissions = Partial<Version> & { submissions: Submission[] } 
+const outliersNameId = "Uncategorized"
 
-function getVersions(submissions: Submission[]): Version[] {
-  // get unique by key `id
-  const versions = submissions
-    .map((submission) => submission.version)
-    .filter((version) => isDefined(version))
-    .filter(
-      (version, index, self) =>
-        self.findIndex((v) => v?.id === version?.id) === index
-    )
+function getVersions(submissions: Submission[]): Record<string, VersioningWithSubmissions> {
+  const versions = submissions.reduce(
+    (acc, submission) => {
+      if (!acc[submission.version?.id || outliersNameId]) {
+        acc[submission.version?.id || outliersNameId] = {
+          name: submission.version?.name || outliersNameId,
+          version_image: submission.version?.version_image,
+          submissions: [],
+        }
+      }
+      acc[submission.version?.id || outliersNameId].submissions.push(submission)
+      return acc
+    },
+    {} as Record<string, VersioningWithSubmissions>
+  )
   return versions
 }
 
@@ -772,7 +777,9 @@ function VersioningForm({
   const versionMutation = useVersionAutomationWorkflowMutation(assignment.id)
   const maxPages = assignment.max_page_number
   const versions = getVersions(submissions)
-  const num_versions = versions.length
+  const num_versions = Object.keys(versions).filter(
+    (version) => version !== outliersNameId
+  ).length
   const remainingSubmissionsToVersion = submissions.filter(
     (submission) => submission.version === null
   )
@@ -932,24 +939,10 @@ function VersioningOverview({
   submissions: Submission[]
   setStep: React.Dispatch<React.SetStateAction<number>>
 }) {
-  const outliersNameId = "Uncategorized"
-  const versions = submissions.reduce(
-    (acc, submission) => {
-      if (!acc[submission.version?.id || outliersNameId]) {
-        acc[submission.version?.id || outliersNameId] = {
-          name: submission.version?.name || outliersNameId,
-          version_image: submission.version?.version_image,
-          submissions: [],
-        }
-      }
-      acc[submission.version?.id || outliersNameId].submissions.push(submission)
-      return acc
-    },
-    {} as Record<
-      string,
-      { name: string; submissions: Submission[]; version_image?: URL }
-    >
-  )
+  const versions = getVersions(submissions)
+  const num_versions = Object.keys(versions).filter(
+    (version) => version !== outliersNameId
+  ).length
   const [tabValue, setTabValue] = React.useState(Object.keys(versions)[0])
   const numVersioned = submissions.filter(
     (submission) => submission.version !== null
@@ -963,7 +956,7 @@ function VersioningOverview({
             <LuRocket />
             <AlertTitle>Status</AlertTitle>
             <AlertDescription>
-              All submissions have been grouped.
+              All submissions have been grouped into {num_versions} version(s).
             </AlertDescription>
           </Alert>
         ) : (
@@ -986,13 +979,13 @@ function VersioningOverview({
                 key={versionId}
                 onClick={() => setTabValue(versionId)}
               >
-                <p className="text-sm font-medium leading-none text-center">
+                <span className="text-sm font-medium leading-none text-center">
                   Version {version.name}{" "}
                   <Badge>
                     {version.submissions?.length || 0}
                     <LuFile />
                   </Badge>
-                </p>
+                </span>
               </TabsTrigger>
             )
           })}

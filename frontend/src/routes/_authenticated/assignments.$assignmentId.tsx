@@ -54,7 +54,7 @@ export const Route = createFileRoute(
       assignmentPromise,
       submissionsPromise,
     ])
-    const course = assignment.course as Course
+    const course = assignment.course
     return {
       assignment: assignment,
       submissions: submissions,
