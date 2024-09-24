@@ -22,7 +22,7 @@ export const AppBreadcrumbs = () => {
   const loaderData = latestMatch.loaderData as {
     breadcrumbItems: TBreadcrumbItem[]
   }
-  if (!loaderData.breadcrumbItems) {
+  if (!(loaderData?.breadcrumbItems)) {
     return null
   }
   for (const item of loaderData.breadcrumbItems) {
