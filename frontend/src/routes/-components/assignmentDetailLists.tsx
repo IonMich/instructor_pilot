@@ -57,6 +57,7 @@ import {
   FormDescription,
   FormField,
   FormItem,
+  FormLabel,
 } from "@/components/ui/form"
 
 import {
@@ -74,6 +75,10 @@ import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
+import { cn } from "@/lib/utils"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const route = getRouteApi("/_authenticated/assignments/$assignmentId")
 
@@ -207,11 +212,12 @@ function AssignmentDetailCards({
             </p>
           </div>
           <div className="mt-8">
-            {/* - compare graph with other assignment would be nice*/}
-            {/* - change questions in assignment*/}
-            <Button variant="ghost" size="sm">
-              <LuMoreHorizontal className="h-4 w-4" />
-            </Button>
+            {assignment && submissions && (
+              <GradesDropdownMenu
+                assignment={assignment}
+                submissions={submissions}
+              />
+            )}
           </div>
         </CardContent>
       </Card>
@@ -330,7 +336,10 @@ function DeleteAllDialogContent({
       <div className="grid gap-4 py-4">
         <DialogDescription>
           Are you sure you want to delete all {assignment.submission_count}{" "}
-          submissions for assignment {assignment.name}?
+          submissions for assignment {assignment.name} and any associated
+          grades? This action is{" "}
+          <span className="font-bold text-accent-foreground">IRREVERSIBLE</span>
+          .
         </DialogDescription>
       </div>
       <DialogFooter>
@@ -384,6 +393,279 @@ function AddSubmissionsDialogWithTrigger({
         />
       </DialogContent>
     </Dialog>
+  )
+}
+
+function GradesDropdownMenu({
+  assignment,
+  submissions,
+}: {
+  assignment: Assignment
+  submissions: Submission[]
+}) {
+  const [dialog, setDialog] = React.useState<Dialogs | null>(null)
+  const onOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setDialog(null)
+    }
+  }
+  return (
+    <Dialog open={dialog !== null} onOpenChange={onOpenChange}>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">Open menu</span>
+            <LuMoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DialogTrigger
+            asChild
+            onClick={() => {
+              setDialog(Dialogs.dialog1)
+            }}
+          >
+            <DropdownMenuItem>Modify Grading Scheme</DropdownMenuItem>
+          </DialogTrigger>
+          <DialogTrigger
+            asChild
+            onClick={() => {
+              setDialog(Dialogs.dialog2)
+            }}
+          >
+            <DropdownMenuItem>Compare</DropdownMenuItem>
+          </DialogTrigger>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem disabled>Export Grades CSV</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {dialog === Dialogs.dialog1 ? (
+        <GradingSchemeFormDialogContent
+          assignment={assignment}
+          submissions={submissions}
+          setDialog={setDialog}
+        />
+      ) : (
+        <ComparisonDialogContent
+          assignment={assignment}
+          submissions={submissions}
+          setDialog={setDialog}
+        />
+      )}
+    </Dialog>
+  )
+}
+
+function GradingSchemeFormDialogContent({
+  assignment,
+  submissions,
+  setDialog,
+}: {
+  assignment: Assignment
+  submissions: Submission[]
+  setDialog: React.Dispatch<React.SetStateAction<Dialogs | null>>
+}) {
+  // create a form to update the max_question_scores
+  const max_question_scores = assignment.max_question_scores
+    .split(",")
+    .map((score) => Number(score))
+  const max_score = assignment.max_score
+  const num_questions_default = max_question_scores.length
+
+  // creat a slider to update the number of questions
+  const [num_questions, setNumQuestions] = React.useState<number>(
+    num_questions_default
+  )
+  const max_questions_possible = Math.max(Math.min(5, max_score), num_questions)
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Grading Scheme</DialogTitle>
+      </DialogHeader>
+      <DialogDescription>
+        Update the grading scheme for assignment {assignment.name}.
+      </DialogDescription>
+      <DialogDescription>
+        Number of questions: {num_questions} (Max grade: {max_score})
+      </DialogDescription>
+      <div className="grid grid-cols-4 gap-4">
+        <Slider
+          onValueChange={(value) => {
+            if (value[0] < 1) {
+              value[0] = 1
+            }
+            setNumQuestions(value[0])
+          }}
+          value={[num_questions]}
+          min={0}
+          max={max_questions_possible}
+          step={1}
+          className="col-span-3"
+        />
+        <Input
+          type="number"
+          value={num_questions}
+          onChange={(e) => {
+            setNumQuestions(parseInt(e.target.value))
+          }}
+          min={1}
+          max={100}
+        />
+      </div>
+      {num_questions > 0 && num_questions <= 100 && (
+        <ScrollArea className="max-h-[400px]">
+          <GradingSchemeForm
+            assignment={assignment}
+            num_questions={num_questions}
+            max_question_scores={max_question_scores}
+            setDialog={setDialog}
+          />
+        </ScrollArea>
+      )}
+    </DialogContent>
+  )
+}
+
+function GradingSchemeForm({
+  assignment,
+  num_questions,
+  max_question_scores,
+  setDialog,
+}: {
+  assignment: Assignment
+  num_questions: number
+  max_question_scores: number[]
+  setDialog: React.Dispatch<React.SetStateAction<Dialogs | null>>
+}) {
+  const router = useRouter()
+  // const updateAssignmentMutation = useUpdateAssignmentMutation(assignment.id)
+  const formSchema = z.object({
+    max_question_scores: z.array(z.number().positive()).length(num_questions),
+  })
+  const { toast } = useToast()
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      max_question_scores,
+    },
+  })
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    toast({
+      title: "Updating grading scheme...",
+      description:
+        "Updating the grading scheme for assignment " + assignment.name,
+    })
+    const data = await updateAssignmentMutation.mutateAsync(values, {
+      onSuccess: () => {
+        router.invalidate()
+        setDialog(null)
+      },
+    })
+    console.log("data", data)
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full space-y-8">
+        <FormField
+          control={form.control}
+          name="max_question_scores"
+          render={() => {
+            console.log("form", form)
+            return (
+              <FormItem>
+                <div className="flex flex-col gap-4">
+                  <div className="grid gap-4 py-2">
+                    <FormDescription>
+                      Enter the maximum score for each question:
+                    </FormDescription>
+                    <div className="flex flex-row gap-2 flex-wrap justify-center">
+                      {[...Array(num_questions)].map((_, i) => (
+                        <FormField
+                          key={i}
+                          control={form.control}
+                          name={`max_question_scores.${i}`}
+                          render={({ field }) => {
+                            return (
+                              <div className="flex flex-row gap-4 items-center">
+                                <FormItem key={i}>
+                                  <FormLabel>Question {i + 1}</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" {...field} />
+                                  </FormControl>
+                                </FormItem>
+                              </div>
+                            )
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-row justify-center gap-4">
+                    <Button
+                      type="submit"
+                      disabled={
+                        form.formState.isSubmitting || !form.formState.isDirty
+                      }
+                    >
+                      Update
+                    </Button>
+                  </div>
+                </div>
+              </FormItem>
+            )
+          }}
+        />
+      </form>
+    </Form>
+  )
+}
+
+function ComparisonDialogContent({
+  assignment,
+  submissions,
+  setDialog,
+}: {
+  assignment: Assignment
+  submissions: Submission[]
+  setDialog: React.Dispatch<React.SetStateAction<Dialogs | null>>
+}) {
+  const num_questions = assignment?.max_question_scores.split(",").length
+  const subsGraded =
+    submissions.filter((submission) => submission.grade !== null) || []
+  const subsAverage =
+    subsGraded
+      .map((submission) => submission.grade)
+      .reduce((a, b) => a + b, 0) / subsGraded.length
+  return (
+    <DialogContent className="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle>Comparison</DialogTitle>
+      </DialogHeader>
+      <div className="grid gap-4 py-4">
+        <DialogDescription>
+          The average grade for {num_questions} question
+          {num_questions > 1 && "s"} is{" "}
+          {subsAverage.toFixed(2) != "NaN" ? (
+            subsAverage.toFixed(2)
+          ) : (
+            <Skeleton className="h-4 w-[3ch] inline-block" />
+          )}
+          .
+        </DialogDescription>
+      </div>
+      <DialogFooter>
+        <Button
+          onClick={() => {
+            setDialog(null)
+          }}
+        >
+          Close
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   )
 }
 
@@ -743,10 +1025,14 @@ function VersioningDialogWithTrigger({
   )
 }
 
-type VersioningWithSubmissions = Partial<Version> & { submissions: Submission[] } 
+type VersioningWithSubmissions = Partial<Version> & {
+  submissions: Submission[]
+}
 const outliersNameId = "Uncategorized"
 
-function getVersions(submissions: Submission[]): Record<string, VersioningWithSubmissions> {
+function getVersions(
+  submissions: Submission[]
+): Record<string, VersioningWithSubmissions> {
   const versions = submissions.reduce(
     (acc, submission) => {
       if (!acc[submission.version?.id || outliersNameId]) {
