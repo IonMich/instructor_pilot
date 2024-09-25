@@ -3,6 +3,7 @@ import { Document, Page, pdfjs } from "react-pdf"
 import { useDebounceCallback, useResizeObserver } from "usehooks-ts"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 import "react-pdf/dist/Page/TextLayer.css"
+import { cn } from "@/lib/utils"
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
 
@@ -16,10 +17,12 @@ type Size = {
 export const PdfViewer = ({
   url,
   zoom_percent,
+  anonymousGrading,
   setFullRenderSuccess,
 }: {
   url: string
   zoom_percent: number
+  anonymousGrading: boolean
   setFullRenderSuccess: (value: boolean) => void
 }) => {
   const docContainerRef = React.useRef<HTMLDivElement>(null)
@@ -82,7 +85,12 @@ export const PdfViewer = ({
               }}
               width={pageWidth * (zoom_percent / 100)}
               loading=""
-              className={isLoading ? "hidden" : ""}
+              className={cn(
+                isLoading ? "hidden" : "",
+                anonymousGrading
+                  ? "[clip-path:polygon(0%_15%,0%_100%,100%_100%,100%_0%,50%_0%,50%_15%);]"
+                  : ""
+              )}
             />
           )
         })}

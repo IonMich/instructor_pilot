@@ -34,6 +34,8 @@ import {
   LuPaperclip,
   LuChevronLeft,
   LuChevronRight,
+  LuVenetianMask,
+  LuCheck,
 } from "react-icons/lu"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -215,6 +217,7 @@ function SubmissionDetail() {
   const scrollHeightImgDiv = imgDivScrollHeights[initialQuestionFocus]
   const [pageValue, setPageValue] = React.useState(1)
   const [zoomImgPercent, setZoomImgPercent] = React.useState(100)
+  const [anonymousGrading, setAnonymousGrading] = React.useState(false)
 
   const images = submission?.papersubmission_images ?? []
 
@@ -280,6 +283,18 @@ function SubmissionDetail() {
           >
             Zoom {zoomImgPercent.toFixed(0)}%
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="space-x-2"
+            onClick={() => setAnonymousGrading(!anonymousGrading)}
+          >
+            <LuVenetianMask
+              size={20}
+              title="Anonymous Grading"
+            />
+            {anonymousGrading ? <LuCheck size={20} /> : null}
+          </Button>
         </Card>
         <div className="lg:col-span-5 md:col-span-6 col-span-8 md:py-2 py-0">
           <Card className="h-[70vh] md:h-[85vh] overflow-y-auto bg-gray-500">
@@ -312,6 +327,7 @@ function SubmissionDetail() {
             <PdfViewer
               url={submission.pdf}
               zoom_percent={zoomImgPercent}
+              anonymousGrading={anonymousGrading}
               setFullRenderSuccess={setAllImgsLoaded}
             />
           </Card>
@@ -350,10 +366,7 @@ function SubmissionDetail() {
               </Link>
             </Card>
           )}
-          <div
-            className="flex md:flex-col flex-row gap-4 overflow-x-auto overflow-y-auto"
-            style={{ scrollbarWidth: "none" }}
-          >
+          <div className="flex md:flex-col flex-row gap-4 overflow-x-auto overflow-y-auto">
             {/* grade form */}
             {submission && assignment && (
               <>
@@ -369,7 +382,7 @@ function SubmissionDetail() {
               <CommentsChat submission={submission} />
             )}
             {/* student form */}
-            {submission && assignment && students && (
+            {submission && assignment && students && !anonymousGrading && (
               <Card className="p-4 md:order-first">
                 <StudentComboboxForm
                   submission={submission}
@@ -583,7 +596,7 @@ export function GradeForm({
 function CommentsChat({ submission }: { submission: Submission }) {
   return (
     <Card className="hidden md:block">
-      <div className="text-sm border-gray-200 text-gray-500 flex flex-row p-4 justify-between">
+      <div className="text-sm border-gray-200 flex flex-row p-4 justify-between">
         <p>Comments</p>
         {submission.submission_comments.length > 0 && (
           <div className="flex gap-2 items-center">
@@ -600,9 +613,9 @@ function CommentsChat({ submission }: { submission: Submission }) {
         {submission.submission_comments.map((comment) => (
           <div
             key={comment.id}
-            className="flex gap-2 ml-auto first:mt-4 last:mb-4"
+            className="flex gap-2 ml-auto first:mt-4 last:mb-4 snap-y"
           >
-            <Card className="ml-12 p-2 bg-primary text-primary-foreground">
+            <Card className="ml-12 p-2 bg-primary text-primary-foreground snap-center">
               <p className="text-sm whitespace-pre-line">{comment.text}</p>
               <p className="text-xs text-primary-foreground text-right pt-1">
                 {new Date(comment.created_at).toLocaleString()}
@@ -728,16 +741,14 @@ export function StudentComboboxForm({
   const [open, setOpen] = React.useState(false)
 
   function getSection(student: Student, courseId: number) {
-    const section = student.sections.find(
-      (section) => {
-        const sectionCourse = section.course
-        if (typeof sectionCourse === "object") {
-          return sectionCourse.id === courseId
-        } else {
-          return sectionCourse === courseId
-        }
+    const section = student.sections.find((section) => {
+      const sectionCourse = section.course
+      if (typeof sectionCourse === "object") {
+        return sectionCourse.id === courseId
+      } else {
+        return sectionCourse === courseId
       }
-    )
+    })
     if (!section) {
       throw new Error(
         `Student ${student.id} is not enrolled in course ${courseId}`
@@ -839,7 +850,7 @@ export function StudentComboboxForm({
           name="student"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Student</FormLabel>
+              <FormLabel className="hidden md:block">Student</FormLabel>
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                   <FormControl>
