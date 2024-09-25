@@ -31,17 +31,22 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   searchby: string[]
+  initialState?: {
+    columnVisibility?: Record<string, boolean>
+  }
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   searchby,
+  initialState,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
+  console.log("data", data)
   const table = useReactTable({
     data,
     columns,
@@ -51,6 +56,10 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    initialState: initialState? initialState : {
+      sorting,
+      columnFilters,
+    },
     state: {
       sorting,
       columnFilters,

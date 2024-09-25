@@ -79,6 +79,7 @@ export interface Assignment {
   assignment_group_object: AssignmentGroup
   assignment_group: string
   max_page_number: number
+  canvas_id?: string
 }
 
 export interface PaperSubmissionImage {

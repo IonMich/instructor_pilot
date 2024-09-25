@@ -102,6 +102,11 @@ export const columns: ColumnDef<Submission>[] = [
     ),
   },
   {
+    id: "canvas_id",
+    accessorKey: "canvas_id",
+    header: "Canvas ID",
+  },
+  {
     id: "actions",
     cell: ({ row }) => {
       const submission = row.original

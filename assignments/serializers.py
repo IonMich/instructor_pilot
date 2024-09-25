@@ -20,5 +20,6 @@ class AssignmentSerializer(serializers.ModelSerializer):
             'get_average_grade',
             'get_grading_progress',
             'max_page_number',
+            'canvas_id',
         )
         depth = 1

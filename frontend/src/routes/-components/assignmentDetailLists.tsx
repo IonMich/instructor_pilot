@@ -23,6 +23,7 @@ import {
   LuInfo,
   LuArrowRight,
   LuArrowLeft,
+  LuDownloadCloud,
 } from "react-icons/lu"
 import { FaTasks } from "react-icons/fa"
 import { Toggle } from "@/components/ui/toggle"
@@ -77,12 +78,20 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
-import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const route = getRouteApi("/_authenticated/assignments/$assignmentId")
 
-enum Dialogs {
+enum DialogsSubs {
+  dialog1 = "dialog1",
+}
+
+enum DialogsGrades {
   dialog1 = "dialog1",
   dialog2 = "dialog2",
 }
@@ -101,7 +110,15 @@ export function SubmissionsTable() {
   return (
     <>
       <div className="container mx-auto py-2">
-        <h1 className="text-5xl font-bold py-8">{assignment?.name}</h1>
+        <div className="flex flex-row flex-wrap justify-between items-end">
+          <h1 className="text-5xl font-bold my-8">{assignment?.name}</h1>
+          {assignment.canvas_id && (
+            <CanvasDialogWithTrigger
+              assignment={assignment}
+              submissions={submissions}
+            />
+          )}
+        </div>
         <AssignmentDetailCards
           assignment={assignment}
           submissions={submissions}
@@ -110,8 +127,168 @@ export function SubmissionsTable() {
           columns={columnsOfAssignment}
           data={submissions}
           searchby={["student", "uni_id"]}
+          initialState={{
+            columnVisibility: {
+              canvas_id: assignment.canvas_id ? true : false,
+            },
+          }}
         />
       </div>
+    </>
+  )
+}
+
+function CanvasDialogWithTrigger({
+  assignment,
+  submissions,
+}: {
+  assignment: Assignment
+  submissions: Submission[]
+}) {
+  const [dialogOpen, setDialogOpen] = React.useState(false)
+  return (
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="mb-8 border border-primary">
+          Canvas
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Canvas Info for {assignment.name}</DialogTitle>
+        </DialogHeader>
+        <CanvasAssignmentInfo
+          assignment={assignment}
+          submissions={submissions}
+        />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function CanvasAssignmentInfo({
+  assignment,
+  submissions,
+}: {
+  assignment: Assignment
+  submissions: Submission[]
+}) {
+  const num_subs = submissions.length
+  const num_subs_canvas_id = submissions.filter(
+    (submission) => submission.canvas_id
+  ).length
+  // const [step, setStep] = React.useState(1)
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-row gap-1 items-center justify-end">
+        <DialogDescription>
+          <span className="font-bold">Canvas ID:</span> {assignment.canvas_id}
+        </DialogDescription>
+      </div>
+      <CanvasSyncWarnings submissions={submissions} />
+      {num_subs_canvas_id === num_subs && (
+        <Alert>
+          <LuRocket />
+          <AlertTitle>All Submissions Linked</AlertTitle>
+          <AlertDescription>
+            All submissions have been linked to Canvas submission.
+            <br />
+            Feel free to double-check that the correct Canvas ID has been
+            associated with each submission by clicking on the submission Canvas
+            link.
+          </AlertDescription>
+        </Alert>
+      )}
+      <Button
+        title="Synchronize the submissions by extracting the Canvas ID from Canvas"
+        variant="outline"
+        className="border border-primary mx-auto flex flex-row items-center gap-2"
+      >
+        <span>
+          {num_subs_canvas_id === num_subs ? "Link Again" : "Link IDs"}
+        </span>{" "}
+        <LuDownloadCloud className="h-4 w-4" />
+      </Button>
+      {num_subs_canvas_id > 0 && (
+        <>
+          {num_subs_canvas_id < num_subs && (
+            <>
+              <Separator orientation="horizontal" />
+              <p className="text-xs text-muted-foreground">
+                Focus on the {num_subs_canvas_id} linked submission
+                {num_subs_canvas_id > 0 && "s"}.
+              </p>
+            </>
+          )}
+
+          <Button
+            variant="outline"
+            className="border border-primary mx-auto flex flex-row items-center gap-2"
+          >
+            Continue <LuArrowRight className="h-4 w-4" />
+          </Button>
+        </>
+      )}
+    </div>
+  )
+}
+
+function CanvasSyncWarnings({ submissions }: { submissions: Submission[] }) {
+  const num_subs = submissions.length
+  const num_subs_identified = submissions.filter(
+    (submission) => submission.student
+  ).length
+  const num_subs_canvas_id = submissions.filter(
+    (submission) => submission.canvas_id
+  ).length
+  return (
+    <>
+      {num_subs_identified < num_subs && (
+        <Alert>
+          <LuInfo />
+          <AlertTitle>Unidentified Submissions Found</AlertTitle>
+          <AlertDescription>
+            Some of the submissions have not been associated with a student.
+            Such submissions cannot be linked to a Canvas submission. Use the
+            automation workflow to identify the remaining students, or manually
+            associate the submissions with a student.
+          </AlertDescription>
+        </Alert>
+      )}
+      {num_subs_canvas_id < num_subs && (
+        <Alert>
+          <LuInfo />
+          <AlertTitle>Submission without Canvas Identifiers</AlertTitle>
+          <AlertDescription>
+            This assignment is already linked to a Canvas assignment. However,
+            {num_subs_canvas_id === 0
+              ? " no submissions"
+              : `only ${num_subs_canvas_id} out of ${num_subs} submissions`}{" "}
+            have a Canvas ID associated with them. Get the Canvas ID for the
+            submissions by synchronizing the submissions. This action{" "}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="font-bold text-accent-foreground underline decoration-wavy">
+                  will not upload
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                It performs a{" "}
+                <a
+                  href="https://canvas.instructure.com/doc/api/submissions.html#method.submissions_api.index"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  GET request
+                </a>{" "}
+                to the Canvas API.
+              </TooltipContent>
+            </Tooltip>{" "}
+            any data to Canvas.
+          </AlertDescription>
+        </Alert>
+      )}
     </>
   )
 }
@@ -283,7 +460,7 @@ function AllSubmissionsDropdownMenu({
 }: {
   assignment: Assignment
 }) {
-  const [dialog, setDialog] = React.useState<Dialogs | null>(null)
+  const [dialog, setDialog] = React.useState<DialogsSubs | null>(null)
   const onOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
       setDialog(null)
@@ -303,7 +480,7 @@ function AllSubmissionsDropdownMenu({
           <DialogTrigger
             asChild
             onClick={() => {
-              setDialog(Dialogs.dialog1)
+              setDialog(DialogsSubs.dialog1)
             }}
           >
             <DropdownMenuItem>Delete All</DropdownMenuItem>
@@ -312,7 +489,7 @@ function AllSubmissionsDropdownMenu({
           <DropdownMenuItem>Export PDFs</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {dialog === Dialogs.dialog1 ? (
+      {dialog === DialogsSubs.dialog1 ? (
         <DeleteAllDialogContent assignment={assignment} setDialog={setDialog} />
       ) : null}
     </Dialog>
@@ -324,7 +501,7 @@ function DeleteAllDialogContent({
   setDialog,
 }: {
   assignment: Assignment
-  setDialog: React.Dispatch<React.SetStateAction<Dialogs | null>>
+  setDialog: React.Dispatch<React.SetStateAction<DialogsSubs | null>>
 }) {
   const router = useRouter()
   const deleteAllSubmissionsMutation = useDeleteAllSubmissionsMutation()
@@ -403,7 +580,7 @@ function GradesDropdownMenu({
   assignment: Assignment
   submissions: Submission[]
 }) {
-  const [dialog, setDialog] = React.useState<Dialogs | null>(null)
+  const [dialog, setDialog] = React.useState<DialogsGrades | null>(null)
   const onOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
       setDialog(null)
@@ -423,7 +600,7 @@ function GradesDropdownMenu({
           <DialogTrigger
             asChild
             onClick={() => {
-              setDialog(Dialogs.dialog1)
+              setDialog(DialogsGrades.dialog1)
             }}
           >
             <DropdownMenuItem>Modify Grading Scheme</DropdownMenuItem>
@@ -431,7 +608,7 @@ function GradesDropdownMenu({
           <DialogTrigger
             asChild
             onClick={() => {
-              setDialog(Dialogs.dialog2)
+              setDialog(DialogsGrades.dialog2)
             }}
           >
             <DropdownMenuItem>Compare</DropdownMenuItem>
@@ -440,7 +617,7 @@ function GradesDropdownMenu({
           <DropdownMenuItem disabled>Export Grades CSV</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {dialog === Dialogs.dialog1 ? (
+      {dialog === DialogsGrades.dialog1 ? (
         <GradingSchemeFormDialogContent
           assignment={assignment}
           submissions={submissions}
@@ -464,8 +641,9 @@ function GradingSchemeFormDialogContent({
 }: {
   assignment: Assignment
   submissions: Submission[]
-  setDialog: React.Dispatch<React.SetStateAction<Dialogs | null>>
+  setDialog: React.Dispatch<React.SetStateAction<DialogsGrades | null>>
 }) {
+  console.log(submissions)
   // create a form to update the max_question_scores
   const max_question_scores = assignment.max_question_scores
     .split(",")
@@ -537,10 +715,12 @@ function GradingSchemeForm({
   assignment: Assignment
   num_questions: number
   max_question_scores: number[]
-  setDialog: React.Dispatch<React.SetStateAction<Dialogs | null>>
+  setDialog: React.Dispatch<React.SetStateAction<DialogsGrades | null>>
 }) {
   const router = useRouter()
   // const updateAssignmentMutation = useUpdateAssignmentMutation(assignment.id)
+
+  // use RHF creator suggestion on how to handle array with variable number of elements
   const formSchema = z.object({
     max_question_scores: z.array(z.number().positive()).length(num_questions),
   })
@@ -552,18 +732,20 @@ function GradingSchemeForm({
     },
   })
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log("values", values)
+    console.log(router)
+    console.log(setDialog)
     toast({
       title: "Updating grading scheme...",
       description:
         "Updating the grading scheme for assignment " + assignment.name,
     })
-    const data = await updateAssignmentMutation.mutateAsync(values, {
-      onSuccess: () => {
-        router.invalidate()
-        setDialog(null)
-      },
-    })
-    console.log("data", data)
+    // const data = await updateAssignmentMutation.mutateAsync(values, {
+    //   onSuccess: () => {
+    //     router.invalidate()
+    //     setDialog(null)
+    //   },
+    // })
   }
 
   return (
@@ -573,7 +755,6 @@ function GradingSchemeForm({
           control={form.control}
           name="max_question_scores"
           render={() => {
-            console.log("form", form)
             return (
               <FormItem>
                 <div className="flex flex-col gap-4">
@@ -630,7 +811,7 @@ function ComparisonDialogContent({
 }: {
   assignment: Assignment
   submissions: Submission[]
-  setDialog: React.Dispatch<React.SetStateAction<Dialogs | null>>
+  setDialog: React.Dispatch<React.SetStateAction<DialogsGrades | null>>
 }) {
   const num_questions = assignment?.max_question_scores.split(",").length
   const subsGraded =
@@ -1128,9 +1309,11 @@ function VersioningForm({
                           Number of versions: {num_versions}
                         </AlertDescription>
                         <AlertDescription>
-                          {remainingSubmissionsToVersion.length} of{" "}
-                          {assignment.submission_count} submissions remain
-                          ungrouped.
+                          {remainingSubmissionsToVersion.length ===
+                          assignment.submission_count
+                            ? "All"
+                            : `${remainingSubmissionsToVersion.length} of ${assignment.submission_count}`}{" "}
+                          submissions remain ungrouped.
                         </AlertDescription>
                       </Alert>
                     ) : (
