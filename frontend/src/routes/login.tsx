@@ -1,5 +1,5 @@
 import * as React from "react"
-import { createFileRoute, useRouter } from "@tanstack/react-router"
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import {
@@ -47,20 +47,7 @@ function LoginForm() {
     }
   }, [status, search.redirect, router.history])
   return status === "loggedIn" ? (
-    <div>
-      Logged in as <strong>{auth.username}</strong>
-      <div className="h-2" />
-      <button
-        onClick={() => {
-          auth.logout()
-          router.invalidate()
-        }}
-        className="text-sm bg-blue-500 text-white border inline-block py-1 px-2 rounded"
-      >
-        Log out
-      </button>
-      <div className="h-2" />
-    </div>
+    <AlreadyLoggedIn auth={auth} router={router} />
   ) : (
     <div className="flex min-h-screen items-center justify-center">
       <Card className="w-full max-w-sm">
@@ -94,6 +81,37 @@ function LoginForm() {
             Sign in
           </Button>
         </CardFooter>
+      </Card>
+    </div>
+  )
+}
+
+function AlreadyLoggedIn({ auth, router }) {
+  const logout = async () => {
+    await auth.logout()
+    router.invalidate()
+  }
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Already Logged In</CardTitle>
+          <CardDescription>
+            You are already logged in as{" "}
+            <span className="font-bold text-accent-foreground">
+              {auth.username}
+            </span>
+            .
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button onClick={logout} className="w-full">
+            Logout
+          </Button>
+          <Button asChild className="w-full text-accent-foreground">
+            <Link to="/">Go to Home</Link>
+          </Button>
+        </CardContent>
       </Card>
     </div>
   )
