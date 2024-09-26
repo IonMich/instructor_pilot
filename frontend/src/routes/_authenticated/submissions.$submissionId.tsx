@@ -64,6 +64,7 @@ import {
 import { toast } from "@/components/ui/use-toast"
 import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
 import { PdfViewer } from "@/components/pdf-viewer"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export const Route = createFileRoute(
   "/_authenticated/submissions/$submissionId"
@@ -156,9 +157,23 @@ function getBreadcrumbItems(
       params: { assignmentId: assignment.id },
     },
     {
-      title: submission.student
-        ? `${submission.student.first_name} ${submission.student.last_name}`
-        : `Submission ${submission.id.split("-")[0]}`,
+      title: submission.student ? (
+        <span className="flex flex-row items-center gap-2">
+          {submission.student.first_name} {submission.student.last_name}
+          <Avatar className="h-6 w-6 mx-auto hover:scale-[4] hover:translate-y-[50px] transition-transform duration-300">
+            <AvatarImage
+              src={submission.student.profile.avatar?.toString()}
+              alt="Avatar"
+            />
+            <AvatarFallback>
+              {submission.student.first_name[0]}
+              {submission.student.last_name[0]}
+            </AvatarFallback>
+          </Avatar>
+        </span>
+      ) : (
+        `Submission ${submission.id.split("-")[0]}`
+      ),
       to: "/submissions/$submissionId",
       params: { submissionId: submission.id },
     },
@@ -289,10 +304,7 @@ function SubmissionDetail() {
             className="space-x-2"
             onClick={() => setAnonymousGrading(!anonymousGrading)}
           >
-            <LuVenetianMask
-              size={20}
-              title="Anonymous Grading"
-            />
+            <LuVenetianMask size={20} title="Anonymous Grading" />
             {anonymousGrading ? <LuCheck size={20} /> : null}
           </Button>
         </Card>

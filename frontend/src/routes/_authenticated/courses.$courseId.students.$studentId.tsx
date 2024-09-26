@@ -118,7 +118,7 @@ function StudentDetail() {
         <span className="text-muted-foreground"> ({section.name})</span>
       </p>
       <Avatar className="my-4 h-24 w-24 mx-auto">
-        <AvatarImage src={student.avatar} alt="Avatar" />
+        <AvatarImage src={student.profile.avatar?.toString()} alt="Avatar" />
         <AvatarFallback>
           {student.first_name[0]}
           {student.last_name[0]}

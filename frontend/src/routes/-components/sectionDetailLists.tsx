@@ -22,7 +22,7 @@ export function StudentCard({
     >
       <Card className="flex flex-col items-center">
         <Avatar className="my-4 h-24 w-24">
-          <AvatarImage src={student.avatar} alt="Avatar" />
+          <AvatarImage src={student.profile.avatar?.toString()} alt="Avatar" />
           <AvatarFallback>
             {student.first_name[0]}
             {student.last_name[0]}

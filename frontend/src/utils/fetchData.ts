@@ -38,6 +38,9 @@ export interface Student {
   updated: string
   canvas_id: string
   avatar?: string
+  profile: {
+    avatar?: URL
+  }
   sections: Section[]
 }
 

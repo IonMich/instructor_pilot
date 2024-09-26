@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from profiles.serializers import UserSerializer
 from students.models import Student
+from students.serializers import StudentSerializer
 from .models import PaperSubmission, PaperSubmissionImage, SubmissionComment
 
 class PaperSubmissionImageSerializer(serializers.ModelSerializer):
@@ -21,6 +22,7 @@ class PaperSubmissionSerializer(serializers.ModelSerializer):
     papersubmission_images = PaperSubmissionImageSerializer(source='submissions_papersubmissionimage_related', many=True, read_only=True)
     submission_comments = SubmissionCommentSerializer(source='submissions_submissioncomment_related', many=True, read_only=True)
     student_id = serializers.PrimaryKeyRelatedField(source="student", queryset = Student.objects.all())
+    student = StudentSerializer(read_only=True)
     class Meta:
         model = PaperSubmission
         fields = ('id', 'student', 'student_id', 'canvas_id', 'canvas_url', 'question_grades', 'grade', 'version', 'assignment', 'pdf', 'papersubmission_images', 'submission_comments')

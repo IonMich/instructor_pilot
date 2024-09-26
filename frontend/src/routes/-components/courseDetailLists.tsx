@@ -143,7 +143,6 @@ export function AssignmentList({ assignments }: { assignments: Assignment[] }) {
   )
 }
 
-
 function AssignmentListElement({ assignment }: { assignment: Assignment }) {
   return (
     <Link
@@ -157,13 +156,12 @@ function AssignmentListElement({ assignment }: { assignment: Assignment }) {
           {assignment.max_score} point
           {assignment.max_score == 1 ? "" : "s"} (
           {assignment.max_question_scores.split(",").length} question
-          {assignment.max_question_scores.split(",").length > 1 ? "s" : ""}
-          )
+          {assignment.max_question_scores.split(",").length > 1 ? "s" : ""})
         </p>
       </div>
       {assignment.submission_count > 0 && (
-          <AssignmentScoresHistogram assignmentId={assignment.id} />
-        )}
+        <AssignmentScoresHistogram assignmentId={assignment.id} />
+      )}
       <div className="ml-auto font-medium mr-4 flex items-center gap-1">
         {assignment.submission_count > 0 && (
           <>
@@ -185,7 +183,7 @@ function AssignmentListElement({ assignment }: { assignment: Assignment }) {
           </>
         )}
         <Badge color="primary" className="gap-1 hover:bg-primary">
-            {assignment.submission_count}
+          {assignment.submission_count}
           <LuFile className="h-4 w-4 inline" />
         </Badge>
       </div>
@@ -196,7 +194,7 @@ function AssignmentListElement({ assignment }: { assignment: Assignment }) {
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
 import { Bar, BarChart } from "recharts"
 import { useSuspenseQuery } from "@tanstack/react-query"
- 
+
 const chartConfig = {
   total: {
     label: "Total",
@@ -205,8 +203,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 function AssignmentScoresHistogram({ assignmentId }: { assignmentId: number }) {
-  // random scores from assignment.submission_count and assignment.max_score
-  const {data: scores} = useSuspenseQuery(
+  const { data: scores } = useSuspenseQuery(
     assignmentScoresQueryOptions(assignmentId)
   )
   if (!scores) {

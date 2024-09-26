@@ -15,5 +15,6 @@ class StudentSerializer(serializers.ModelSerializer):
             "updated",
             "canvas_id",
             "sections",
+            "profile",
         )
         depth = 1
