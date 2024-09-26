@@ -37,6 +37,10 @@ export const auth: Auth = {
     auth.username = undefined
     auth.accessToken = undefined
     auth.refreshToken = undefined
+    // remove from local storage
+    localStorage.removeItem("username")
+    localStorage.removeItem("accessToken")
+    localStorage.removeItem("refreshToken")
   },
   getToken: () => {
     const accessToken = localStorage.getItem("accessToken")
