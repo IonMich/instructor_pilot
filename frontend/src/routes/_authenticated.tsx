@@ -118,7 +118,11 @@ function AuthenticatedLayout() {
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href="https://github.com/IonMich/instructor_pilot/wiki" target="_blank" rel="noreferrer">
+                  Help
+                </a>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {
