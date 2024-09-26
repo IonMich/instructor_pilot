@@ -24,7 +24,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from profiles.views import UserViewSet
+from profiles.views import UserViewSet, RequesterUserViewSet
 from courses.views import (
     CourseViewSet,
     ListCanvasCourses,
@@ -111,6 +111,11 @@ urlpatterns = [
     path("", include("courses.urls", namespace="courses")),
     path("", include("assignments.urls", namespace="assignments")),
     path("", include("sections.urls", namespace="sections")),
+    path(
+        "api/requester/",
+        RequesterUserViewSet.as_view(),
+        name="requester-user",
+    ),
     path(
         "api/assignments/<int:assignment_id>/scores/",
         ListAssignmentScoresViewSet.as_view(),

@@ -124,10 +124,14 @@ export interface User {
   id: number
   first_name: string
   last_name: string
+  username: string
   email: string
   created: string
   updated: string
   avatar: string
+  profile: {
+    avatar?: URL
+  }
 }
 
 export interface AssignmentGroup {
@@ -174,12 +178,36 @@ const submissionUrlMapper = (submissionId: string) => {
   return `${baseAPIUrl}submissions/${submissionId}/`
 }
 
+export async function fetchRequesterUser() {
+  console.log("Fetching requester user")
+  const user = loaderFn(() =>
+    Promise.resolve().then(async () => {
+      const item = await axios
+        .get<User>(`${baseAPIUrl}requester/`, {
+          headers: {
+            Authorization: `Bearer ${auth.getToken()}`,
+          },
+        })
+        .then((response) => response.data)
+        .catch((error) => {
+          throw error
+        })
+      return item
+    })
+  )
+  return user
+}
+
 export async function fetchCourseById(courseId: number) {
   console.log("Fetching course by Id", courseId)
   const course = loaderFn(() =>
     Promise.resolve().then(async () => {
       const item = await axios
-        .get<Course>(`${baseAPIUrl}courses/${courseId}/`)
+        .get<Course>(`${baseAPIUrl}courses/${courseId}/`, {
+          headers: {
+            Authorization: `Bearer ${auth.getToken()}`,
+          },
+        })
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
@@ -198,7 +226,11 @@ export async function fetchCourses() {
   const courses = loaderFn(() =>
     Promise.resolve().then(async () => {
       const items = await axios
-        .get<Course[]>(`${baseAPIUrl}courses/`)
+        .get<Course[]>(`${baseAPIUrl}courses/`, {
+          headers: {
+            Authorization: `Bearer ${auth.getToken()}`,
+          },
+        })
         .then((response) => response.data)
         .catch((error) => {
           throw error
@@ -214,7 +246,11 @@ export async function fetchSectionsOfCourse(courseId: number) {
   const sections = loaderFn(() =>
     Promise.resolve().then(async () => {
       const items = await axios
-        .get<Section[]>(sectionsOfCourseUrlMapper(courseId))
+        .get<Section[]>(sectionsOfCourseUrlMapper(courseId), {
+          headers: {
+            Authorization: `Bearer ${auth.getToken()}`,
+          },
+        })
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
@@ -233,7 +269,11 @@ export async function fetchSectionById(sectionId: number) {
   const section = loaderFn(() =>
     Promise.resolve().then(async () => {
       const item = await axios
-        .get<Section>(sectionUrlMapper(sectionId))
+        .get<Section>(sectionUrlMapper(sectionId), {
+          headers: {
+            Authorization: `Bearer ${auth.getToken()}`,
+          },
+        })
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
@@ -252,7 +292,11 @@ export async function fetchAssignmentsOfCourse(courseId: number) {
   const assignments = loaderFn(() =>
     Promise.resolve().then(async () => {
       const result = await axios
-        .get<Assignment[]>(assignmentsUrlMapper(courseId))
+        .get<Assignment[]>(assignmentsUrlMapper(courseId), {
+          headers: {
+            Authorization: `Bearer ${auth.getToken()}`,
+          },
+        })
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
@@ -271,7 +315,11 @@ export async function fetchAssignmentById(assignmentId: number) {
   const assignment = loaderFn(() =>
     Promise.resolve().then(async () => {
       const result = await axios
-        .get<Assignment>(assignmentUrlMapper(assignmentId))
+        .get<Assignment>(assignmentUrlMapper(assignmentId), {
+          headers: {
+            Authorization: `Bearer ${auth.getToken()}`,
+          },
+        })
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {
@@ -290,7 +338,11 @@ export async function fetchAssignmentScoresById(assignmentId: number) {
   const assignmentScores = loaderFn(() =>
     Promise.resolve().then(async () => {
       const result = await axios
-        .get<number[]>(`${assignmentUrlMapper(assignmentId)}scores/`)
+        .get<number[]>(`${assignmentUrlMapper(assignmentId)}scores/`, {
+          headers: {
+            Authorization: `Bearer ${auth.getToken()}`,
+          },
+        })
         .then((response) => response.data)
         .catch((error) => {
           if (error.response?.status === 404) {

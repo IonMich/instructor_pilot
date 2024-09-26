@@ -5,6 +5,7 @@ import { queryClient } from "../app"
 import { CanvasStudent } from "./types"
 
 import {
+  fetchRequesterUser,
   fetchCourseById,
   fetchCourses,
   fetchSectionsOfCourse,
@@ -44,6 +45,13 @@ const subKeys = {
   list: (filters: string) => [...subKeys.lists(), filters] as const,
   details: () => [...subKeys.all, "detail"] as const,
   detail: (id: Submission["id"]) => [...subKeys.details(), id] as const,
+}
+
+export const userQueryOptions = () => {
+  return queryOptions({
+    queryKey: ["user"],
+    queryFn: () => fetchRequesterUser(),
+  })
 }
 
 export const coursesQueryOptions = () => {

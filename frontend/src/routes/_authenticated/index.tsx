@@ -2,9 +2,9 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LuPlus } from "react-icons/lu"
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { coursesQueryOptions } from "@/utils/queryOptions"
+import { coursesQueryOptions, userQueryOptions } from "@/utils/queryOptions"
 import { useSuspenseQueries } from "@tanstack/react-query"
-import { CanvasCourse, Course } from "@/utils/fetchData"
+import { CanvasCourse, Course, User } from "@/utils/fetchData"
 import { auth } from "@/utils/auth"
 import {
   Dialog,
@@ -45,10 +45,13 @@ export const Route = createFileRoute("/_authenticated/")({
 })
 
 function Index() {
-  const user = auth.getUsername() || ""
-  const [{ data: courses }] = useSuspenseQueries({
-    queries: [coursesQueryOptions()],
+  const [{ data: courses }, { data: user }] = useSuspenseQueries({
+    queries: [
+      coursesQueryOptions(),
+      userQueryOptions(),
+    ],
   })
+  console.log(user)
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4">
       <CoursesDeck courses={courses} user={user} />
@@ -56,12 +59,12 @@ function Index() {
   )
 }
 
-function CoursesDeck({ courses, user }: { courses: Course[]; user: string }) {
+function CoursesDeck({ courses, user }: { courses: Course[]; user: User }) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div className="hidden lg:block"></div>
       <p className="text-2xl font-bold my-10 text-center">
-        {user === "" ? "Hello!" : `Hello, ${user}!`}
+        {!user ? "Hello!" : `Hello, ${user.first_name ?? user.username}!`}
         <span
           role="img"
           aria-label="wave"
