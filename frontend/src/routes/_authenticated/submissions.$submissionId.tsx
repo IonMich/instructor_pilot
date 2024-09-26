@@ -2,7 +2,13 @@ import * as React from "react"
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { useRouter } from "@tanstack/react-router"
 // import { useTheme } from "@/components/theme-provider"
-import { Submission, Assignment, Course, Student } from "@/utils/fetchData"
+import {
+  Submission,
+  Assignment,
+  Course,
+  Student,
+  PaperSubmissionImage,
+} from "@/utils/fetchData"
 import {
   submissionQueryOptions,
   assignmentQueryOptions,
@@ -36,6 +42,7 @@ import {
   LuChevronRight,
   LuVenetianMask,
   LuCheck,
+  LuImage,
 } from "react-icons/lu"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -65,6 +72,8 @@ import { toast } from "@/components/ui/use-toast"
 import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
 import { PdfViewer } from "@/components/pdf-viewer"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useTheme } from "@/components/theme-provider"
+import { FaRegFilePdf } from "react-icons/fa"
 
 export const Route = createFileRoute(
   "/_authenticated/submissions/$submissionId"
@@ -200,7 +209,7 @@ function navigateOnKey(e: React.KeyboardEvent) {
 
 function SubmissionDetail() {
   // const { theme } = useTheme()
-  const [allImgsLoaded, setAllImgsLoaded] = React.useState(false)
+  const [allImgsLoaded, setFullRenderSuccess] = React.useState(false)
   const submissionId = Route.useParams().submissionId
   const { data: submission } = useSuspenseQuery(
     submissionQueryOptions(submissionId)
@@ -233,26 +242,35 @@ function SubmissionDetail() {
   const [pageValue, setPageValue] = React.useState(1)
   const [zoomImgPercent, setZoomImgPercent] = React.useState(100)
   const [anonymousGrading, setAnonymousGrading] = React.useState(false)
-
+  // pdf or image rendering
+  const [rendeder, setRenderer] = React.useState<"pdf" | "images">("images")
+  const pagesContainerRef = React.useRef<HTMLDivElement>(null)
   const images = submission?.papersubmission_images ?? []
+  const numImages = images.length
 
   React.useEffect(() => {
-    setAllImgsLoaded(false)
-  }, [submission.id])
+    setFullRenderSuccess(false)
+  }, [submission.id, rendeder])
 
   // on all images loaded, scroll to the middle of the image div
   React.useEffect(() => {
     if (allImgsLoaded) {
+      const cardDiv = pagesContainerRef.current
+      console.log(cardDiv)
+      if (cardDiv) {
+        cardDiv.scrollTop =
+          (cardDiv.scrollHeight / numImages) * scrollHeightImgDiv
+        return
+      }
       const canvasContainer =
         document.querySelector("canvas")?.parentElement?.parentElement
-      const numImages = canvasContainer?.childElementCount
       const imgCard = canvasContainer?.parentElement?.parentElement
       if (imgCard && numImages) {
         imgCard.scrollTop =
           (imgCard.scrollHeight / numImages) * scrollHeightImgDiv
       }
     }
-  }, [allImgsLoaded, scrollHeightImgDiv])
+  }, [allImgsLoaded, scrollHeightImgDiv, numImages])
 
   return (
     <>
@@ -307,41 +325,45 @@ function SubmissionDetail() {
             <LuVenetianMask size={20} title="Anonymous Grading" />
             {anonymousGrading ? <LuCheck size={20} /> : null}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setRenderer(rendeder === "images" ? "pdf" : "images")
+            }
+          >
+            {rendeder === "images" ? (
+              <LuImage size={20} />
+            ) : (
+              <FaRegFilePdf size={20} />
+            )}
+          </Button>
         </Card>
         <div className="lg:col-span-5 md:col-span-6 col-span-8 md:py-2 py-0">
-          <Card className="h-[70vh] md:h-[85vh] overflow-y-auto bg-gray-500">
-            {/* {submission?.papersubmission_images.map((image) => (
-              <img
-                key={image.id}
-                src={image.image}
-                alt={`Page ${image.page}`}
-                onLoad={handleImageLoad}
-                // hidden={!allImgsLoaded}
-                // ----PDF Rendering----
-                hidden={true}
-                height="110"
-                width="80"
-                className={cn(
-                  theme === "dark" && "invert brightness-[0.9] contrast-[0.9]",
-                  "mx-auto",
-                  zoomImgPercent === 5
-                    ? "w-5/6"
-                    : zoomImgPercent === 4
-                      ? "w-4/6"
-                      : zoomImgPercent === 3
-                        ? "w-3/6"
-                        : "w-full"
-                )}
+          <Card
+            ref={pagesContainerRef}
+            className={cn(
+              "h-[70vh] md:h-[85vh] overflow-y-auto",
+              allImgsLoaded ? "bg-gray-500" : "bg-accent"
+            )}
+          >
+            {rendeder === "images" ? (
+              // ----Image Rendering----
+              <PagesScrollArea
+                images={images}
+                zoomImgPercent={zoomImgPercent}
+                allImgsLoaded={allImgsLoaded}
+                setFullRenderSuccess={setFullRenderSuccess}
               />
-            ))} */}
-            {/* ----PDF Rendering---- */}
-            {/* <div key={submission.pdf} id="the-canvas-div" /> */}
-            <PdfViewer
-              url={submission.pdf}
-              zoom_percent={zoomImgPercent}
-              anonymousGrading={anonymousGrading}
-              setFullRenderSuccess={setAllImgsLoaded}
-            />
+            ) : (
+              // ----PDF Rendering----
+              <PdfViewer
+                url={submission.pdf}
+                zoom_percent={zoomImgPercent}
+                anonymousGrading={anonymousGrading}
+                setFullRenderSuccess={setFullRenderSuccess}
+              />
+            )}
           </Card>
         </div>
         <div className="md:h-[85vh] col-span-8 md:col-span-2 my-2 order-first md:order-last flex md:flex-col flex-row gap-4">
@@ -406,6 +428,61 @@ function SubmissionDetail() {
         </div>
       </div>
     </>
+  )
+}
+
+function PagesScrollArea({
+  images,
+  zoomImgPercent,
+  allImgsLoaded,
+  setFullRenderSuccess,
+}: {
+  images: PaperSubmissionImage[]
+  zoomImgPercent: number
+  allImgsLoaded: boolean
+  setFullRenderSuccess: (loaded: boolean) => void
+}) {
+  const { theme } = useTheme()
+
+  const [numloadedImages, setNumLoadedImages] = React.useState(0)
+  console.log(numloadedImages, images.length)
+  const handleImageLoad = () => {
+    setNumLoadedImages((prev) => prev + 1)
+  }
+  React.useEffect(() => {
+    if (numloadedImages === images.length) {
+      setFullRenderSuccess(true)
+    }
+  }, [numloadedImages, images.length, setFullRenderSuccess])
+
+  React.useEffect(() => {
+    setNumLoadedImages(0)
+  }, [images])
+  return (
+    <div className="flex flex-col gap-2">
+      {images.map((image) => (
+        <img
+          key={image.id}
+          src={image.image}
+          alt={`Page ${image.page}`}
+          onLoad={handleImageLoad}
+          height="110"
+          width="80"
+          className={cn(
+            allImgsLoaded ? "block" : "hidden",
+            theme === "dark" && "invert brightness-[0.9] contrast-[0.9]",
+            "mx-auto",
+            zoomImgPercent === 5
+              ? "w-5/6"
+              : zoomImgPercent === 4
+                ? "w-4/6"
+                : zoomImgPercent === 3
+                  ? "w-3/6"
+                  : "w-full"
+          )}
+        />
+      ))}
+    </div>
   )
 }
 
