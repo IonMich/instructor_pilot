@@ -71,6 +71,42 @@ export const auth: Auth = {
     }
     return auth.refreshToken
   },
+  generateFromRefresh: async () => {
+    console.log("Try Refresh Access")
+    let refreshToken = null
+    try {
+      refreshToken = auth.getRefreshToken()
+    } catch {
+      throw Error("Unauthorized caught")
+    }
+    if (!refreshToken) {
+      throw Error("Unauthorized no refresh")
+    }
+    let tokens
+    try {
+      tokens = await tryRefreshToken(refreshToken)
+    } catch {
+      console.log("access errored")
+    }
+    if (tokens?.access) {
+      console.log("refreshed successfully")
+      auth.status = "loggedIn"
+      auth.accessToken = tokens.access
+      // set in local storage
+      localStorage.setItem("accessToken", tokens.access)
+    } else {
+      console.log("failed refresh")
+      auth.status = "loggedOut"
+      auth.accessToken = undefined
+      auth.refreshToken = undefined
+      // remove from local storage
+      localStorage.removeItem("username")
+      localStorage.removeItem("accessToken")
+      localStorage.removeItem("refreshToken")
+      throw Error("Unauthorized")
+    }
+    return tokens
+  },
 }
 
 function initAuth() {
@@ -90,6 +126,7 @@ export type Auth = {
   getToken: () => string | undefined
   getUsername: () => string | undefined
   getRefreshToken: () => string | undefined
+  generateFromRefresh: () => Promise<{ access: string }>
   status: "loggedOut" | "loggedIn"
   username?: string
   accessToken?: string
@@ -97,6 +134,7 @@ export type Auth = {
 }
 
 const tokenGenAPIURL = "http://localhost:8000/api/token/"
+const tokenRefreshAPIURL = "http://localhost:8000/api/token/refresh/"
 
 async function passedLoginCheck(username: string, password: string) {
   const tokens = loaderFn(() =>
@@ -117,4 +155,24 @@ async function passedLoginCheck(username: string, password: string) {
     })
   )
   return tokens
+}
+
+async function tryRefreshToken(refreshToken: string) {
+  const accessToken = loaderFn(() =>
+    Promise.resolve().then(async () => {
+      const test = await axios
+        .post<{ access: string }>(tokenRefreshAPIURL, {
+          refresh: refreshToken,
+        })
+        .then((response) => response.data)
+        .catch((error) => {
+          if (error.response?.status === 401) {
+            throw new Error("Unauthorized in fetch")
+          }
+          throw error
+        })
+      return test
+    })
+  )
+  return accessToken
 }

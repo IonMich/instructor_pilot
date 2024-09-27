@@ -7,8 +7,28 @@ import { routeTree } from "./routeTree.gen"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import "./index.css"
+import { AxiosError } from "axios"
 
-export const queryClient = new QueryClient()
+const retryOnUnauthorized = (failureCount: number, error: AxiosError) => {
+  if (failureCount === 0 && error.status === 401) {
+    auth.generateFromRefresh()
+    return true
+  }
+  return false
+}
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        if (error instanceof AxiosError) {
+          return retryOnUnauthorized(failureCount, error)
+        }
+        return false
+      },
+    },
+  },
+})
 
 // Create a new router instance
 const router = createRouter({

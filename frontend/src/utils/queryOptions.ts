@@ -234,9 +234,8 @@ export const useIdentifyAutomationWorkflowMutation = (assignmentId: number) => {
       console.log("Automation workflow -Identify- for assignment", assignmentId)
       return await identifySubmissionsWorkflow({
         assignmentId,
-        pages_selected
+        pages_selected,
       })
-      
     },
     onSuccess: () => queryClient.invalidateQueries(),
     gcTime: 1000 * 10,
@@ -250,9 +249,8 @@ export const useVersionAutomationWorkflowMutation = (assignmentId: number) => {
       console.log("Automation workflow -Version- for assignment", assignmentId)
       return await versionSubmissionsWorkflow({
         assignmentId,
-        pages_selected
+        pages_selected,
       })
-      
     },
     onSuccess: () => queryClient.invalidateQueries(),
     gcTime: 1000 * 10,
