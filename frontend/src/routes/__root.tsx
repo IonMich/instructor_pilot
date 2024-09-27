@@ -1,6 +1,7 @@
 import {
   createRootRouteWithContext,
   Outlet,
+  ScrollRestoration,
   useMatches,
 } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/router-devtools"
@@ -34,6 +35,7 @@ function RootComponent() {
   }
   return (
     <div className="p-2">
+      <ScrollRestoration/>
       <Outlet />
       <Toaster />
       <TanStackRouterDevtools position="bottom-right" />
