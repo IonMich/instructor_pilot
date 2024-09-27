@@ -68,6 +68,13 @@ export const PdfViewer = ({
       <Document
         file={url}
         onLoadSuccess={onDocumentLoadSuccess}
+        onLoadError={(error) => {
+          if (error.message.startsWith("Setting up fake worker failed")) {
+            alert(
+              "Rendering the PDF errored out. Setting up web worker failed. An internet connection is needed to use the PDF renderer. In order to view submissions in offline mode, switch to image renderer"
+            )
+          }
+        }}
         className="flex flex-col justify-center items-center"
         loading=""
       >
