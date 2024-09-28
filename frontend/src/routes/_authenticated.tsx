@@ -11,13 +11,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { auth } from "@/utils/auth"
 import { useRouter } from "@tanstack/react-router"
 import { LuMenu, LuPackage2, LuSearch } from "react-icons/lu"
 import { FaCircleUser } from "react-icons/fa6"
 import { AppBreadcrumbs } from "./-components/breadcrumbs"
-import { Spinner } from "@/components/ui/loader"
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: ({ context, location }) => {
@@ -51,6 +56,7 @@ function AuthenticatedLayout() {
           <AppBreadcrumbs />
         </nav>
         <Sheet>
+          <SheetTitle className="sr-only">Menu</SheetTitle>
           <SheetTrigger asChild>
             <Button
               variant="outline"
@@ -62,15 +68,12 @@ function AuthenticatedLayout() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left">
+            <SheetDescription>
+              <LuPackage2 className="h-6 w-6" />
+              <span className="sr-only">Instructor Pilot</span>
+            </SheetDescription>
             <nav className="grid gap-6 text-lg font-medium">
-              <Link
-                href="#"
-                className="flex items-center gap-2 text-lg font-semibold"
-              >
-                <LuPackage2 className="h-6 w-6" />
-                <span className="sr-only">Acme Inc</span>
-              </Link>
-              <Link href="#" className="hover:text-foreground">
+              {/* <Link href="#" className="hover:text-foreground">
                 Home
               </Link>
               <Link
@@ -96,7 +99,7 @@ function AuthenticatedLayout() {
                 className="text-muted-foreground hover:text-foreground"
               >
                 Analytics
-              </Link>
+              </Link> */}
             </nav>
           </SheetContent>
         </Sheet>

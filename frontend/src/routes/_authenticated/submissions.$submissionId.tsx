@@ -169,7 +169,7 @@ function getBreadcrumbItems(
       title: submission.student ? (
         <span className="flex flex-row items-center gap-2">
           {submission.student.first_name} {submission.student.last_name}
-          <Avatar className="h-6 w-6 mx-auto hover:scale-[4] hover:translate-y-[50px] transition-transform duration-300">
+          <Avatar className="h-6 w-6 mx-auto hover:scale-[4] hover:translate-y-[20px] hover:translate-x-[20px] transition-transform duration-300">
             <AvatarImage
               src={submission.student.profile.avatar?.toString()}
               alt="Avatar"
@@ -275,8 +275,15 @@ function SubmissionDetail() {
   return (
     <>
       <div
-        onKeyDown={(e) => navigateOnKey(e)}
-        className="container grid grid-cols-8 md:gap-4 gap-1 md:px-8 px-0 py-0"
+        tabIndex={-1}
+        onKeyDown={(e) => {
+          // if in textarea or input, don't navigate
+          if (e.target instanceof HTMLTextAreaElement) {
+            return
+          }
+          navigateOnKey(e)
+        }}
+        className="container grid grid-cols-8 md:gap-4 gap-1 md:px-8 px-0 py-0 focus:outline-none"
       >
         <Card className="md:h-[85vh] col-span-1 p-4 hidden lg:flex my-2 text-center flex-col gap-4">
           <Button
@@ -621,7 +628,7 @@ export function GradeForm({
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="flex md:flex-col flex-row gap-4"
+          className="flex md:flex-col flex-row gap-4 md:max-w-[70%]"
         >
           {assignment.max_question_scores
             ?.split(",")
@@ -654,6 +661,7 @@ export function GradeForm({
                         />
                       </FormControl>
                       <Button
+                        type="button"
                         className="flex items-center whitespace-nowrap rounded-l-none sm:px-4 px-2"
                         disabled
                         variant="secondary"

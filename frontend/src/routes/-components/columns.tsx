@@ -39,6 +39,7 @@ export const columns: ColumnDef<Submission>[] = [
   {
     id: "index",
     accessorFn: (_, index) => index + 1,
+    cell: ({ row }) => <div className="pl-2">{row.index + 1}</div>,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="#" className="pl-2" />
     ),
@@ -46,7 +47,16 @@ export const columns: ColumnDef<Submission>[] = [
   {
     id: "sub_short_id",
     accessorFn: (submission) => submission.id.split("-")[0],
-    header: "Sub ID",
+    cell: ({ row }) => (
+      <Link
+        to="/submissions/$submissionId"
+        params={{ submissionId: row.original.id }}
+        className="hover:text-primary"
+      >
+        {row.original.id.split("-")[0]}
+      </Link>
+    ),
+    header: "Submission",
   },
   {
     id: "assignment",
@@ -120,6 +130,7 @@ export const columns: ColumnDef<Submission>[] = [
         <Link
           to="/submissions/$submissionId"
           params={{ submissionId: row.original.id }}
+          className="hover:text-primary"
         >
           <LuArrowUpRight />
         </Link>
