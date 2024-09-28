@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import "./index.css"
 import { AxiosError } from "axios"
+import { Spinner } from "./components/ui/loader"
 
 const retryOnUnauthorized = (failureCount: number, error: AxiosError) => {
   if (failureCount === 0 && error.status === 401) {
@@ -37,6 +38,14 @@ const router = createRouter({
     auth: undefined!,
     queryClient,
   },
+  defaultPendingComponent: () => (
+    // take the full height of the parent
+    <div className="grid items-center justify-center h-[90vh] w-full">
+      <Spinner className="h-8 w-8 text-primary" />
+    </div>
+  ),
+  defaultPendingMinMs: 100,
+  defaultPendingMs: 100,
   defaultPreload: "intent",
   defaultPreloadStaleTime: 0,
 })

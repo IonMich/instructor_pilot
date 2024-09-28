@@ -7,6 +7,10 @@ import { LuFile } from "react-icons/lu"
 import { Badge } from "@/components/ui/badge"
 import { assignmentScoresQueryOptions } from "@/utils/queryOptions"
 
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
+import { Bar, BarChart } from "recharts"
+import { useSuspenseQuery } from "@tanstack/react-query"
+
 export function SectionList({ sections }: { sections: Section[] }) {
   return (
     <>
@@ -190,10 +194,6 @@ function AssignmentListElement({ assignment }: { assignment: Assignment }) {
     </Link>
   )
 }
-
-import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
-import { Bar, BarChart } from "recharts"
-import { useSuspenseQuery } from "@tanstack/react-query"
 
 const chartConfig = {
   total: {

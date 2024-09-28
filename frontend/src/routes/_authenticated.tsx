@@ -17,6 +17,7 @@ import { useRouter } from "@tanstack/react-router"
 import { LuMenu, LuPackage2, LuSearch } from "react-icons/lu"
 import { FaCircleUser } from "react-icons/fa6"
 import { AppBreadcrumbs } from "./-components/breadcrumbs"
+import { Spinner } from "@/components/ui/loader"
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: ({ context, location }) => {
@@ -34,6 +35,11 @@ export const Route = createFileRoute("/_authenticated")({
     }
   },
   component: AuthenticatedLayout,
+  pendingComponent: () => (
+    <div className="flex min-h-[90vh] w-full flex-col">
+      <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-20"></header>
+    </div>
+  ),
 })
 
 function AuthenticatedLayout() {
@@ -119,7 +125,11 @@ function AuthenticatedLayout() {
               <DropdownMenuSeparator />
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a href="https://github.com/IonMich/instructor_pilot/wiki" target="_blank" rel="noreferrer">
+                <a
+                  href="https://github.com/IonMich/instructor_pilot/wiki"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Help
                 </a>
               </DropdownMenuItem>
