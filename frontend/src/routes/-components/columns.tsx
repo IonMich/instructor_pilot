@@ -19,7 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-import { Submission } from "@/utils/fetchData"
+import { Assignment, Submission } from "@/utils/fetchData"
 import { Link, useRouter } from "@tanstack/react-router"
 import { LuArrowUpRight, LuMoreHorizontal } from "react-icons/lu"
 
@@ -66,6 +66,13 @@ export const columns: ColumnDef<Submission>[] = [
     ),
   },
   {
+    id: "assignmentgroup",
+    accessorFn: (submission) => submission.assignment.assignment_group_object?.name ?? `(${submission.assignment.assignment_group})` ?? "None",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Group" />
+    ),
+  },
+  {
     id: "student",
     accessorFn: (submission) =>
       submission.student
@@ -95,17 +102,12 @@ export const columns: ColumnDef<Submission>[] = [
     ),
   },
   {
-    id: "q1",
-    accessorFn: (submission) => submission.question_grades?.split(",")[0],
-    header: "Q1",
+    id: "q_grades",
+    accessorFn: (submission) => submission.question_grades,
+    header: "Question Grades",
   },
   {
-    id: "q2",
-    accessorFn: (submission) => submission.question_grades?.split(",")[1],
-    header: "Q2",
-  },
-  {
-    id: "q3",
+    id: "qtotal",
     accessorKey: "grade",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Grade" />
@@ -138,6 +140,27 @@ export const columns: ColumnDef<Submission>[] = [
     ),
   },
 ]
+
+export const columnsForAssignment: (
+  assignment: Assignment
+) => ColumnDef<Submission>[] = (
+  // add question columns for i in range(assignment.num_questions)
+  assignment: Assignment
+) => {
+  const num_questions = assignment.max_question_scores.split(",").length
+  const idx_total = columns.findIndex((c) => c.id === "q_grades")
+  const before = columns.slice(0, idx_total)
+  const after = columns.slice(idx_total + 1)
+  return [
+    ...before,
+    ...Array.from({ length: num_questions }, (_, i) => ({
+      id: `q${i + 1}`,
+      accessorFn: (submission) => submission.question_grades?.split(",")[i],
+      header: `Q${i + 1}`,
+    })),
+    ...after,
+  ]
+}
 
 function SubmissionDropdownMenu({ submission }: { submission: Submission }) {
   const [dialog, setDialog] = React.useState<Dialogs | null>(null)

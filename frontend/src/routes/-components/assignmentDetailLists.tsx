@@ -9,7 +9,7 @@ import {
   useVersionAutomationWorkflowMutation,
 } from "@/utils/queryOptions"
 
-import { columns } from "./columns"
+import { columnsForAssignment } from "./columns"
 import { DataTable } from "./submissions-data-table"
 
 import {
@@ -104,8 +104,8 @@ export function SubmissionsTable() {
       submissionsQueryOptions(assignmentId),
     ],
   })
-  const columnsOfAssignment = columns.filter(
-    (column) => column.id !== "assignment"
+  const columnsOfAssignment = columnsForAssignment(assignment).filter(
+    (column) => column.id !== "assignment" && column.id !== "assignmentgroup"
   )
   return (
     <>

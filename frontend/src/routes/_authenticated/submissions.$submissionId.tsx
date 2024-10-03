@@ -169,6 +169,13 @@ function getBreadcrumbItems(
       title: submission.student ? (
         <span className="flex flex-row items-center gap-2">
           {submission.student.first_name} {submission.student.last_name}
+          <Link
+            to="/courses/$courseId/students/$studentId"
+            params={{
+              courseId: course.id,
+              studentId: submission.student.id,
+            }}
+          >
           <Avatar className="h-6 w-6 mx-auto hover:scale-[4] hover:translate-y-[20px] hover:translate-x-[20px] transition-transform duration-300">
             <AvatarImage
               src={submission.student.profile.avatar?.toString()}
@@ -179,6 +186,7 @@ function getBreadcrumbItems(
               {submission.student.last_name[0]}
             </AvatarFallback>
           </Avatar>
+          </Link>
         </span>
       ) : (
         `Submission ${submission.id.split("-")[0]}`
