@@ -72,6 +72,7 @@ export function DataTable<TData, TValue>({
   const [locationListType, setlocationListType] = React.useState<
     "rows" | "cards"
   >("rows")
+  // TODO: remove hardcoded maxPage
   const maxPage = 4
   const [imgPage, setImgPage] = React.useState<number>(1)
 
@@ -85,6 +86,9 @@ export function DataTable<TData, TValue>({
                 {/* Showing Submissions {min}-{max} of total*/}
                 Showing {topRowIdx}-{bottomRowIdx} of{" "}
                 {table.getRowCount() ?? "0"}
+                {/* if globalfilter, show also the total unfiltered count */}
+                {table.getState().globalFilter &&
+                  ` (filtered from ${table.getPreFilteredRowModel().rows.length})`}
               </span>
             </div>
             <Button
@@ -138,7 +142,7 @@ export function DataTable<TData, TValue>({
             size="sm"
             className="rounded-r-none"
             onClick={() => setlocationListType("rows")}
-            disabled={locationListType === "rows"}
+            disabled={locationListType === "rows" || table.getRowModel().rows.length === 0}
           >
             Table
           </Button>
@@ -147,7 +151,7 @@ export function DataTable<TData, TValue>({
             size="sm"
             className="rounded-l-none"
             onClick={() => setlocationListType("cards")}
-            disabled={locationListType === "cards"}
+            disabled={locationListType === "cards" || table.getRowModel().rows.length === 0}
           >
             Cards
           </Button>
@@ -158,7 +162,7 @@ export function DataTable<TData, TValue>({
             table.getState().globalFilter ?? ""
           }
           onChange={(event) =>
-            table.setGlobalFilter(String(event.target.value))
+            table.setGlobalFilter(event.target.value)
           }
           className="max-w-xs"
         />
