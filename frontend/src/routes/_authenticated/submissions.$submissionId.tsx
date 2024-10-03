@@ -692,7 +692,7 @@ export function GradeForm({
               />
             ))}
           <div className="flex flex-row items-center justify-between">
-            <Button type="submit" size="sm" className="lg:px-12 md:px-4">
+            <Button type="submit" size="sm" className="lg:px-12 md:px-4" tabIndex={-1}>
               Update
             </Button>
             <div className="flex flex-col items-center sm:px-4 px-2 whitespace-nowrap">
