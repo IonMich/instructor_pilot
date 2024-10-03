@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Link, createFileRoute } from "@tanstack/react-router"
+import { Link, createFileRoute, useBlocker } from "@tanstack/react-router"
 import { useRouter } from "@tanstack/react-router"
 // import { useTheme } from "@/components/theme-provider"
 import {
@@ -623,6 +623,15 @@ export function GradeForm({
     router.invalidate()
   }
 
+  React.useEffect(() => {
+    form.reset()
+  }, [submission.id, form])
+
+  useBlocker({
+    blockerFn: () => window.confirm('Are you sure you want to leave?'),
+    condition: form.formState.isDirty,
+  })
+
   return (
     <Card className="p-4">
       <Form {...form}>
@@ -704,7 +713,7 @@ function CommentsChat({ submission }: { submission: Submission }) {
       </div>
       <Separator orientation="horizontal" />
       <div
-        className="max-h-48 overflow-y-auto flex flex-col gap-2 px-4"
+        className="overflow-y-auto flex flex-col gap-2 px-4"
         style={{ scrollbarWidth: "none" }}
       >
         {submission.submission_comments.map((comment) => (
@@ -767,6 +776,16 @@ function ChatForm({ submission }: { submission: Submission }) {
     router.invalidate()
     form.reset()
   }
+
+  React.useEffect(() => {
+    form.reset()
+  }, [submission.id, form])
+
+  useBlocker({
+    blockerFn: () => window.confirm('Are you sure you want to leave?'),
+    condition: form.formState.isDirty || createCommentMutation.isPending,
+  })
+
   return (
     <Form {...form}>
       <form
@@ -782,7 +801,7 @@ function ChatForm({ submission }: { submission: Submission }) {
                 <Textarea
                   id="text"
                   placeholder="Type your comment here..."
-                  className="min-h-12 resize-none border-0 p-3 shadow-none focus-visible:ring-0"
+                  className="min-h-12 border-0 p-3 shadow-none focus-visible:ring-0"
                   {...field}
                 />
               </FormControl>
