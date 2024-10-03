@@ -30,7 +30,6 @@ import { cn } from "@/lib/utils"
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
-  searchby: string[]
   initialState?: {
     columnVisibility?: Record<string, boolean>
   }
@@ -39,7 +38,6 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
-  searchby,
   initialState,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -56,7 +54,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
-    initialState: initialState? initialState : {
+    initialState: initialState ?? {
       sorting,
       columnFilters,
     },
@@ -155,14 +153,14 @@ export function DataTable<TData, TValue>({
           </Button>
         </div>
         <Input
-          placeholder={`Search by ${searchby.join(", ")}`}
+          placeholder={`Search...`}
           value={
-            (table.getColumn(searchby[0])?.getFilterValue() as string) ?? ""
+            table.getState().globalFilter ?? ""
           }
           onChange={(event) =>
-            table.getColumn(searchby[0])?.setFilterValue(event.target.value)
+            table.setGlobalFilter(String(event.target.value))
           }
-          className="max-w-sm"
+          className="max-w-xs"
         />
       </div>
       {locationListType === "rows" ? (
@@ -243,7 +241,7 @@ function RenderTableAsCards({
   imgPage: number
 }) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5 mx-12">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5 lg:mx-4">
       {table.getRowModel().rows?.length ? (
         table.getRowModel().rows.map((row) => (
           <div

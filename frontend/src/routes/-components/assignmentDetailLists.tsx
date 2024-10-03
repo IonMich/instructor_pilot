@@ -126,7 +126,6 @@ export function SubmissionsTable() {
         <DataTable
           columns={columnsOfAssignment}
           data={submissions}
-          searchby={["student", "uni_id"]}
           initialState={{
             columnVisibility: {
               canvas_id: assignment.canvas_id ? true : false,
