@@ -5,7 +5,6 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { coursesQueryOptions, userQueryOptions } from "@/utils/queryOptions"
 import { useSuspenseQueries } from "@tanstack/react-query"
 import { CanvasCourse, Course, User } from "@/utils/fetchData"
-import { auth } from "@/utils/auth"
 import {
   Dialog,
   DialogContent,
@@ -21,6 +20,7 @@ import {
   SelectCanvasCourse,
   SelectCourseSections,
 } from "../-components/syncCanvasCourse"
+import { seo } from "@/utils/utils"
 
 function getBreadcrumbItems() {
   return []
@@ -41,6 +41,10 @@ export const Route = createFileRoute("/_authenticated/")({
       breadcrumbItems: getBreadcrumbItems(),
     }
   },
+  meta: ({ loaderData }) =>
+    seo({
+      title: loaderData?.title,
+    }),
   component: Index,
 })
 
