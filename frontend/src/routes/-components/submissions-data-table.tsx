@@ -26,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Link } from "@tanstack/react-router"
 import { cn } from "@/lib/utils"
+import { SubmissionDetail } from "./submissionDetail"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -44,6 +45,11 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
+  const paginationDefaultSize = 10
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0, //initial page index
+    pageSize: paginationDefaultSize, //default page size
+  })
   console.log("data", data)
   const table = useReactTable({
     data,
@@ -53,14 +59,17 @@ export function DataTable<TData, TValue>({
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
     getFilteredRowModel: getFilteredRowModel(),
     initialState: initialState ?? {
       sorting,
       columnFilters,
+      pagination,
     },
     state: {
       sorting,
       columnFilters,
+      pagination,
     },
   })
   const currentPageIdx = table.getState().pagination?.pageIndex
@@ -70,7 +79,7 @@ export function DataTable<TData, TValue>({
   const bottomRowIdx = topRowIdx + currentCurrentRowSize - 1
 
   const [locationListType, setlocationListType] = React.useState<
-    "rows" | "cards"
+    "rows" | "cards" | "detail"
   >("rows")
   // TODO: remove hardcoded maxPage
   const maxPage = 4
@@ -113,8 +122,9 @@ export function DataTable<TData, TValue>({
         <div
           className={cn(
             "flex items-center gap-0 mr-2",
-            (locationListType === "rows" || table.getRowModel().rows.length === 0) &&
-              "hidden" 
+            (locationListType !== "cards" ||
+              table.getRowModel().rows.length === 0) &&
+              "hidden"
           )}
         >
           {Array.from({ length: maxPage }, (_, i) => i + 1).map(
@@ -141,36 +151,61 @@ export function DataTable<TData, TValue>({
             variant="outline"
             size="sm"
             className="rounded-r-none"
-            onClick={() => setlocationListType("rows")}
-            disabled={locationListType === "rows" || table.getRowModel().rows.length === 0}
+            onClick={() => {
+              setPagination({ pageIndex: 0, pageSize: paginationDefaultSize })
+              setlocationListType("rows")
+            }}
+            disabled={
+              locationListType === "rows" ||
+              table.getRowModel().rows.length === 0
+            }
           >
             Table
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="rounded-l-none"
-            onClick={() => setlocationListType("cards")}
-            disabled={locationListType === "cards" || table.getRowModel().rows.length === 0}
+            className="rounded-none"
+            onClick={() => {
+              setPagination({ pageIndex: 0, pageSize: paginationDefaultSize })
+              setlocationListType("cards")
+            }}
+            disabled={
+              locationListType === "cards" ||
+              table.getRowModel().rows.length === 0
+            }
           >
             Cards
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-l-none"
+            onClick={() => {
+              setPagination({ pageIndex: topRowIdx - 1, pageSize: 1 })
+              setlocationListType("detail")
+            }}
+            disabled={
+              locationListType === "detail" ||
+              table.getRowModel().rows.length === 0
+            }
+          >
+            Detail
           </Button>
         </div>
         <Input
           placeholder={`Search...`}
-          value={
-            table.getState().globalFilter ?? ""
-          }
-          onChange={(event) =>
-            table.setGlobalFilter(event.target.value)
-          }
+          value={table.getState().globalFilter ?? ""}
+          onChange={(event) => table.setGlobalFilter(event.target.value)}
           className="max-w-xs"
         />
       </div>
       {locationListType === "rows" ? (
         <RenderTableAsTables table={table} />
-      ) : (
+      ) : locationListType === "cards" ? (
         <RenderTableAsCards table={table} imgPage={imgPage} />
+      ) : (
+        <RenderTableAsDetail table={table} />
       )}
     </div>
   )
@@ -268,6 +303,44 @@ function RenderTableAsCards({
             </Link>
           </div>
         ))
+      ) : (
+        <div className="h-24 text-center col-span-full m-4">
+          {
+            // if filter is applied
+            table.getColumn("student")?.getFilterValue()
+              ? "No submissions found for filter."
+              : "No submissions found."
+          }
+        </div>
+      )}
+    </div>
+  )
+}
+
+// detail is a single card with all the details
+function RenderTableAsDetail({
+  table,
+}: {
+  table: ReturnType<typeof useReactTable>
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4">
+      {table.getRowModel().rows?.length ? (
+        table.getRowModel().rows.map((row) => {
+          console.log("row", row.original)
+          return (
+            <div
+              key={row.id}
+              className="rounded-md border"
+              data-state={row.getIsSelected() && "selected"}
+            >
+              <SubmissionDetail
+                submissionId={row.original.id}
+                enableNavigation={false}
+              />
+            </div>
+          )
+        })
       ) : (
         <div className="h-24 text-center col-span-full m-4">
           {
