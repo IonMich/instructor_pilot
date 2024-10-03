@@ -19,6 +19,7 @@ import {
   fetchSubmissionsOfAssignment,
   fetchSubmissionsOfStudentInCourse,
   fetchSubmissionById,
+  fetchAnnouncementsOfCourse,
   createSubmissionsBySplittingPDFs,
   createCommentOnSubmission,
   patchSubmission,
@@ -152,6 +153,13 @@ export const submissionQueryOptions = (submissionId: string) => {
   return queryOptions({
     queryKey: subKeys.detail(submissionId),
     queryFn: () => fetchSubmissionById(submissionId),
+  })
+}
+
+export const announcementsQueryOptions = (courseId: number) => {
+  return queryOptions({
+    queryKey: ["announcements", "list", `courseId=${courseId}`],
+    queryFn: () => fetchAnnouncementsOfCourse(courseId),
   })
 }
 

@@ -27,6 +27,7 @@ from rest_framework_simplejwt.views import (
 from profiles.views import UserViewSet, RequesterUserViewSet
 from courses.views import (
     CourseViewSet,
+    AnnouncementsInCourseViewSet,
     ListCanvasCourses,
     GetCanvasCourse,
     PostCanvasCourse,
@@ -73,6 +74,9 @@ course_router = routers.NestedDefaultRouter(router, r"courses", lookup="course")
 course_router.register(r"sections", SectionInCourseViewSet, basename="course-section")
 course_router.register(
     r"assignments", AssignmentInCourseViewSet, basename="course-assignment"
+)
+course_router.register(
+    r"announcements", AnnouncementsInCourseViewSet, basename="course-announcement"
 )
 course_router.register(r"students", StudentInCourseViewSet, basename="course-student")
 student_in_course_router = routers.NestedDefaultRouter(

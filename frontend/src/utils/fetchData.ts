@@ -141,6 +141,14 @@ export interface AssignmentGroup {
   group_weight: number
 }
 
+export interface Announcement {
+  id: number
+  canvas_id: number
+  course: Course
+  title: string
+  date: string
+}
+
 const students: Record<number, Student[]> = {}!
 const studentsPromise: Record<number, Promise<void>> = {}
 
@@ -176,6 +184,10 @@ const submissionsUrlMapper = (assignmentId: number) => {
 
 const submissionUrlMapper = (submissionId: string) => {
   return `${baseAPIUrl}submissions/${submissionId}/`
+}
+
+const announcementsOfCourseUrlMapper = (courseId: number) => {
+  return `${baseAPIUrl}courses/${courseId}/announcements/`
 }
 
 export async function fetchRequesterUser() {
@@ -602,6 +614,26 @@ export async function createCommentOnSubmission({
       )
       .then((response) => response.data)
   )
+}
+
+export async function fetchAnnouncementsOfCourse(courseId: number) {
+  console.log("Fetching announcements")
+  const announcements = loaderFn(() =>
+    Promise.resolve().then(async () => {
+      const items = await axios
+        .get<Announcement[]>(announcementsOfCourseUrlMapper(courseId), {
+          headers: {
+            Authorization: `Bearer ${auth.getToken()}`,
+          },
+        })
+        .then((response) => response.data)
+        .catch((error) => {
+          throw error
+        })
+      return items
+    })
+  )
+  return announcements
 }
 
 export async function fetchCanvasCourses() {

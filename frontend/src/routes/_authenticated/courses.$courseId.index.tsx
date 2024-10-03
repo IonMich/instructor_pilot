@@ -22,6 +22,7 @@ import {
   assignmentsQueryOptions,
   courseQueryOptions,
   canvasCourseQueryOptions,
+  announcementsQueryOptions,
 } from "@/utils/queryOptions"
 import { seo } from "@/utils/utils"
 import { CanvasCourse, Course, Section } from "@/utils/fetchData"
@@ -61,20 +62,26 @@ export const Route = createFileRoute("/_authenticated/courses/$courseId/")({
     const assignmentsPromise = opts.context.queryClient.ensureQueryData(
       assignmentsQueryOptions(courseId)
     )
+    const announcementsPromise = opts.context.queryClient.ensureQueryData(
+      announcementsQueryOptions(courseId)
+    )
 
     // parallelize the two queries
-    const [course, sections, assignments] = await Promise.all([
+    const [course, sections, assignments, announcements] = await Promise.all([
       coursePromise,
       sectionsPromise,
       assignmentsPromise,
+      announcementsPromise,
     ])
     console.log("course", course)
     console.log("sections", sections)
     console.log("assignments", assignments)
+    console.log("announcements", announcements)
     return {
       course: course,
       sections: sections,
       assignments: assignments,
+      announcements: announcements,
       title: course.course_code ?? course.name ?? "Course",
       breadcrumbItems: getBreadcrumbItems(course),
     }
@@ -106,16 +113,21 @@ function CourseDashboard() {
   const [{ data: course }] = useSuspenseQueries({
     queries: [courseQueryOptions(courseId)],
   })
-  const [{ data: sections }, { data: assignments }] = useSuspenseQueries({
+  const [{ data: sections }, { data: assignments }, { data: announcements }] = useSuspenseQueries({
     queries: [
       sectionsQueryOptions(courseId),
       assignmentsQueryOptions(courseId),
+      announcementsQueryOptions(courseId),
     ],
   })
   const total_sub_count = assignments.reduce(
     (acc, assignment) => acc + assignment.submission_count,
     0
   )
+  const dateLastMonth = new Date()
+  dateLastMonth.setMonth(dateLastMonth.getMonth() - 1)
+  const dateLastWeek = new Date()
+  dateLastWeek.setDate(dateLastWeek.getDate() - 7)
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="flex flex-col gap-4 text-center">
@@ -159,12 +171,19 @@ function CourseDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Messages</CardTitle>
+            <CardTitle className="text-sm font-medium">Student Comments</CardTitle>
             <LuMail className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">999</div>
-            <p className="text-xs text-muted-foreground">99 this week</p>
+            {/* <div className="text-2xl font-bold">
+              <Skeleton className="w-[3ch] h-[2.25ch]" />
+            </div>
+            <p className="text-xs text-muted-foreground">99 
+              new this week
+            </p> */}
+            <Button size="sm" variant="outline" type="button">
+              View
+            </Button>
           </CardContent>
         </Card>
         <Card>
@@ -173,8 +192,11 @@ function CourseDashboard() {
             <LuMegaphone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">999</div>
-            <p className="text-xs text-muted-foreground">99 this week</p>
+            <div className="text-2xl font-bold">{announcements.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {announcements.filter((a) => new Date(a.date) > dateLastWeek).length}{' '}
+              new this week
+            </p>
           </CardContent>
         </Card>
       </div>

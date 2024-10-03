@@ -10,12 +10,12 @@ from django.shortcuts import get_object_or_404, render
 
 from courses.utils import get_canvas_object
 
-from .models import Course
+from .models import Course, Announcement
 
 from rest_framework import viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from courses.serializers import CourseSerializer
+from courses.serializers import CourseSerializer, AnnouncementSerializer
 
 class CourseViewSet(viewsets.ModelViewSet):
     """
@@ -26,6 +26,23 @@ class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly,
                           ]
+
+class AnnouncementsInCourseViewSet(viewsets.ViewSet):
+    """
+    ViewSet for listing announcements in a course
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request, course_pk):
+        queryset = Announcement.objects.filter(course=course_pk)
+        serializer = AnnouncementSerializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    def retrieve(self, request, pk=None):
+        queryset = Announcement.objects.all()
+        announcement = get_object_or_404(queryset, pk=pk)
+        serializer = AnnouncementSerializer(announcement)
+        return Response(serializer.data)
 
 class ListCanvasCourses(APIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
