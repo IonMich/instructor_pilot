@@ -1,3 +1,4 @@
+import math
 import os
 import random
 import string
@@ -60,9 +61,9 @@ class Submission(models.Model):
         null=True,
         blank=True)
 
-    def get_question_grades(self):
+    def get_question_grades(self) -> list[str]:
         if self.question_grades is None:
-            return []
+            return list()
         return self.question_grades.split(",")
 
     def set_question_grades(self, grades):
@@ -75,8 +76,10 @@ class Submission(models.Model):
         "return a list of strings summarizing the question grades"
         q_grades = self.get_question_grades()
         q_grades = [float(g) for g in q_grades]
-        q_grades = [f"{g}/{max_g}" for g, max_g in zip(q_grades, self.assignment.max_question_scores)]
-
+        if not self.assignment or not self.assignment.max_question_scores:
+            return [str(g) for g in q_grades]
+        else:
+            q_grades = [f"{g}/{max_g}" for g, max_g in zip(q_grades, self.assignment.max_question_scores)]
         return q_grades
         
     graded_by = models.ForeignKey(
@@ -118,6 +121,8 @@ class Submission(models.Model):
         super().clean(*args, **kwargs)
         if self.assignment is None:
             raise ValidationError("Submission must be associated with an assignment.")
+        if self.assignment.max_score is None:
+            raise ValidationError("Assignment must have a maximum score.")
         if self.student is None:
             raise ValidationError("Submission must be associated with a student.")
         if self.attempt is None:
@@ -134,23 +139,22 @@ class Submission(models.Model):
             raise ValidationError("Submission must be associated with a graded_at datatime.")
  
         if self.question_grades is not None:
-            q_grades = self.get_question_grades()
-            for g in q_grades:
+            q_grades_str = self.get_question_grades()
+            for g in q_grades_str:
                 if g == "":
                     pass
-                    # raise ValidationError("Question grades must be non-empty.")
                 else:
                     try:
                         g = float(g)
                     except ValueError:
                         raise ValidationError("Question grades must be floats or empty strings.")
                     
-            q_grades = [g if g == "" else float(g) for g in q_grades]
+            q_grades = [float('nan') if g == "" else float(g) for g in q_grades_str]
             
             q_max_grades = self.assignment.get_max_question_scores()
             q_max_grades = [float(g) for g in q_max_grades]
             for q_grade, q_max_grade in zip(q_grades, q_max_grades):
-                if (q_grade != "") and (q_grade < 0 or q_grade > q_max_grade):
+                if (not math.isnan(q_grade)) and (q_grade < 0 or q_grade > q_max_grade):
                     raise ValidationError("Question grades must be between 0 and the maximum question grade.")
             if len(q_grades) != self.assignment.number_of_questions:
                 raise ValidationError("Question grades must be the same length as the number of questions in the assignment.")        
@@ -207,8 +211,6 @@ class PaperSubmission(Submission):
         choices=CLASSIFICATION_TYPES,
         default="M")
 
-    # add a field for clustering with charfield
-    # version = models.CharField(max_length=100, null=True, blank=True)
     version = models.ForeignKey(
         Version,
         on_delete=models.SET_NULL,
@@ -216,18 +218,20 @@ class PaperSubmission(Submission):
         blank=True,
         related_name="%(app_label)s_%(class)s_version",
     )
-    # finished changes here
+    submissions_submissioncomment_related: models.QuerySet["SubmissionComment"]
+    submissions_papersubmissionimage_related: models.QuerySet["PaperSubmissionImage"]
 
     def __str__(self):
-        return f"Paper "+ super().__str__()
+        return "Paper " + super().__str__()
 
     def get_absolute_url(self):
         return reverse(
             "submissions:detail", 
             kwargs={
                 "submission_pk": self.pk,
-                "course_pk": self.assignment.course.pk,
-                "assignment_pk": self.assignment.pk})
+                "course_pk": self.assignment.course.pk if self.assignment else None,
+                "assignment_pk": self.assignment.pk if self.assignment else None,
+                })
 
     class Meta:
         verbose_name_plural = "Paper Submissions" 
@@ -304,6 +308,11 @@ class PaperSubmission(Submission):
         by splitting the original pdf(s) into individual submissions.
         """
         print("assignment is:", assignment_target)
+        # if uploaded files in not iterable, make it iterable
+        if uploaded_files is None:
+            uploaded_files = []
+        elif not hasattr(uploaded_files, "__iter__"):
+            uploaded_files = [uploaded_files]
 
         # if student is provided, make sure that there is only one uploaded file
         if student and len(uploaded_files) > 1:
@@ -316,7 +325,7 @@ class PaperSubmission(Submission):
             if uploaded_file:
                 doc = open_UploadedFile_as_PDF(uploaded_file)
             else:
-                doc = fitz.open(get_quiz_pdf_path(quiz_number, quiz_dir_path))
+                doc = fitz.Document(get_quiz_pdf_path(quiz_number, quiz_dir_path))
             
             n_pages = doc.page_count
             if student and n_pages != num_pages_per_submission:
@@ -337,7 +346,7 @@ class PaperSubmission(Submission):
                 # to append to the filename
                 random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
                 pdf_filename = f'submission_batch_{file_idx}_{start_page}-{end_page}_{random_string}.pdf'
-                doc_new = fitz.open()
+                doc_new = fitz.Document()
                 doc_new.insert_pdf(doc, from_page=start_page, to_page=end_page)
                 doc_bytes = doc_new.tobytes()
                 django_pdf_file = ContentFile(doc_bytes, name=pdf_filename)
@@ -424,25 +433,22 @@ class PaperSubmission(Submission):
         df_digits_detections["submission_pk"] = df_digits_detections.apply(
             lambda row: PaperSubmission.objects.get(pk=all_sub_pks[row.doc_idx][row.page_idx]).pk, 
             axis=1)
-        df_digits_detections["student"] = df_digits_detections.apply(
-            lambda row: Student.objects.get(uni_id=row.ufid), 
+        df_digits_detections["student_pk"] = df_digits_detections.apply(
+            lambda row: Student.objects.get(uni_id=row.ufid).pk,
             axis=1)
 
 
         print(df_digits_detections)
         for row in df_digits_detections.itertuples():
-            sub_to_update = PaperSubmission.objects.filter(id=row.submission_pk)
-            if sub_to_update.first().student and sub_to_update.first().student != row.student:
+            sub_to_update = PaperSubmission.objects.get(id=row.submission_pk)
+            if sub_to_update.student and sub_to_update.student.pk != row.student_pk:
                 # replacing student, so reset canvas_id and canvas_url
-                print(f"Warning: replacing student {sub_to_update.first().student} with {row.student} \nResetting canvas_id and canvas_url")
-                sub_to_update.update(
-                    canvas_id="",
-                    canvas_url="",
-                )
-            sub_to_update.update(
-                student=row.student,
-                classification_type="D",
-            )
+                print(f"Warning: replacing student pk {sub_to_update.student.pk} with {row.student_pk} \nResetting canvas_id and canvas_url")
+                sub_to_update.canvas_id = ""
+                sub_to_update.canvas_url = ""
+            sub_to_update.student = Student.objects.get(pk=row.student_pk)
+            sub_to_update.classification_type = "D"
+            sub_to_update.save()
         classified_submission_pks = df_digits_detections["submission_pk"].tolist()
         not_classified_submission_pks = [
             pk for pk in PaperSubmission.objects.filter(assignment=assignment).exclude(id__in=classified_submission_pks).values_list("id", flat=True)
@@ -548,7 +554,7 @@ class CanvasQuizSubmission(Submission):
 
 
     def __str__(self):
-        return f"Canvas Quiz "+ super().__str__()
+        return "Canvas Quiz " + super().__str__()
 
     def get_absolute_url(self):
         return reverse("submissions:detail", kwargs={"pk": self.pk})
@@ -561,7 +567,7 @@ class ScantronSubmission(Submission):
     pass
 
     def __str__(self):
-        return f"Scantron "+ super().__str__()
+        return "Scantron " + super().__str__()
 
     def get_absolute_url(self):
         title = self.__str__()
@@ -603,7 +609,7 @@ class PaperSubmissionImage(models.Model):
         verbose_name_plural = "Paper Submission Images"
 
     def get_assignment(self):
-        return self.submission.assignment
+        return self.submission.assignment if self.submission else None
     
     @classmethod
     def get_max_page_number(cls, assignment):
@@ -688,7 +694,7 @@ class SubmissionComment(models.Model):
         blank=True)
 
     def get_assignment(self):
-        return self.paper_submission.assignment
+        return self.paper_submission.assignment if self.paper_submission else None
 
     def get_filename(self):
         return os.path.basename(self.comment_file.name)
@@ -706,13 +712,6 @@ class SubmissionComment(models.Model):
 
     def __str__(self):
         return f"Submission Comment {self.pk}"
-
-    # if self.is_saved then title is required
-    def clean(self):
-        if self.is_saved and not self.saved_title:
-            raise ValidationError(
-                "Saved title is required if is_saved is True"
-            )
             
     class Meta:
         verbose_name_plural = "Submission Comments"
@@ -747,8 +746,8 @@ class SubmissionComment(models.Model):
             try:
                 file_path = uploaded_file.temporary_file_path()
             except AttributeError as e:
-                # print("Error:", e)
-                # print("Reading from bytes")
+                print("Error:", e)
+                print("Reading from bytes")
                 # this actually not a pdf path but a File bytes object
                 file_path = uploaded_file.file
             

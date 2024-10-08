@@ -72,7 +72,9 @@ class Assignment(models.Model):
         """Returns the name of the assignment with the name of the course."""
         return f"{self.course.course_code} {self.course.term} - {self.name}"
 
-    def get_max_question_scores(self):
+    def get_max_question_scores(self) -> list[str]:
+        if self.max_question_scores is None:
+            return []
         return self.max_question_scores.split(",")
 
     def get_graders(self):

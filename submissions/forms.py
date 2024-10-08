@@ -265,7 +265,8 @@ class StudentClassifyForm(forms.Form):
         # convert to ints. If empty, set to empty tuple
         try:
             do_not_skip = tuple(int(i) for i in do_not_skip)
-        except:
+        except Exception as e:
+            print(e)
             do_not_skip = ()
         max_page_num = PaperSubmissionImage.get_max_page_number(assignment)
         # now convert from 1-indexed do_not_skip to 0-indexed pages_to_skip

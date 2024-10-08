@@ -31,4 +31,7 @@ dependencies:
     - opencv-python-headless==4.7.0.72
     - onnxruntime==1.14.1
     - pymupdf==1.21.1
+    - mypy==1.11.2
+    - django-stubs[compatible-mypy]
+    - ruff
 name: django-ta
