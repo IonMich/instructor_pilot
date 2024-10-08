@@ -20,6 +20,90 @@ from .forms import GradingForm, StudentClassifyForm, SubmissionSearchForm
 from .models import (CanvasQuizSubmission, PaperSubmission, ScantronSubmission,
                      Submission, SubmissionComment)
 
+from rest_framework.response import Response
+from rest_framework import viewsets
+from rest_framework import permissions
+from submissions.serializers import PaperSubmissionSerializer, SubmissionCommentSerializer
+# Create your views here.
+class PaperSubmissionInAssignmentViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = PaperSubmission.objects.all()
+    serializer_class = PaperSubmissionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+    def get_queryset(self):
+        assignment_id = self.kwargs['assignment_pk']
+        return PaperSubmission.objects.filter(assignment=assignment_id)
+    
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new PaperSubmissions by splitting
+        the PDFs into multiple submissions
+        """
+        num_pages_per_submission = int(request.data.get("num_pages_per_submission"))
+        assignment_pk = self.kwargs.get("assignment_pk")
+        assignment = Assignment.objects.get(pk=assignment_pk)
+        uploaded_files = request.data.getlist("submission_PDFs")
+        sub_ids = PaperSubmission.add_papersubmissions_to_db(
+            assignment_target=assignment,
+            num_pages_per_submission=num_pages_per_submission,
+            uploaded_files=uploaded_files,
+        )
+        return Response(status=200, data={"submission_ids": sub_ids})
+    
+class PaperSubmissionOfStudentInCourseViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = PaperSubmission.objects.all()
+    serializer_class = PaperSubmissionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+    def get_queryset(self):
+        course_id = self.kwargs['course_pk']
+        student_id = self.kwargs['student_pk']
+        return PaperSubmission.objects.filter(assignment__course=course_id, student=student_id)
+    
+class PaperSubmissionViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = PaperSubmission.objects.all()
+    serializer_class = PaperSubmissionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+class CommentViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = SubmissionComment.objects.all()
+    serializer_class = SubmissionCommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+    def get_queryset(self):
+        submission_id = self.kwargs['submission_pk']
+        return SubmissionComment.objects.filter(paper_submission=submission_id)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new Comment with the text and the files
+        """
+        submission_pk = request.data.get("submission_id")
+        submission = PaperSubmission.objects.get(pk=submission_pk)
+        text = request.data.get("text")
+        comment = SubmissionComment(
+            paper_submission=submission,
+            author=request.user,
+            text=text,
+        )
+        comment.save()
+        return Response(status=200, data={"comment_id": comment.pk})
 
 def _random1000():
     yield random.randint(0, 100)

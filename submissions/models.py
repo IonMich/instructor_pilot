@@ -2,18 +2,21 @@ import os
 import random
 import string
 import uuid
+import numpy as np
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.db import models
-from django.db.models import Max
+from django.forms.models import model_to_dict
+from django.db.models import Max, Q
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 
 from assignments.models import Assignment, Version
+from assignments.utils import delete_versions
 from students.models import Student
 from submissions.digits_classify import (classify, import_students_from_db,
                                          import_onnx_model)
@@ -22,6 +25,9 @@ from submissions.utils import (CommaSeparatedFloatField, get_quiz_pdf_path,
                                submission_upload_to)
 from submissions.convert import (convert_pdf_to_images, 
                                  multiprocessed_pdf_conversion)
+from submissions.cluster import (images_to_text,
+                                 perform_dbscan_clustering,
+                                 vectorize_texts)
 
 
 class Submission(models.Model):
@@ -443,6 +449,98 @@ class PaperSubmission(Submission):
         ]
         
         return classified_submission_pks, not_classified_submission_pks
+    
+    @classmethod
+    def perform_versioning(
+        cls,
+        assignment,
+        dpi=300,
+        top_percent=0.25,
+        left_percent=0.5,
+        crop_box=None,
+        selected_pages=(
+            3,
+        ),
+    ):
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        images = []
+        sub_pks = []
+        for submission in submissions:
+            submission_images = PaperSubmissionImage.objects.filter(
+                Q(submission=submission) & Q(page__in=selected_pages)
+            )
+            for image in submission_images:
+                images.append(image.image.path)
+                sub_pks.append(submission.pk)
+
+        texts = images_to_text(images, sub_pks)
+        print("Number of texts: ", len(texts))
+        X = vectorize_texts(texts)
+        # cluster the text
+        print("Clustering Images...")
+        dbscan, cluster_labels = perform_dbscan_clustering(X)
+
+        # delete the versions if already exist
+        delete_versions(assignment)
+
+        outlier_label = -1
+        cluster_types = set(cluster_labels) - {
+            outlier_label,
+        }
+        len_cluster_types = len(set(cluster_types))
+        # create the versions
+
+        for label in cluster_types:
+            Version.objects.create(name=label + 1, assignment=assignment)
+
+        cluster_images = [""] * len_cluster_types
+        # add the cluster labels to the database
+        for i, submission in enumerate(submissions):
+            # get the version with the corresponding cluster label
+            if cluster_labels[i] not in cluster_types:
+                continue
+            version = Version.objects.get(assignment=assignment, name=cluster_labels[i] + 1)
+            submission.version = version
+            # check if version already has an image
+            if version.version_image == "":
+                submission_image = PaperSubmissionImage.objects.filter(
+                    submission=submission, page=selected_pages[0]
+                )
+                cluster_images[int(version.name) - 1] = submission_image[0].image.url
+                # url.replace("/media", "")
+                version.version_image = cluster_images[int(version.name) - 1].replace(
+                    "/media", ""
+                )
+                version.save()
+
+            submission.save()
+        # renew the submissions_image queryset after the above changes
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+
+        # count number of 0 in cluster_labels
+        outliers = np.count_nonzero(cluster_labels == outlier_label)
+
+        assignment.versioned = True
+        assignment.save()
+
+        # Serialize the data
+        assignment = model_to_dict(assignment)
+        submissions_serialized = []
+        for submission in submissions:
+            images_urls = submission.submissions_papersubmissionimage_related.all()
+            images_urls = {image.page: image.image.url for image in images_urls}
+            submission_serialized = dict()
+            submission_serialized["id"] = submission.pk
+            submission_serialized["images"] = images_urls
+            if submission.version:
+                submission_serialized["version"] = dict()
+                submission_serialized["version"]["id"] = submission.version.pk
+                submission_serialized["version"]["name"] = submission.version.name
+            else:
+                submission_serialized["version"] = None
+            submissions_serialized.append(submission_serialized)
+
+        return submissions_serialized, outliers
 
 
 class CanvasQuizSubmission(Submission):

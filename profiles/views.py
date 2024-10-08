@@ -1,8 +1,29 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseNotFound, JsonResponse
 from django.shortcuts import render
+from django.contrib.auth.models import User
+from profiles.serializers import UserSerializer
+from rest_framework import viewsets, permissions
+from rest_framework.views import APIView
+from rest_framework.response import Response
 
 # Create your views here.
+# ViewSets define the view behavior.
+
+class RequesterUserViewSet(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        print(request.user)
+        user = request.user
+        serializer = UserSerializer(context={"request": request}, instance=user)
+        return Response(serializer.data)
+    
+
+class UserViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
 
 @login_required
 def profiles_list_view(request):

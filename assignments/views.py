@@ -26,8 +26,89 @@ from submissions.views import _random1000
 from .models import Assignment, SavedComment, Version, VersionFile, VersionText
 from .utils import delete_versions
 
+from rest_framework import viewsets
+from rest_framework import permissions
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from assignments.serializers import AssignmentSerializer
 # Create your views here.
 
+class AssignmentViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Assignment.objects.all()
+    serializer_class = AssignmentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+class AssignmentInCourseViewSet(viewsets.ModelViewSet):
+    """
+    This ViewSet automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Assignment.objects.all()
+    serializer_class = AssignmentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+    def get_queryset(self):
+        course_id = self.kwargs['course_pk']
+        return Assignment.objects.filter(course_id=course_id)
+
+class ListAssignmentScoresViewSet(APIView):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
+
+    def get(self, request, assignment_id):
+        assignment = get_object_or_404(Assignment, pk=assignment_id)
+        scores = assignment.get_all_grades()
+        return Response(scores)
+    
+class AssignmentIdentifySubmissions(APIView):
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
+
+    def patch(self, request, assignment_id):
+        assignment = get_object_or_404(Assignment, pk=assignment_id)
+        pages_selected = request.data.get("pages_selected")
+        max_page_num = PaperSubmissionImage.get_max_page_number(assignment)
+        print(f"pages_selected: {pages_selected}")
+        pages_to_skip = tuple(
+            i for i in range(max_page_num) if i + 1 not in pages_selected
+        )
+        print(f"pages_to_skip: {pages_to_skip}")
+        classified_submission_pks, not_classified_submission_pks = (
+            PaperSubmission.classify(
+                assignment,
+                skip_pages=pages_to_skip,
+            )
+        )
+        return Response(
+            {
+                "classified_submission_pks": classified_submission_pks,
+                "not_classified_submission_pks": not_classified_submission_pks,
+            }
+        )
+    
+class AssignmentVersionSubmissions(APIView):
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
+
+    def patch(self, request, assignment_id):
+        assignment = get_object_or_404(Assignment, pk=assignment_id)
+        pages_selected = request.data.get("pages_selected")
+        print(f"pages_selected: {pages_selected}")
+
+        submissions_serialized, outliers = PaperSubmission.perform_versioning(
+            assignment, selected_pages=(3,)
+        )
+        return Response(
+            {
+                "submissions": submissions_serialized,
+                "outliers": outliers,
+            }
+        )
+    
 @login_required
 def assignment_detail_view(request,  course_pk, assignment_pk):
     # course = get_object_or_404(Course, pk=course_pk)
