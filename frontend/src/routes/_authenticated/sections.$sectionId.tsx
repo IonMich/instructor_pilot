@@ -23,7 +23,7 @@ function getBreadcrumbItems(
       params: { courseId: course.id },
     },
     {
-      title: `${section.name}` ?? `Section ${section.id}` ?? "Section",
+      title: section.name ?? `Section ${section.id}` ?? "Section",
       to: "/sections/$sectionId",
       params: { sectionId: section.id },
     },
