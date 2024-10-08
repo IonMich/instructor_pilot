@@ -7,7 +7,6 @@ import {
   flexRender,
   getPaginationRowModel,
   getCoreRowModel,
-  ColumnFiltersState,
   getSortedRowModel,
   getFilteredRowModel,
   SortingState,
@@ -33,7 +32,22 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   initialState?: {
     columnVisibility?: Record<string, boolean>
+    pageIndex?: number
+    locationListType?: "rows" | "cards" | "detail"
+    submissionId?: string
   }
+}
+
+function getPreviousSubmissionId(table: ReturnType<typeof useReactTable>) {
+  const prePaginationRows = table.getPrePaginationRowModel().rows
+  const currentSubmissionIdx = table.getState().pagination?.pageIndex
+  return prePaginationRows[currentSubmissionIdx - 1]?.original.id
+}
+
+function getNextSubmissionId(table: ReturnType<typeof useReactTable>) {
+  const prePaginationRows = table.getPrePaginationRowModel().rows
+  const currentSubmissionIdx = table.getState().pagination?.pageIndex
+  return prePaginationRows[currentSubmissionIdx + 1]?.original.id
 }
 
 export function DataTable<TData, TValue>({
@@ -42,15 +56,13 @@ export function DataTable<TData, TValue>({
   initialState,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  )
+  const paginationDefaultPage = 0
   const paginationDefaultSize = 10
   const [pagination, setPagination] = React.useState({
-    pageIndex: 0, //initial page index
-    pageSize: paginationDefaultSize, //default page size
+    pageIndex: initialState?.pageIndex ?? paginationDefaultPage, //initial page index
+    pageSize:
+      initialState?.locationListType === "detail" ? 1 : paginationDefaultSize, //initial page size
   })
-  console.log("data", data)
   const table = useReactTable({
     data,
     columns,
@@ -58,29 +70,22 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
     onPaginationChange: setPagination,
     getFilteredRowModel: getFilteredRowModel(),
-    initialState: initialState ?? {
-      sorting,
-      columnFilters,
-      pagination,
-    },
     state: {
       sorting,
-      columnFilters,
       pagination,
     },
   })
   const currentPageIdx = table.getState().pagination?.pageIndex
   const currentPageSize = table.getState().pagination?.pageSize
-  const currentCurrentRowSize = table.getRowModel().rows.length
+  const currentRowSize = table.getRowModel().rows.length
   const topRowIdx = currentPageIdx * currentPageSize + 1
-  const bottomRowIdx = topRowIdx + currentCurrentRowSize - 1
+  const bottomRowIdx = topRowIdx + currentRowSize - 1
 
   const [locationListType, setlocationListType] = React.useState<
     "rows" | "cards" | "detail"
-  >("rows")
+  >(initialState?.locationListType ?? "rows")
   // TODO: remove hardcoded maxPage
   const maxPage = 4
   const [imgPage, setImgPage] = React.useState<number>(1)
@@ -100,22 +105,56 @@ export function DataTable<TData, TValue>({
                   ` (filtered from ${table.getPreFilteredRowModel().rows.length})`}
               </span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
+            <Link
+              to="."
+              search={(prev) => ({
+                ...prev,
+                page: prev.page ? prev.page - 1 : 0,
+                submissionId:
+                  locationListType === "detail"
+                    ? getPreviousSubmissionId(table)
+                    : "",
+              })}
+              replace
+              resetScroll={false}
+              preload={"viewport"}
               disabled={!table.getCanPreviousPage()}
+              tabIndex={-1}
             >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                Previous
+              </Button>
+            </Link>
+            <Link
+              to="."
+              search={(prev) => ({
+                ...prev,
+                page: prev.page ? prev.page + 1 : 1,
+                submissionId:
+                  locationListType === "detail"
+                    ? getNextSubmissionId(table)
+                    : "",
+              })}
+              replace
+              resetScroll={false}
+              preload={"viewport"}
               disabled={!table.getCanNextPage()}
+              tabIndex={-1}
             >
-              Next
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                Next
+              </Button>
+            </Link>
           </div>
         )}
         <div className="ml-auto"></div>
@@ -147,51 +186,106 @@ export function DataTable<TData, TValue>({
           )}
         </div>
         <div className="flex items-center gap-0 mr-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-r-none"
-            onClick={() => {
-              setPagination({ pageIndex: 0, pageSize: paginationDefaultSize })
-              setlocationListType("rows")
-            }}
-            disabled={
-              locationListType === "rows" ||
-              table.getRowModel().rows.length === 0
-            }
+          <Link
+            to="."
+            search={(prev) => ({
+              ...prev,
+              locationListType: "rows",
+              page: Math.floor(topRowIdx / paginationDefaultSize),
+            })}
+            replace
+            resetScroll={false}
+            tabIndex={-1}
           >
-            Table
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-none"
-            onClick={() => {
-              setPagination({ pageIndex: 0, pageSize: paginationDefaultSize })
-              setlocationListType("cards")
-            }}
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-r-none"
+              onClick={() => {
+                setPagination({
+                  pageIndex: Math.floor(
+                    (topRowIdx + 1) / paginationDefaultSize
+                  ),
+                  pageSize: paginationDefaultSize,
+                })
+                setlocationListType("rows")
+              }}
+              disabled={
+                locationListType === "rows" ||
+                table.getRowModel().rows.length === 0
+              }
+            >
+              Table
+            </Button>
+          </Link>
+          <Link
+            to="."
+            search={(prev) => ({
+              ...prev,
+              locationListType: "cards",
+              page: Math.floor(topRowIdx / paginationDefaultSize),
+            })}
+            replace
+            resetScroll={false}
             disabled={
               locationListType === "cards" ||
               table.getRowModel().rows.length === 0
             }
+            tabIndex={-1}
           >
-            Cards
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-l-none"
-            onClick={() => {
-              setPagination({ pageIndex: topRowIdx - 1, pageSize: 1 })
-              setlocationListType("detail")
-            }}
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-none"
+              onClick={() => {
+                setPagination({
+                  pageIndex: Math.floor(
+                    (topRowIdx + 1) / paginationDefaultSize
+                  ),
+                  pageSize: paginationDefaultSize,
+                })
+                setlocationListType("cards")
+              }}
+              disabled={
+                locationListType === "cards" ||
+                table.getRowModel().rows.length === 0
+              }
+            >
+              Cards
+            </Button>
+          </Link>
+          <Link
+            to="."
+            search={(prev) => ({
+              ...prev,
+              locationListType: "detail",
+              page: topRowIdx - 1,
+              submissionId: table.getRowModel().rows[0]?.original.id,
+            })}
+            replace
+            resetScroll={false}
             disabled={
               locationListType === "detail" ||
               table.getRowModel().rows.length === 0
             }
+            tabIndex={-1}
           >
-            Detail
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-l-none"
+              onClick={() => {
+                setPagination({ pageIndex: topRowIdx - 1, pageSize: 1 })
+                setlocationListType("detail")
+              }}
+              disabled={
+                locationListType === "detail" ||
+                table.getRowModel().rows.length === 0
+              }
+            >
+              Detail
+            </Button>
+          </Link>
         </div>
         <Input
           placeholder={`Search...`}
@@ -323,34 +417,8 @@ function RenderTableAsDetail({
 }: {
   table: ReturnType<typeof useReactTable>
 }) {
+  const row = table.getRowModel().rows[0]
   return (
-    <div className="grid grid-cols-1 gap-4">
-      {table.getRowModel().rows?.length ? (
-        table.getRowModel().rows.map((row) => {
-          console.log("row", row.original)
-          return (
-            <div
-              key={row.id}
-              className="rounded-md border"
-              data-state={row.getIsSelected() && "selected"}
-            >
-              <SubmissionDetail
-                submissionId={row.original.id}
-                enableNavigation={false}
-              />
-            </div>
-          )
-        })
-      ) : (
-        <div className="h-24 text-center col-span-full m-4">
-          {
-            // if filter is applied
-            table.getColumn("student")?.getFilterValue()
-              ? "No submissions found for filter."
-              : "No submissions found."
-          }
-        </div>
-      )}
-    </div>
+    <SubmissionDetail submissionId={row.original.id} enableNavigation={false} />
   )
 }

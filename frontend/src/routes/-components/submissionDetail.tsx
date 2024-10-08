@@ -146,8 +146,8 @@ export function SubmissionDetail({
 
   // scrolling
   const imgDivScrollHeights = [2.2, 3.2]
-  const [initialQuestionFocus, setInitialQuestionFocus] = React.useState(0)
-  const scrollHeightImgDiv = imgDivScrollHeights[initialQuestionFocus]
+  const [initialQuestionFocus, setInitialQuestionFocus] = React.useState(enableNavigation ? 0 : null)
+  const scrollHeightImgDiv = initialQuestionFocus ? imgDivScrollHeights[initialQuestionFocus] : 0
   const [pageValue, setPageValue] = React.useState(1)
   const [zoomImgPercent, setZoomImgPercent] = React.useState(100)
   const [anonymousGrading, setAnonymousGrading] = React.useState(false)
@@ -220,7 +220,7 @@ export function SubmissionDetail({
               setInitialQuestionFocus(initialQuestionFocus === 0 ? 1 : 0)
             }
           >
-            Q {initialQuestionFocus + 1}
+            Q {initialQuestionFocus? initialQuestionFocus + 1 : 1}
           </Button>
           <Button
             variant="outline"
@@ -409,7 +409,7 @@ export function GradeForm({
 }: {
   submission: Submission
   assignment: Assignment
-  initialQuestionFocus: number
+  initialQuestionFocus: number | null
 }) {
   const router = useRouter()
   const updateSubmissionMutation = useUpdateSubmissionMutation(submission.id)

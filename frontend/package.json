@@ -32,6 +32,7 @@
     "@tanstack/react-router": "^1.26.1",
     "@tanstack/react-table": "^8.15.3",
     "@tanstack/router-devtools": "^1.26.1",
+    "@tanstack/router-zod-adapter": "^1.58.18",
     "axios": "^1.6.8",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",

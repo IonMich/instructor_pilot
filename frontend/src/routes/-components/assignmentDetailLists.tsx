@@ -98,6 +98,7 @@ enum DialogsGrades {
 
 export function SubmissionsTable() {
   const assignmentId = route.useParams().assignmentId
+  const { filter, page, locationListType } = route.useSearch()
   const [{ data: assignment }, { data: submissions }] = useSuspenseQueries({
     queries: [
       assignmentQueryOptions(assignmentId),
@@ -110,19 +111,23 @@ export function SubmissionsTable() {
   return (
     <>
       <div className="container mx-auto py-2">
-        <div className="flex flex-row flex-wrap justify-between items-end">
-          <h1 className="text-5xl font-bold my-8">{assignment?.name}</h1>
-          {assignment.canvas_id && (
-            <CanvasDialogWithTrigger
+        {locationListType !== "detail" && (
+          <>
+            <div className="flex flex-row flex-wrap justify-between items-end">
+              <h1 className="text-5xl font-bold my-8">{assignment?.name}</h1>
+              {assignment.canvas_id && (
+                <CanvasDialogWithTrigger
+                  assignment={assignment}
+                  submissions={submissions}
+                />
+              )}
+            </div>
+            <AssignmentDetailCards
               assignment={assignment}
               submissions={submissions}
             />
-          )}
-        </div>
-        <AssignmentDetailCards
-          assignment={assignment}
-          submissions={submissions}
-        />
+          </>
+        )}
         <DataTable
           columns={columnsOfAssignment}
           data={submissions}
@@ -130,6 +135,8 @@ export function SubmissionsTable() {
             columnVisibility: {
               canvas_id: assignment.canvas_id ? true : false,
             },
+            pageIndex: page,
+            locationListType: locationListType,
           }}
         />
       </div>
