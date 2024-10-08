@@ -159,6 +159,22 @@ class GradingForm(forms.ModelForm):
         self.new_comment = forms.Textarea()
         self.comment_file = forms.FileField()
 
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+class MultipleFileField(forms.FileField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            result = [single_file_clean(d, initial) for d in data]
+        else:
+            result = [single_file_clean(data, initial)]
+        return result
+
 class SubmissionFilesUploadForm(forms.Form):
     def __init__(self,*args,**kwargs):
         from django.forms.widgets import HiddenInput
@@ -176,9 +192,10 @@ class SubmissionFilesUploadForm(forms.Form):
                 sections__in=assignment_targeted.course.sections.all()
             )
 
-    file_field = forms.FileField(
-        widget=forms.ClearableFileInput(attrs={'multiple': True})
-        )
+    file_field = MultipleFileField(
+        required=True,
+        label="Select file(s) to split and upload",
+    )
 
     assignment = forms.ModelChoiceField(
         queryset=Assignment.objects.all(),

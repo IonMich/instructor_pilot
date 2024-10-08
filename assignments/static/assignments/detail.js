@@ -86,13 +86,37 @@ function uploadPDFs (event, form) {
             // Enable the upload PDFs button
             uploadPDFsButton.innerHTML = buttonText;
             uploadPDFsButton.disabled = false;
-            // Display error message as an alert
+            // clear the bootstrap validation classes
+            form.classList.remove('was-validated');
+            // Display error message as a toast
+            const toast = createToastElement(data.message, data.message_type);
+            // append the toast to the toast-container
+            const toastContainer = document.querySelector('#toast-container');
+            toastContainer.appendChild(toast);
+            console.log("toast", toast);
+            var toastElement = new bootstrap.Toast(toast,
+                {delay: 10000, autohide: false});
+            toastElement.show();
         }})
     .catch(error => {
         console.log("error", error);
         // Enable the upload PDFs button
         uploadPDFsButton.innerHTML = buttonText;
         uploadPDFsButton.disabled = false;
+        // clear the bootstrap validation classes
+        form.classList.remove('was-validated');
+        // show toast
+        const toast = createToastElement(
+            "An error occurred while uploading the PDFs. Please try again.",
+            "danger"
+        );
+        // append the toast to the toast-container
+        const toastContainer = document.querySelector('#toast-container');
+        toastContainer.appendChild(toast);
+        console.log("toast", toast);
+        var toastElement = new bootstrap.Toast(toast,
+            {delay: 10000, autohide: false});
+        toastElement.show();
     });
 
 }

@@ -4,7 +4,7 @@ dependencies:
   - aiohttp
   - llvm-openmp
   - numpy<1.25
-  - django=4.1
+  - django=5.1
   - matplotlib=3.5.3
   - pandas=1.4.4
   - pillow=9.2.0
@@ -21,8 +21,14 @@ dependencies:
   - tesseract=5.3.0
   - pip:
     - canvasapi==2.2.0
+    - djangorestframework==3.15.1
+    - markdown
+    - django-cors-headers
+    - drf-nested-routers
+    - djangorestframework-simplejwt
     - crispy-bootstrap5==0.6
     - django-crispy-forms==1.14.0
     - opencv-python-headless==4.7.0.72
+    - onnxruntime==1.14.1
     - pymupdf==1.21.1
 name: django-ta

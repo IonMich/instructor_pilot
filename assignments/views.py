@@ -166,6 +166,14 @@ def assignment_detail_view(request,  course_pk, assignment_pk):
                     "message": message,
                     "message_type": message_type,
                 })
+            else:
+                print(upload_form.errors)
+                message = "Error while uploading files"
+                message_type = 'danger'
+                return JsonResponse({
+                    "message": message,
+                    "message_type": message_type,
+                })
         elif 'submit-classify' in request.POST:
             print("request was POST:classify")
             classify_form = StudentClassifyForm(no_assignment=False, data=request.POST)
