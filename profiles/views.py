@@ -58,7 +58,7 @@ def profile_preferences_edit_view(request):
     #     }
     # };
 
-    if not request.method in ["POST", "PUT"]:
+    if request.method not in ["POST", "PUT"]:
         return HttpResponseNotFound()
     import json
     data = json.loads(request.body.decode("utf-8"))
@@ -134,7 +134,8 @@ def profile_update_view(request):
     # get the user
     user = request.user
     # get the user profile
-    profile = user.profile
+    # profile = user.profile
+    
     # the data we get from the form contains the following fields:
     # first_name, last_name, email
     # we get the data from the request

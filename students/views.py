@@ -1,12 +1,11 @@
 import json
+from typing import Optional
 
 from django.apps import apps
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
-
-from students.models import Student
 from rest_framework import viewsets
 
 from rest_framework import permissions
@@ -14,6 +13,10 @@ from rest_framework import permissions
 # from students.permissions import IsTA
 from students.serializers import StudentSerializer
 
+Course = apps.get_model("courses", "Course")
+Section = apps.get_model("sections", "Section")
+Student = apps.get_model("students", "Student")
+PaperSubmission = apps.get_model("submissions", "PaperSubmission")
 
 class StudentInSectionViewSet(viewsets.ModelViewSet):
     """
@@ -49,10 +52,9 @@ class StudentInCourseViewSet(viewsets.ModelViewSet):
         return Student.objects.filter(sections__course=course_id)
 
 
-def get_serialized_students(course_pk, section_pk=None):
+def get_serialized_students(course_pk: int, section_pk: Optional[int] = None):
     """returns a list of serialized students in a course or section"""
-    Course = apps.get_model("courses", "Course")
-    Section = apps.get_model("sections", "Section")
+    
     if section_pk:
         section = get_object_or_404(Section, pk=section_pk)
         if course_pk != str(section.course.pk):
@@ -82,9 +84,7 @@ def get_serialized_students(course_pk, section_pk=None):
 
 def get_serialized_submissions(student_pk, course_pk, assignment_group=None):
     """returns a list of serialized submissions for a student in a course"""
-    Student = apps.get_model("students", "Student")
-    Course = apps.get_model("courses", "Course")
-    PaperSubmission = apps.get_model("submissions", "PaperSubmission")
+    
     student = get_object_or_404(Student, pk=student_pk)
     course = get_object_or_404(Course, pk=course_pk)
 
@@ -136,7 +136,6 @@ def get_serialized_submissions(student_pk, course_pk, assignment_group=None):
 def course_list_view(request, course_pk):
     """create a view that returns a serialized list of students in a course"""
     print(request.user)
-    Course = apps.get_model("courses", "Course")
     course = get_object_or_404(Course, pk=course_pk)
     serialized_students = get_serialized_students(course_pk)
 
@@ -154,7 +153,6 @@ def course_list_view(request, course_pk):
 @login_required
 def api_course_enrollments_create(request, course_pk):
     """create a view that creates a student in a course"""
-    Course = apps.get_model("courses", "Course")
     if request.method != "POST":
         return JsonResponse({"message": "Only POST requests are allowed."})
 
@@ -162,8 +160,6 @@ def api_course_enrollments_create(request, course_pk):
     students_data_str = data.get("students")
     students_data = json.loads(students_data_str)
     course = Course.objects.get(pk=course_pk)
-    Student = apps.get_model("students", "Student")
-    Section = apps.get_model("sections", "Section")
 
     profiles = []
     print(f"lenght of students_data: {len(students_data)}")
@@ -255,7 +251,6 @@ def course_students_view(request, course_pk):
 @login_required
 def section_list_view(request, course_pk, section_pk):
     """create a view that returns a serialized list of students in a course"""
-    Section = apps.get_model("sections", "Section")
     section = get_object_or_404(Section, pk=section_pk)
     if course_pk != str(section.course.pk):
         raise ValueError("Course pk does not match section's course pk")
@@ -276,8 +271,6 @@ def section_list_view(request, course_pk, section_pk):
 @login_required
 def detail_view(request, course_pk, student_pk):
     """create a view that returns information about a student"""
-    Student = apps.get_model("students", "Student")
-    Course = apps.get_model("courses", "Course")
     student = get_object_or_404(Student, pk=student_pk)
     course = get_object_or_404(Course, pk=course_pk)
     section = student.sections.filter(course=course).first()

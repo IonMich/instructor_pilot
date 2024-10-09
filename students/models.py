@@ -35,8 +35,6 @@ class Student(models.Model):
         return f"{self.first_name} {self.last_name}"
     
     def get_section_in_course(self, course):
-        # if the student is enrolled in multiple sections in the same course
-        # raise an error
         student_sections = self.sections.filter(course=course)
         
         if len(student_sections) > 1:
@@ -83,7 +81,7 @@ class Student(models.Model):
             async with aiohttp.ClientSession() as session:
                 tasks = [ download_avatar(session, profile) for profile in profiles ]
                 finished = 0
-                print(f"Downloading avatars...")
+                print("Downloading avatars...")
                 results = []
                 for task in asyncio.as_completed(tasks):
                     result = await task
@@ -116,7 +114,7 @@ class Student(models.Model):
                     print("Avatar is the same. Not updating.")
                     continue
             except Exception as e:
-                pass
+                print(e)
             print("New avatar. Updating ...")
             student_profile.avatar.save(
                 basename, 

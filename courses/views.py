@@ -782,50 +782,51 @@ def grading_scheme_update_view(request, course_pk):
     """
     status = 'success'
     course = get_object_or_404(Course, pk=course_pk)
-    if request.method == 'POST':
-        data = json.loads(request.body.decode("utf-8"))
+    if request.method != 'POST':
+        return JsonResponse({'message': 'Only POST requests are allowed.'})
+    data = json.loads(request.body.decode("utf-8"))
 
-        num_questions = int(data.get('num_questions'))
-        equal_grades = data.get('equal_grades')
-        max_grades = data.get('max_grades')
-        apply_to_all = data.get('apply_to_all')
-        assignment_id = data.get('assignment_id')
+    num_questions = int(data.get('num_questions'))
+    equal_grades = data.get('equal_grades')
+    max_grades = data.get('max_grades')
+    apply_to_all = data.get('apply_to_all')
+    assignment_id = data.get('assignment_id')
 
-        assignment_of_request = course.assignments.get(pk=assignment_id)
-        assignment_group = assignment_of_request.assignment_group_object
+    assignment_of_request = course.assignments.get(pk=assignment_id)
+    assignment_group = assignment_of_request.assignment_group_object
 
-        if equal_grades:
-            max_grades = [assignment_of_request.max_score / num_questions] * num_questions
-            max_grades = ",".join(map(str, max_grades))
+    if equal_grades:
+        max_grades = [assignment_of_request.max_score / num_questions] * num_questions
+        max_grades = ",".join(map(str, max_grades))
+    else:
+        max_grades = max_grades
+
+    if apply_to_all:
+        assignments_to_update = course.assignments.filter(
+            assignment_group_object=assignment_group
+        )
+    else:
+        assignments_to_update = [assignment_of_request]
+
+
+    for assignment in assignments_to_update:
+        # check if the assignment has graded submissions
+        # if it does, do not update the grading scheme
+        num_subs_with_grader = assignment.get_all_submissions().filter(graded_by__isnull=False).count()
+        num_subs_with_question_grades = assignment.get_all_submissions().filter(question_grades__isnull=False).count()
+        if num_subs_with_grader == 0 and num_subs_with_question_grades == 0:
+            print(f"Updating to grading scheme {max_grades} for assignment {assignment.name}")
+            assignment.max_question_scores = max_grades
+            assignment.save()
         else:
-            max_grades = max_grades
+            print(f"Assignment {assignment.name} has (partially or fully) graded submissions. Not updating grading scheme.")
+            status = 'warning'
 
-        if apply_to_all:
-            assignments_to_update = course.assignments.filter(
-                assignment_group_object=assignment_group
-            )
-        else:
-            assignments_to_update = [assignment_of_request]
-
-
-        for assignment in assignments_to_update:
-            # check if the assignment has graded submissions
-            # if it does, do not update the grading scheme
-            num_subs_with_grader = assignment.get_all_submissions().filter(graded_by__isnull=False).count()
-            num_subs_with_question_grades = assignment.get_all_submissions().filter(question_grades__isnull=False).count()
-            if num_subs_with_grader == 0 and num_subs_with_question_grades == 0:
-                print(f"Updating to grading scheme {max_grades} for assignment {assignment.name}")
-                assignment.max_question_scores = max_grades
-                assignment.save()
-            else:
-                print(f"Assignment {assignment.name} has (partially or fully) graded submissions. Not updating grading scheme.")
-                status = 'warning'
-
-        response = {
-            'message': 'Grading scheme updated!',
-            'status': status
-        }
-        return JsonResponse(response)
+    response = {
+        'message': 'Grading scheme updated!',
+        'status': status
+    }
+    return JsonResponse(response)
 
 @login_required
 def api_canvas_courses_get_view(request):

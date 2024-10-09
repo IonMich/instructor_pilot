@@ -24,7 +24,7 @@ class BaseProfile(models.Model):
         auto_now=True
     )
     def __str__(self):
-        return f"Profile {self.id}"
+        return f"Profile {self.pk}"
 
     class Meta:
         abstract = True

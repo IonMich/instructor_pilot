@@ -1,6 +1,5 @@
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Q
 from django.urls import reverse
 
 from courses.utils import get_canvas_course, get_canvas_object
@@ -53,7 +52,7 @@ class Course(models.Model):
         return f"{self.name} ({self.term})"
 
     def get_absolute_url(self):
-        return reverse("courses:detail", kwargs={"pk": self.id})
+        return reverse("courses:detail", kwargs={"pk": self.pk})
 
     def get_students(self, section_pk=None):
         students = []

@@ -30,6 +30,8 @@ def get_canvas_url():
     load_dotenv()
     if os.getenv("API_URL") is not None:
         api_url =  os.getenv("API_URL")
+        if not api_url:
+            raise ValueError("API_URL is empty")
     else:
         api_url = "https://ufl.instructure.com/"
     
@@ -69,8 +71,8 @@ def get_canvas_course(course_code=None, term_name=None, canvas_id=None):
             if (canvas_course.course_code == course_code 
                     and canvas_course.term["name"] == term_name):
                 return canvas_course
-        except:
-            pass
+        except Exception as e:
+            print(e)
     return None
 
 def get_course_from_UFSOC_apix(
