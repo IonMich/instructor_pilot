@@ -18,13 +18,11 @@ def crop_and_ocr(image_path):
     """
     Crop the image and extract the text using OCR
     Input:
-        image: image to be cropped
+        imag_path: path to image to be cropped
     Output:
         text: text extracted from the image
     """
-    # read the image
     image = cv2.imread(image_path)
-    # Get the height and width of the image
     height, width = image.shape[:2]
     # set the starting point of the cropping rectangle
     x = 0
@@ -32,9 +30,8 @@ def crop_and_ocr(image_path):
     # set the ending point of the cropping rectangle
     w = width
     h = int(height * 0.3)
-    # Crop the image
     cropped_image = image[y:y+h, x:x+w]
-    # extract the text from the cropped image using OCR from opencv
+    # extract the text from the cropped image using OCR
     text = pytesseract.image_to_string(cropped_image)
     return text
 
@@ -214,7 +211,6 @@ def plot_clusters(X, cluster_labels, num_of_clusters, quiz_num, kmeans):
     for i in range(num_of_clusters):
         # select only data observations with cluster label == i
         ds = datapoint[np.where(cluster_labels==i)]
-        # plot the data observations
         plt.plot(ds[:,0],ds[:,1],'o')
     # plot the centroids
     centroids = kmeans.cluster_centers_

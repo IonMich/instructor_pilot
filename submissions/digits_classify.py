@@ -1,6 +1,3 @@
-import copy
-import os
-
 import cv2
 import numpy as np
 import pandas as pd
@@ -32,17 +29,14 @@ def remove_lines_img(
     mode, 
     rect_kernel_size=30, 
     rect_kernel_width=1, 
-    restruct_kernel_size=1, 
     do_reconstruct=False,
     dpi=150,
     debug=False):
 
     if mode == "vertical":
         rect_kernel = (rect_kernel_width,rect_kernel_size)
-        restruct_kernel = (restruct_kernel_size,rect_kernel_width)
     elif mode == "horizontal":
         rect_kernel = (rect_kernel_size,rect_kernel_width)
-        restruct_kernel = (rect_kernel_width,restruct_kernel_size)
     else:
         raise ValueError("mode must be either 'vertical' or 'horizontal'")
     removed = img.copy()
@@ -69,7 +63,7 @@ def remove_lines_img(
     cnts = cnts[0] if len(cnts) == 2 else cnts[1]
     if debug:
         print(f"Found {len(cnts)} lines in {mode} mode.")
-        print(f"Checking if they are in the right location...")
+        print("Checking if they are in the right location...")
 
     if cnts:
         if mode == "vertical":

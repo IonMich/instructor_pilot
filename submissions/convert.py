@@ -29,7 +29,7 @@ def convert_pdf_to_images(filepath, dpi, top_percent=0.25, left_percent=0.5, cro
         A list of images.
     """
     images = []
-    doc = fitz.open(filepath)
+    doc = fitz.Document(filepath)
     for page in doc:
         if page.number in skip_pages:
             images.append(None)

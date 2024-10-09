@@ -4,26 +4,27 @@ from itertools import zip_longest
 import pandas as pd
 from django.apps import apps
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
 from django.db.models.query_utils import Q
-from django.http import JsonResponse
+from django.contrib.auth.models import User
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.views.generic.edit import DeleteView
 
-from assignments.models import Assignment, SavedComment
+from assignments.models import Assignment
 from courses.models import Course
 
 from .forms import GradingForm, StudentClassifyForm, SubmissionSearchForm
-# from django.views.generic import ListView, DetailView
-from .models import (CanvasQuizSubmission, PaperSubmission, ScantronSubmission,
-                     Submission, SubmissionComment)
+from .models import (PaperSubmission,
+                     SubmissionComment)
 
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework import permissions
 from submissions.serializers import PaperSubmissionSerializer, SubmissionCommentSerializer
+
+class AuthenticatedHttpRequest(HttpRequest):
+    user: User
 # Create your views here.
 class PaperSubmissionInAssignmentViewSet(viewsets.ModelViewSet):
     """
@@ -208,6 +209,12 @@ def submission_list_view(request):
 @login_required
 def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
     submission = get_object_or_404(PaperSubmission, pk=submission_pk)
+    if not submission.assignment:
+        return JsonResponse({
+            'message': 'Submission has no assignment',
+            'success': False,
+            'submission': submission_pk,
+        })
     grades_zipped = list(zip_longest(
         submission.get_question_grades(), 
         submission.assignment.get_max_question_scores())
@@ -268,7 +275,7 @@ def submission_detail_view(request, course_pk, assignment_pk, submission_pk):
         })
 
 @login_required
-def api_grade_update_view(request, submission_pk):
+def api_grade_update_view(request: AuthenticatedHttpRequest, submission_pk: str):
     """
     This view updates the grade of a submission
     """
@@ -286,15 +293,27 @@ def api_grade_update_view(request, submission_pk):
             'success': False,
             'submission': submission_pk,
         })
+    if not submission.assignment:
+        return JsonResponse({
+            'message': 'Submission has no assignment',
+            'success': False,
+            'submission': submission_pk,
+        })
+    num_questions = submission.assignment.number_of_questions
+    if not num_questions:
+        return JsonResponse({
+            'message': 'Assignment has no number_of_questions specified',
+            'success': False,
+            'submission': submission_pk,
+        })
     submission.graded_at = timezone.now()
     submission.graded_by = request.user
-    if (not submission.student) or str(submission.student.id) != request.POST['student']:
+    if (not submission.student) or str(submission.student.pk) != request.POST['student']:
         submission.classification_type = 'M'
         submission.canvas_id = ''
         submission.canvas_url = ''
-
     q_grades = [ str(request.POST.get(f"grade_{i+1}"))
-            for i in range(submission.assignment.number_of_questions)]
+            for i in range(num_questions)]
     print(q_grades)
     if q_grades:
         _mutable = request.POST._mutable
@@ -321,11 +340,12 @@ def api_grade_update_view(request, submission_pk):
         
         # save the form
         form.save()
-
-        if request.POST.get('new_comment').strip():
+        new_comment_text = request.POST.get('new_comment')
+        if new_comment_text and new_comment_text.strip():
+            author = request.user
             comment = SubmissionComment(
                 paper_submission=submission,
-                author=request.user,
+                author=author,
                 text=request.POST.get('new_comment'))
             comment.save()
 
@@ -345,7 +365,7 @@ def api_grade_update_view(request, submission_pk):
                 'text': comment.text,
                 'created': created,
                 'author': {
-                    'first_name': comment.author.first_name,
+                    'first_name': author.first_name,
                 },
             }
             serialized_comments = [serialized_comment]
@@ -357,10 +377,11 @@ def api_grade_update_view(request, submission_pk):
         # assigned to the submission and authored by the request.user
         if request.FILES.getlist('comment_files'):
             print("adding file(s)")
+            author = request.user
             created_comment_pks = SubmissionComment.add_commentfiles_to_db(
                 submission_target=submission,
                 uploaded_files=request.FILES.getlist('comment_files'),
-                author=request.user)
+                author=author)
             # print("comment files saved: ", created_comment_pks)
             for comment_pk in created_comment_pks:
                 comment = SubmissionComment.objects.get(pk=comment_pk)
@@ -379,7 +400,7 @@ def api_grade_update_view(request, submission_pk):
                     'file_url': comment.comment_file.url,
                     'file_size': comment.get_filesize(),
                     'author': {
-                        'first_name': comment.author.first_name,
+                        'first_name': author.first_name,
                     },
                 }
                 print("comment saved: ", serialized_comment)
@@ -440,7 +461,7 @@ def api_submission_patch_view(request, assignment_pk, submission_pk):
         if data.get('canvas_url'):
             submission.canvas_url = data.get('canvas_url')
         submission.save()
-        return JsonResponse({"message": "success", "student": submission.student.id})
+        return JsonResponse({"message": "success", "student": student.pk})
     else:
         return JsonResponse({"message": "error"})
 
@@ -482,8 +503,8 @@ def redirect_to_previous(request, course_pk, assignment_pk, submission_pk):
     else:
         new_url = reverse(
             'submissions:detail', 
-            kwargs={'course_pk': submission.assignment.course.pk,
-            'assignment_pk': submission.assignment.pk,
+            kwargs={'course_pk': submission.assignment.course.pk if submission.assignment else course_pk,
+            'assignment_pk': submission.assignment.pk if submission.assignment else assignment_pk,
             'submission_pk': submission.pk})
         return redirect(new_url + extra_params)
 
@@ -527,8 +548,8 @@ def redirect_to_next(request, course_pk, assignment_pk, submission_pk):
     else: 
         new_url = reverse(
             'submissions:detail', 
-            kwargs={'course_pk': submission.assignment.course.pk,
-            'assignment_pk': submission.assignment.pk,
+            kwargs={'course_pk': submission.assignment.course.pk if submission.assignment else course_pk,
+            'assignment_pk': submission.assignment.pk if submission.assignment else assignment_pk,
             'submission_pk': submission.pk})
         return redirect(new_url + extra_params)
 
@@ -584,15 +605,27 @@ def export_gradebook_canvas_csv_view(request):
     submissions = PaperSubmission.objects.filter(pk__in=submission_pks)
     
     # create a pandas dataframe
+    if not submissions[0].assignment:
+        return JsonResponse({
+            'message': 'No assignment found for submission',
+            'success': False,
+        })
     assignment_column = f"{submissions[0].assignment.name} ({submissions[0].assignment.canvas_id})"
     data = []
     for submission in submissions:
+        student_cell = f"{submission.student.last_name}, {submission.student.first_name}" if submission.student else ""
+        canvas_id_cell = submission.student.canvas_id if submission.student else ""
+        uni_id_cell = submission.student.uni_id if submission.student else ""
+        if not submission.student or not submission.assignment or not submission.student.get_section_in_course(submission.assignment.course):
+            section_cell = ""
+        else:
+            section_cell = submission.student.get_section_in_course(submission.assignment.course).name if submission.student else ""
         row = {
-            'Student': f"{submission.student.last_name}, {submission.student.first_name}",
-            'ID': submission.student.canvas_id,
-            'SIS User ID': submission.student.uni_id,
+            'Student': student_cell,
+            'ID': canvas_id_cell,
+            'SIS User ID': uni_id_cell,
             'SIS Login ID': "",
-            'Section': submission.student.get_section_in_course(submission.assignment.course).name,
+            'Section': section_cell,
             assignment_column: submission.grade,
         }
         data.append(row)
@@ -634,10 +667,10 @@ def submission_export_grades_csv_view(request):
         row = {
             'submission_id': submission.pk,
             'submission_canvas_id': submission.canvas_id,
-            'student_last_name': submission.student.last_name,
-            'student_first_name': submission.student.first_name,
+            'student_last_name': submission.student.last_name if submission.student else '',
+            'student_first_name': submission.student.first_name if submission.student else '',
             'student_canvas_id': submission.canvas_id,
-            'student_uni_id': submission.student.uni_id,
+            'student_uni_id': submission.student.uni_id if submission.student else '',
             'version': submission.version.name if submission.version else '',
             'grade': submission.grade,
             **question_grades_dict,

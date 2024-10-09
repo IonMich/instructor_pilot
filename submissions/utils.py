@@ -9,7 +9,7 @@ from django.db import models
 from django.utils.translation import gettext as _
 
 
-comma_separated_float_list_re = re.compile('^[,\s]*([-+]?\d*\.?\d+[,\s]*)+$')
+comma_separated_float_list_re = re.compile(r'^[,\s]*([-+]?\d*\.?\d+[,\s]*)+$')
 validate_comma_separated_float_list = RegexValidator(
               comma_separated_float_list_re, 
               _(u'Enter only floats separated by commas.'), 'invalid')
@@ -22,7 +22,7 @@ def open_UploadedFile_as_PDF(uploaded_file):
     """
     Return a PyMuPDF Document object from the uploaded file.
     """
-    return fitz.open(stream=uploaded_file.read(), filetype="pdf")
+    return fitz.Document(stream=uploaded_file.read(), filetype="pdf")
 
 def submission_upload_to(instance, filename):
     """
