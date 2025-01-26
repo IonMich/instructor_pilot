@@ -26,7 +26,9 @@ import {
   deleteSubmission,
   identifySubmissionsWorkflow,
   versionSubmissionsWorkflow,
+  extractInfoSubmissionsWorkflow,
   Submission,
+  InfoField,
   fetchCanvasCourses,
   fetchCanvasSectionsOfCourse,
   createCourseWithSectionsCanvas,
@@ -258,6 +260,21 @@ export const useVersionAutomationWorkflowMutation = (assignmentId: number) => {
       return await versionSubmissionsWorkflow({
         assignmentId,
         pages_selected,
+      })
+    },
+    onSuccess: () => queryClient.invalidateQueries(),
+    gcTime: 1000 * 10,
+  })
+}
+
+export const useExtractInfoAutomationWorkflowMutation = (assignmentId: number) => {
+  return useMutation({
+    mutationKey: ["submissions", "extract", `assignmentId=${assignmentId}`],
+    mutationFn: async (info_fields: InfoField[]) => {
+      console.log("Automation workflow -Extract- for assignment", assignmentId)
+      return await extractInfoSubmissionsWorkflow({
+        assignmentId,
+        info_fields,
       })
     },
     onSuccess: () => queryClient.invalidateQueries(),

@@ -108,8 +108,8 @@ function AlreadyLoggedIn({ auth, router }) {
           <Button onClick={logout} className="w-full">
             Logout
           </Button>
-          <Button asChild className="w-full text-accent-foreground">
-            <Link to="/">Go to Home</Link>
+          <Button asChild className="w-full">
+            <Link to="/">Go to Dashboard</Link>
           </Button>
         </CardContent>
       </Card>

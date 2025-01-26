@@ -91,6 +91,19 @@ export interface PaperSubmissionImage {
   image: string
 }
 
+export interface InfoField {
+  title: string
+  description: string
+  pattern?: string
+  pages?: number[]
+}
+
+export interface ExtractedField {
+  info_field: InfoField
+  page?: number
+  value: string
+}
+
 export interface Submission {
   id: string
   url: string
@@ -104,6 +117,7 @@ export interface Submission {
   pdf: string
   papersubmission_images: PaperSubmissionImage[]
   submission_comments: SubmissionComment[]
+  extracted_fields?: ExtractedField[]
 }
 
 export interface Version {
@@ -542,6 +556,26 @@ export async function versionSubmissionsWorkflow({
   return loaderFn(() =>
     axios
       .patch(`${assignmentUrlMapper(assignmentId)}version_submissions/`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((response) => response.data)
+  )
+}
+
+// extractInfoSubmissionsWorkflow
+export async function extractInfoSubmissionsWorkflow({
+  assignmentId,
+  ...data
+}: {
+  assignmentId: number
+  info_fields: InfoField[]
+}) {
+  const token = auth.getToken()
+  return loaderFn(() =>
+    axios
+      .patch(`${assignmentUrlMapper(assignmentId)}extract_info/`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

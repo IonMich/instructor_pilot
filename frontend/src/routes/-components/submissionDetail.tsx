@@ -22,6 +22,13 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import {
   Form,
   FormControl,
@@ -30,6 +37,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import {
@@ -42,6 +50,8 @@ import {
   LuVenetianMask,
   LuCheck,
   LuImage,
+  LuSettings2,
+  LuBot,
 } from "react-icons/lu"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -146,8 +156,12 @@ export function SubmissionDetail({
 
   // scrolling
   const imgDivScrollHeights = [2.2, 3.2]
-  const [initialQuestionFocus, setInitialQuestionFocus] = React.useState(enableNavigation ? 0 : null)
-  const scrollHeightImgDiv = initialQuestionFocus ? imgDivScrollHeights[initialQuestionFocus] : 0
+  const [initialQuestionFocus, setInitialQuestionFocus] = React.useState(
+    enableNavigation ? 0 : null
+  )
+  const scrollHeightImgDiv = initialQuestionFocus
+    ? imgDivScrollHeights[initialQuestionFocus]
+    : 0
   const [pageValue, setPageValue] = React.useState(1)
   const [zoomImgPercent, setZoomImgPercent] = React.useState(100)
   const [anonymousGrading, setAnonymousGrading] = React.useState(false)
@@ -192,70 +206,25 @@ export function SubmissionDetail({
           }
           navigateOnKey(e)
         }}
-        className="container grid grid-cols-8 md:gap-4 gap-1 md:px-8 px-0 py-0 focus:outline-none"
+        className="container grid grid-cols-9 md:gap-4 gap-1 px-0 py-0 focus:outline-none"
       >
-        <Card className="md:h-[85vh] col-span-1 p-4 hidden lg:flex my-2 text-center flex-col gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const newPageValue = (pageValue % images.length) + 1
-              setPageValue(newPageValue)
-              const canvasContainer =
-                document.querySelector("canvas")?.parentElement?.parentElement
-              const numImages = canvasContainer?.childElementCount
-              const imgCard = canvasContainer?.parentElement?.parentElement
-              if (imgCard && numImages) {
-                imgCard.scrollTop =
-                  (imgCard.scrollHeight / numImages) * (newPageValue - 1)
-              }
-            }}
-          >
-            Page {pageValue} of {images.length}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setInitialQuestionFocus(initialQuestionFocus === 0 ? 1 : 0)
-            }
-          >
-            Q {initialQuestionFocus? initialQuestionFocus + 1 : 1}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const newZoom = zoomImgPercent === 50 ? 100 : zoomImgPercent - 10
-              setZoomImgPercent(newZoom)
-            }}
-          >
-            Zoom {zoomImgPercent.toFixed(0)}%
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="space-x-2"
-            onClick={() => setAnonymousGrading(!anonymousGrading)}
-          >
-            <LuVenetianMask size={20} title="Anonymous Grading" />
-            {anonymousGrading ? <LuCheck size={20} /> : null}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setRenderer(rendeder === "images" ? "pdf" : "images")
-            }
-          >
-            {rendeder === "images" ? (
-              <LuImage size={20} />
-            ) : (
-              <FaRegFilePdf size={20} />
-            )}
-          </Button>
+        <Card className="md:h-[85vh] col-span-2 p-4 hidden lg:flex my-2 flex-col gap-4">
+          <LeftSidebar
+            pageValue={pageValue}
+            setPageValue={setPageValue}
+            initialQuestionFocus={initialQuestionFocus}
+            setInitialQuestionFocus={setInitialQuestionFocus}
+            zoomImgPercent={zoomImgPercent}
+            setZoomImgPercent={setZoomImgPercent}
+            anonymousGrading={anonymousGrading}
+            setAnonymousGrading={setAnonymousGrading}
+            rendeder={rendeder}
+            setRenderer={setRenderer}
+            images={images}
+            submission={submission}
+          />
         </Card>
-        <div className="lg:col-span-5 md:col-span-6 col-span-8 md:py-2 py-0">
+        <div className="lg:col-span-5 md:col-span-7 col-span-9 md:py-2 py-0">
           <Card
             ref={pagesContainerRef}
             className={cn(
@@ -402,6 +371,211 @@ function PagesScrollArea({
   )
 }
 
+// contains the fields that have been extracted from the submission
+// using the visual question answering model
+
+const exampleExtractedFields: Submission["extracted_fields"] = [
+  {
+    title: "full_name",
+    description: "The handwritten name of the student",
+    value: "John Doe",
+  },
+  {
+    title: "student_id",
+    description: "The 8-digit student ID",
+    value: "12345678",
+  },
+]
+
+function SubmissionSettingsSidebar({
+  pageValue,
+  setPageValue,
+  initialQuestionFocus,
+  setInitialQuestionFocus,
+  zoomImgPercent,
+  setZoomImgPercent,
+  anonymousGrading,
+  setAnonymousGrading,
+  rendeder,
+  setRenderer,
+  images,
+}: {
+  pageValue: number
+  setPageValue: (value: number) => void
+  initialQuestionFocus: number | null
+  setInitialQuestionFocus: (value: number | null) => void
+  zoomImgPercent: number
+  setZoomImgPercent: (value: number) => void
+  anonymousGrading: boolean
+  setAnonymousGrading: (value: boolean) => void
+  rendeder: "pdf" | "images"
+  setRenderer: (value: "pdf" | "images") => void
+  images: PaperSubmissionImage[]
+}) {
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          const newPageValue = (pageValue % images.length) + 1
+          setPageValue(newPageValue)
+          const canvasContainer =
+            document.querySelector("canvas")?.parentElement?.parentElement
+          const numImages = canvasContainer?.childElementCount
+          const imgCard = canvasContainer?.parentElement?.parentElement
+          if (imgCard && numImages) {
+            imgCard.scrollTop =
+              (imgCard.scrollHeight / numImages) * (newPageValue - 1)
+          }
+        }}
+      >
+        Page {pageValue} of {images.length}
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() =>
+          setInitialQuestionFocus(initialQuestionFocus === 0 ? 1 : 0)
+        }
+      >
+        Q {initialQuestionFocus ? initialQuestionFocus + 1 : 1}
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          const newZoom = zoomImgPercent === 50 ? 100 : zoomImgPercent - 10
+          setZoomImgPercent(newZoom)
+        }}
+      >
+        Zoom {zoomImgPercent.toFixed(0)}%
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="space-x-2"
+        onClick={() => setAnonymousGrading(!anonymousGrading)}
+      >
+        <LuVenetianMask size={20} title="Anonymous Grading" />
+        {anonymousGrading ? <LuCheck size={20} /> : null}
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setRenderer(rendeder === "images" ? "pdf" : "images")}
+      >
+        {rendeder === "images" ? (
+          <LuImage size={20} />
+        ) : (
+          <FaRegFilePdf size={20} />
+        )}
+      </Button>
+    </>
+  )
+}
+
+function InfoExtractedSidebar({ submission }: { submission: Submission }) {
+  const extractedFields = exampleExtractedFields
+  if (!extractedFields) {
+    return null
+  }
+  return (
+    extractedFields && (
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <Accordion
+            type="multiple"
+            className="w-full"
+            defaultValue={["full_name", "student_id"]}
+          >
+            {extractedFields.map((field) => (
+              <AccordionItem key={field.title} value={field.title}>
+                <AccordionTrigger>
+                  {field.title.replace(/_/g, " ").toUpperCase()}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="flex flex-col gap-2">
+                    {/* pretty formatted field description */}
+                    <p className="text-sm text-gray-500">
+                      {field.description}
+                    </p>
+                    <Card className="p-2">
+                      <p>{field.value}</p>
+                    </Card>
+
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </div>
+    )
+  )
+}
+
+function LeftSidebar({
+  pageValue,
+  setPageValue,
+  initialQuestionFocus,
+  setInitialQuestionFocus,
+  zoomImgPercent,
+  setZoomImgPercent,
+  anonymousGrading,
+  setAnonymousGrading,
+  rendeder,
+  setRenderer,
+  images,
+  submission,
+}: {
+  pageValue: number
+  setPageValue: (value: number) => void
+  initialQuestionFocus: number | null
+  setInitialQuestionFocus: (value: number | null) => void
+  zoomImgPercent: number
+  setZoomImgPercent: (value: number) => void
+  anonymousGrading: boolean
+  setAnonymousGrading: (value: boolean) => void
+  rendeder: "pdf" | "images"
+  setRenderer: (value: "pdf" | "images") => void
+  images: PaperSubmissionImage[]
+  submission: Submission
+}) {
+  return (
+    <Tabs defaultValue="info">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="controls" className="flex items-center gap-2 mx-auto">
+          <LuSettings2 className="h-5 w-5" />
+          <span className="hidden md:block">Controls</span>
+        </TabsTrigger>
+        <TabsTrigger value="info" className="flex items-center gap-2 mx-auto">
+          <LuBot className="h-5 w-5" />
+          <span className="hidden md:block">Info</span>
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="controls" className="flex flex-col gap-4">
+        <SubmissionSettingsSidebar
+          pageValue={pageValue}
+          setPageValue={setPageValue}
+          initialQuestionFocus={initialQuestionFocus}
+          setInitialQuestionFocus={setInitialQuestionFocus}
+          zoomImgPercent={zoomImgPercent}
+          setZoomImgPercent={setZoomImgPercent}
+          anonymousGrading={anonymousGrading}
+          setAnonymousGrading={setAnonymousGrading}
+          rendeder={rendeder}
+          setRenderer={setRenderer}
+          images={images}
+        />
+      </TabsContent>
+      <TabsContent value="info">
+        <InfoExtractedSidebar submission={submission} />
+      </TabsContent>
+    </Tabs>
+  )
+}
+
 export function GradeForm({
   submission,
   assignment,
@@ -537,10 +711,18 @@ export function GradeForm({
   }, [submission.id, form])
 
   useBlocker({
-    blockerFn: () => window.confirm("Are you sure you want to leave?"),
-    condition: form.formState.isDirty,
+    shouldBlockFn: () => {
+      const isDanger = form.formState.isDirty
+      if (!isDanger) {
+        return false
+      } else {
+        const shouldLeaveWithPermission = window.confirm(
+          "Are you sure you want to navigate?"
+        )
+        return !shouldLeaveWithPermission
+      }
+    },
   })
-
   return (
     <Card className="p-4">
       <Form {...form}>
@@ -635,7 +817,7 @@ function CommentsChat({ submission }: { submission: Submission }) {
             key={comment.id}
             className="flex gap-2 ml-auto first:mt-4 last:mb-4 snap-y"
           >
-            <Card className="ml-12 p-2 bg-primary text-primary-foreground snap-center">
+            <Card className="xl:ml-12 p-2 bg-primary text-primary-foreground snap-center">
               <p className="text-sm whitespace-pre-line">{comment.text}</p>
               <p className="text-xs text-primary-foreground text-right pt-1">
                 {new Date(comment.created_at).toLocaleString()}
@@ -696,8 +878,17 @@ function ChatForm({ submission }: { submission: Submission }) {
   }, [submission.id, form])
 
   useBlocker({
-    blockerFn: () => window.confirm("Are you sure you want to leave?"),
-    condition: form.formState.isDirty || createCommentMutation.isPending,
+    shouldBlockFn: () => {
+      const isDanger = form.formState.isDirty || createCommentMutation.isPending
+      if (!isDanger) {
+        return false
+      } else {
+        const shouldLeaveWithPermission = window.confirm(
+          "Are you sure you want to navigate?"
+        )
+        return !shouldLeaveWithPermission
+      }
+    },
   })
 
   return (
