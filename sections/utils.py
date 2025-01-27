@@ -16,22 +16,23 @@ def import_students_to_sections(csv_fpath: str):
             if match is None:
                 raise ValueError("No 5 digit match in section")
             print(f"{match.group(1)}")
-            section = Section.objects.get(name=str(match.group(1)))
+            section = Section.objects.get(class_number=str(match.group(1)))
         except Section.DoesNotExist:
             print("section does not exist")
             section = None
+            continue
         
-        match = re.match(r"(.*),\s(.*)",row['Student'])
+        match = re.match(r"(.*),\s(.*)",row['Name'])
         if match is None:
             raise ValueError("Student name should be in the format 'Last, First'")
         print(f"{match.group(1)} {match.group(2)}")
         print(row['SIS User ID'])
-        print(row['SIS Login ID'])
+        print(row.get('SIS Login ID'))
         student, created = Student.objects.get_or_create(
             first_name=match.group(2),
             last_name=match.group(1),
             uni_id=row['SIS User ID'],
-            email=row['SIS Login ID'])
+            email=row.get('SIS Login ID'))
         
         print(created)
         print("Student:", student.__dict__)
