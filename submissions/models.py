@@ -548,6 +548,61 @@ class PaperSubmission(Submission):
 
         return submissions_serialized, outliers
 
+    @classmethod
+    def extract_info(
+        cls,
+        assignment,
+        info_fields,
+    ):
+        """
+        Use a vision language model to extract information from the paper submissions
+
+        Args:
+            assignment: Assignment
+            info_fields: list of InfoField
+                The fields of information to extract from the paper submissions.
+        Returns:
+            List of dictionaries containing the extracted information
+        """
+        from pydantic import Field, create_model
+        from submissions.batch_extract import outlines_vlm, load_and_resize_image
+        max_pages = PaperSubmissionImage.get_max_page_number(assignment)
+        for page in range(1, max_pages + 1):
+            page_info_fields = []
+            for info_field in info_fields:
+                print(info_field)
+                if page in info_field["pages"]:
+                    page_info_fields.append(info_field)
+            if not page_info_fields:
+                continue
+            images = {
+                image.pk: load_and_resize_image(image.image.path)
+                for image in PaperSubmissionImage.objects.filter(
+                    submission__assignment=assignment, page=page
+                )
+            }
+            page_model = create_model(
+                "SubmissionPageModel",
+                **{
+                    info_field["title"].lower().replace(" ", "_"): (str, Field(
+                        alias=info_field["title"],
+                        description=info_field["description"],
+                        pattern=info_field["pattern"],
+                    ))
+                    for info_field in page_info_fields
+                },
+            )
+            print(f"Pydantic Model for page: {page}", page_model.schema())
+                
+            results = outlines_vlm(
+                images,
+                model_uri="Qwen/Qwen2-VL-2B-Instruct",
+                # model_uri="HuggingFaceTB/SmolVLM-256M-Instruct",
+                pydantic_model = page_model,
+                user_message =  "You are a helpful assistant",
+            )
+            print("Results:", results)
+
 
 class CanvasQuizSubmission(Submission):
     pass

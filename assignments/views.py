@@ -108,6 +108,25 @@ class AssignmentVersionSubmissions(APIView):
                 "outliers": outliers,
             }
         )
+
+class AssignmentExtractInfoSubmissions(APIView):
+    permission_classes = [
+        permissions.IsAuthenticated,
+    ]
+
+    def patch(self, request, assignment_id):
+        assignment = get_object_or_404(Assignment, pk=assignment_id)
+        info_fields = request.data.get("info_fields")
+        print(f"info_fields: {info_fields}")
+
+        submissions_serialized = PaperSubmission.extract_info(
+            assignment, info_fields=info_fields
+        )
+        return Response(
+            {
+                "submissions": submissions_serialized,
+            }
+        )
     
 @login_required
 def assignment_detail_view(request,  course_pk, assignment_pk):

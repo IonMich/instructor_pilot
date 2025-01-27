@@ -1,0 +1,9 @@
+numpy<2
+transformers
+datasets
+accelerate 
+torch
+rich
+sentencepiece
+torchvision
+outlines

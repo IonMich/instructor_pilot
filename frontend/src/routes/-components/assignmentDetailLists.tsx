@@ -71,7 +71,7 @@ import {
   RadialBarChart,
 } from "recharts"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
-import { useForm } from "react-hook-form"
+import { Control, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useToast } from "@/components/ui/use-toast"
@@ -1544,7 +1544,7 @@ function InfoExtractDialogWithTrigger({
           <LuArrowRight className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-full overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Extract Information</DialogTitle>
         </DialogHeader>
@@ -1582,6 +1582,12 @@ function InfoExtractForm({
   )
   const maxPages = assignment.max_page_number
   const remainingSubmissionsToExtract = submissions.filter(() => true)
+  const defaultEmptyInfoField = {
+    title: "",
+    description: "",
+    pattern: "",
+    pages: [1,],
+  }
   // array of InfoField objects
   const formSchema = z.object({
     info_fields: z.array(
@@ -1597,15 +1603,21 @@ function InfoExtractForm({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      info_fields: [],
+      info_fields: [defaultEmptyInfoField],
     },
   })
   async function onSubmit(values: z.infer<typeof formSchema>) {
     toast({
       title: "Extracting information...",
-      description:
-        "Extracting information from documents: " +
-        values.info_fields.map((field) => field.title).join(", "),
+      // display value.info_fields as JSON string
+      description: (
+        <span className="font-mono">
+          Extracting {values.info_fields.map((field) => field.title).join(", ")}{" "}
+          from all submissions.
+          <br />
+          <pre>{JSON.stringify(values.info_fields, null, 2)}</pre>
+        </span>
+      ),
     })
     const data = await infoExtractMutation.mutateAsync(values.info_fields, {
       onSuccess: () => {},
@@ -1682,12 +1694,7 @@ function InfoExtractForm({
                       console.log("info_fields", form.getValues("info_fields"))
                       form.setValue("info_fields", [
                         ...form.getValues("info_fields"),
-                        {
-                          title: "",
-                          description: "",
-                          pattern: "",
-                          pages: [],
-                        },
+                        defaultEmptyInfoField,
                       ])
                     }}
                   >
@@ -1695,29 +1702,32 @@ function InfoExtractForm({
                   </Button>
                 </div>
                 <div className="overflow-y-auto max-h-[400px] grid gap-4">
-                {form.getValues("info_fields").map((_, i) => (
-                  <CreateInfoField
-                    key={i}
-                    index={i}
-                    control={form.control}
-                    remove={(index) => {
-                      form.setValue(
-                        "info_fields",
-                        form
-                          .getValues("info_fields")
-                          .filter((_, i) => i !== index)
-                      )
-                    }}
-                    maxPages={maxPages}
-                  />
-                ))}
+                  {form.getValues("info_fields").map((_, i) => (
+                    <CreateInfoField
+                      key={i}
+                      index={i}
+                      control={form.control}
+                      remove={(index) => {
+                        form.setValue(
+                          "info_fields",
+                          form
+                            .getValues("info_fields")
+                            .filter((_, i) => i !== index)
+                        )
+                      }}
+                      maxPages={maxPages}
+                    />
+                  ))}
                 </div>
                 <div className="flex flex-row justify-center gap-4">
                   {/* disable if there are no field titles */}
                   <Button
-                    disabled={form.getValues("info_fields").filter(
-                      (field) => field.title === ""
-                    ).length === form.getValues("info_fields").length}
+                    disabled={
+                      form
+                        .getValues("info_fields")
+                        .filter((field) => field.title === "").length ===
+                      form.getValues("info_fields").length
+                    }
                     type="submit"
                   >
                     Extract
@@ -1739,7 +1749,14 @@ function CreateInfoField({
   maxPages,
 }: {
   index: number
-  control: Control
+  control: Control<{
+    info_fields: {
+      title: string
+      description: string
+      pattern: string
+      pages: number[]
+    }[]
+  }>
   remove: (index: number) => void
   maxPages: number
 }) {
@@ -1753,7 +1770,7 @@ function CreateInfoField({
             <FormItem className="flex flex-row gap-4 items-center">
               <FormLabel>Title</FormLabel>
               <FormControl>
-                <Input {...field} className="w-3/4 ml-auto"/>
+                <Input {...field} className="w-3/4 ml-auto" />
               </FormControl>
             </FormItem>
           )
@@ -1767,7 +1784,7 @@ function CreateInfoField({
             <FormItem className="flex flex-row gap-4 items-center">
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea {...field} className="w-3/4 ml-auto"/>
+                <Textarea {...field} className="w-3/4 ml-auto" />
               </FormControl>
             </FormItem>
           )
