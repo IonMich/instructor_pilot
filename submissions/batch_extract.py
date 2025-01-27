@@ -91,12 +91,9 @@ def outlines_vlm(
         model_uri,
         model_class=model_class,
         model_kwargs={
-            "device_map": "cuda:0" if has_cuda else "cpu",
+            "device_map": "auto" if has_cuda else "cpu",
             "torch_dtype": torch.float16 if has_cuda else torch.float32,
             "attn_implementation": "flash_attention_2" if has_cuda else "eager",
-        },
-        processor_kwargs={
-            "device": "cuda" if has_cuda else "cpu",
         },
     )
 
@@ -195,7 +192,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Outlines Quiz Submission Parser")
     parser.add_argument(
         "--model",
-        default="Qwen/Qwen2-VL-2B-Instruct",
+        default="Qwen/Qwen2.5-VL-3B-Instruct",
         dest="model_uri",
         type=str,
         help="Hugging Face model URI for the vision-to-sequence model",

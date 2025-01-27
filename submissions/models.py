@@ -587,21 +587,26 @@ class PaperSubmission(Submission):
                     info_field["title"].lower().replace(" ", "_"): (str, Field(
                         alias=info_field["title"],
                         description=info_field["description"],
-                        pattern=info_field["pattern"],
+                        pattern=info_field["pattern"] if info_field["pattern"] else None,
                     ))
                     for info_field in page_info_fields
                 },
             )
             print(f"Pydantic Model for page: {page}", page_model.schema())
-                
-            results = outlines_vlm(
-                images,
-                model_uri="Qwen/Qwen2-VL-2B-Instruct",
-                # model_uri="HuggingFaceTB/SmolVLM-256M-Instruct",
-                pydantic_model = page_model,
-                user_message =  "You are a helpful assistant",
-            )
-            print("Results:", results)
+            try:
+                results = outlines_vlm(
+                    images,
+                    model_uri="Qwen/Qwen2.5-VL-3B-Instruct",
+                    # model_uri="HuggingFaceTB/SmolVLM-256M-Instruct",
+                    pydantic_model = page_model,
+                    user_message =  "You are a helpful assistant",
+                )
+                print("Results:", results)
+            except Exception as e:
+                print("Error:", e)
+                import torch
+                torch.cuda.empty_cache()
+            
 
 
 class CanvasQuizSubmission(Submission):
