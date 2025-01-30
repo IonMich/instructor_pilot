@@ -84,8 +84,8 @@ def outlines_vlm(
     model_class=AutoModelForVision2Seq,
     user_message: str = "You are a helpful assistant",
 ):
-    output_path = f"{model_uri.replace('/', '-')}-results.json"
-    print(f"Saving results to {output_path}")
+    # output_path = f"{model_uri.replace('/', '-')}-results.json"
+    # print(f"Saving results to {output_path}")
     has_cuda = torch.cuda.is_available()
     model = outlines.models.transformers_vision(
         model_uri,

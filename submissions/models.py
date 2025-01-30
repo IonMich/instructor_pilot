@@ -596,7 +596,7 @@ class PaperSubmission(Submission):
                 },
             )
             print(f"Pydantic Model for page: {page}", page_model.schema())
-                
+            
             results = outlines_vlm(
                 images,
                 model_uri="Qwen/Qwen2-VL-2B-Instruct",
