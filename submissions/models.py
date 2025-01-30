@@ -293,6 +293,9 @@ class PaperSubmission(Submission):
     def get_num_pages(self):
         return PaperSubmissionImage.objects.filter(submission=self).count()
 
+    def get_extracted_fields(self):
+        return ExtractedInfoField.objects.filter(paper_submission_image__submission=self)
+
     @classmethod
     def add_papersubmissions_to_db(cls,
         assignment_target,
@@ -576,7 +579,7 @@ class PaperSubmission(Submission):
             if not page_info_fields:
                 continue
             images = {
-                image.pk: load_and_resize_image(image.image.path)
+                str(image.pk): load_and_resize_image(image.image.path)
                 for image in PaperSubmissionImage.objects.filter(
                     submission__assignment=assignment, page=page
                 )
@@ -585,9 +588,9 @@ class PaperSubmission(Submission):
                 "SubmissionPageModel",
                 **{
                     info_field["title"].lower().replace(" ", "_"): (str, Field(
-                        alias=info_field["title"],
+                        alias=info_field["title"].lower().replace(" ", "_"),
                         description=info_field["description"],
-                        pattern=info_field["pattern"],
+                        pattern=info_field["pattern"] if info_field["pattern"] else None,
                     ))
                     for info_field in page_info_fields
                 },
@@ -602,6 +605,30 @@ class PaperSubmission(Submission):
                 user_message =  "You are a helpful assistant",
             )
             print("Results:", results)
+
+            # if there is no AssignmentInfoField with this title, create it
+            for page_info_field in page_info_fields:
+                AssignmentInfoField.objects.get_or_create(
+                    title=page_info_field["title"].lower().replace(" ", "_"),
+                    description=page_info_field["description"],
+                    pattern=page_info_field["pattern"],
+                    assignment=assignment,
+                    pages=page_info_field["pages"],
+                )
+
+            for submission_image_pk, samples in results.items():
+                # sample is a dict with keys the titles of the info fields
+                sample = samples[0]
+                for title, value in sample.items():
+                    info_field = AssignmentInfoField.objects.get(
+                        assignment=assignment, 
+                        title=title)
+                    ExtractedInfoField.objects.create(
+                        info_field=info_field,
+                        paper_submission_image=PaperSubmissionImage.objects.get(pk=submission_image_pk),
+                        value=value,
+                    )
+
 
 
 class CanvasQuizSubmission(Submission):
@@ -656,7 +683,7 @@ class PaperSubmissionImage(models.Model):
         null=True,
         blank=True)
 
-    
+
     def __str__(self):
         return f"Paper Submission Image {self.pk}"
 
@@ -845,3 +872,81 @@ class SubmissionComment(models.Model):
             
 
         return created_comment_pks
+
+
+class AssignmentInfoField(models.Model):
+    id = models.UUIDField(
+        primary_key=True, 
+        default=uuid.uuid4, 
+        editable=False)
+
+    title = models.CharField(
+        max_length=30,
+        null=True,
+        blank=True)
+
+    description = models.TextField(
+        null=True,
+        blank=True)
+
+    pattern = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True)
+
+    assignment = models.ForeignKey(
+        Assignment,
+        on_delete=models.CASCADE,
+        related_name="%(app_label)s_%(class)s_related",
+        related_query_name="%(app_label)s_%(class)ss",
+        null=True,
+        blank=True)
+
+    version = models.ForeignKey(
+        Version,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="%(app_label)s_%(class)s_related",
+        related_query_name="%(app_label)s_%(class)ss")
+
+    pages = models.JSONField(
+        null=True,
+        blank=True)
+
+    def __str__(self):
+        return f"{self.title} for {self.assignment.name}"
+
+    class Meta:
+        verbose_name_plural = "Info Fields"
+
+class ExtractedInfoField(models.Model):
+    id = models.UUIDField(
+        primary_key=True, 
+        default=uuid.uuid4, 
+        editable=False)
+
+    info_field = models.ForeignKey(
+        AssignmentInfoField,
+        on_delete=models.CASCADE,
+        related_name="%(app_label)s_%(class)s_related",
+        related_query_name="%(app_label)s_%(class)ss",
+        null=True,
+        blank=True)
+
+    paper_submission_image = models.ForeignKey(
+        PaperSubmissionImage,
+        on_delete=models.CASCADE,
+        related_name="%(app_label)s_%(class)s_related",
+        related_query_name="%(app_label)s_%(class)ss",
+        blank=True)
+
+    value = models.TextField(
+        null=True,
+        blank=True)
+
+    def __str__(self):
+        return f"{self.info_field.title} on page {self.paper_submission_image.page}: {self.value}"
+
+    class Meta:
+        verbose_name_plural = "Extracted Info Fields"

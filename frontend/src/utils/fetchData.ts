@@ -93,6 +93,7 @@ export interface PaperSubmissionImage {
 
 export interface InfoField {
   title: string
+  assignment_id: number
   description: string
   pattern?: string
   pages?: number[]
@@ -100,7 +101,7 @@ export interface InfoField {
 
 export interface ExtractedField {
   info_field: InfoField
-  page?: number
+  submission_image_id: string
   value: string
 }
 

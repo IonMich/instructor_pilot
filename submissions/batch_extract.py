@@ -84,19 +84,16 @@ def outlines_vlm(
     model_class=AutoModelForVision2Seq,
     user_message: str = "You are a helpful assistant",
 ):
-    output_path = f"tests/output/{model_uri.replace('/', '-')}-results.json"
+    output_path = f"{model_uri.replace('/', '-')}-results.json"
     print(f"Saving results to {output_path}")
     has_cuda = torch.cuda.is_available()
     model = outlines.models.transformers_vision(
         model_uri,
         model_class=model_class,
         model_kwargs={
-            "device_map": "cuda:0" if has_cuda else "cpu",
+            "device_map": "auto",
             "torch_dtype": torch.float16 if has_cuda else torch.float32,
             "attn_implementation": "flash_attention_2" if has_cuda else "eager",
-        },
-        processor_kwargs={
-            "device": "cuda" if has_cuda else "cpu",
         },
     )
 
@@ -114,7 +111,7 @@ def outlines_vlm(
                     "text": f"""{user_message}
 
                     Return the information in the following JSON schema:
-                    {pydantic_model.model_json_schema(by_alias=True)}
+                    {pydantic_model.model_json_schema(by_alias=False)}
                 """,
                 },
             ],
@@ -138,7 +135,9 @@ def outlines_vlm(
     # Generate the quiz submission summary
     results = defaultdict(list)
     n_samples = 1
-    for imagepath, image in images.items():
+    for idx, (imagepath, image) in enumerate(images.items()):
+        if idx >= 5:
+            break
         for _ in range(n_samples):
             result = extract_generator(prompt, [image])
             print(result.model_dump(mode="json", by_alias=True))
@@ -146,7 +145,7 @@ def outlines_vlm(
         print("\n")
 
     # save the results
-    json_save_results(results, filepath=output_path)
+    # json_save_results(results, filepath=output_path)
 
     return results
 
@@ -170,7 +169,7 @@ class QuizSubmissionSummary(BaseModel):
         # try also literal list of UFIDs
         pattern=UNIVERSITY_ID_PATTERN,
         alias=UNIVERSITY_ID_ALIAS,
-        description=f"{UNIVERSITY_ID_LEN}-digit {UNIVERSITY_ID_ALIAS.capitalize()} of the student",
+        description=f"{UNIVERSITY_ID_LEN}-digit {UNIVERSITY_ID_ALIAS.upper()} of the student",
     )
     section_number: str = Field(
         pattern=SECTION_NUMBER_PATTERN,

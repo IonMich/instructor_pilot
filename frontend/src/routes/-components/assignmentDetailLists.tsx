@@ -1683,24 +1683,6 @@ function InfoExtractForm({
                     </Button>
                   </div>
                 </div>
-                {/* add new information fields */}
-                <div className="flex flex-row gap-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    className="mx-auto"
-                    onClick={() => {
-                      console.log("info_fields", form.getValues("info_fields"))
-                      form.setValue("info_fields", [
-                        ...form.getValues("info_fields"),
-                        defaultEmptyInfoField,
-                      ])
-                    }}
-                  >
-                    Add Field
-                  </Button>
-                </div>
                 <div className="overflow-y-auto max-h-[400px] grid gap-4">
                   {form.getValues("info_fields").map((_, i) => (
                     <CreateInfoField
@@ -1718,6 +1700,24 @@ function InfoExtractForm({
                       maxPages={maxPages}
                     />
                   ))}
+                </div>
+                {/* add new information fields */}
+                <div className="flex flex-row gap-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    className="mx-auto"
+                    onClick={() => {
+                      console.log("info_fields", form.getValues("info_fields"))
+                      form.setValue("info_fields", [
+                        ...form.getValues("info_fields"),
+                        defaultEmptyInfoField,
+                      ])
+                    }}
+                  >
+                    Add new Field
+                  </Button>
                 </div>
                 <div className="flex flex-row justify-center gap-4">
                   {/* disable if there are no field titles */}

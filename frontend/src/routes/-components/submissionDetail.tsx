@@ -371,22 +371,6 @@ function PagesScrollArea({
   )
 }
 
-// contains the fields that have been extracted from the submission
-// using the visual question answering model
-
-const exampleExtractedFields: Submission["extracted_fields"] = [
-  {
-    title: "full_name",
-    description: "The handwritten name of the student",
-    value: "John Doe",
-  },
-  {
-    title: "student_id",
-    description: "The 8-digit student ID",
-    value: "12345678",
-  },
-]
-
 function SubmissionSettingsSidebar({
   pageValue,
   setPageValue,
@@ -476,7 +460,7 @@ function SubmissionSettingsSidebar({
 }
 
 function InfoExtractedSidebar({ submission }: { submission: Submission }) {
-  const extractedFields = exampleExtractedFields
+  const extractedFields = submission.extracted_fields
   if (!extractedFields) {
     return null
   }
@@ -487,23 +471,27 @@ function InfoExtractedSidebar({ submission }: { submission: Submission }) {
           <Accordion
             type="multiple"
             className="w-full"
-            defaultValue={["full_name", "student_id"]}
+            defaultValue={extractedFields.map(
+              (field) => field.info_field.title
+            )}
           >
             {extractedFields.map((field) => (
-              <AccordionItem key={field.title} value={field.title}>
+              <AccordionItem
+                key={field.info_field.title}
+                value={field.info_field.title}
+              >
                 <AccordionTrigger>
-                  {field.title.replace(/_/g, " ").toUpperCase()}
+                  {field.info_field.title.replace(/_/g, " ").toUpperCase()}
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="flex flex-col gap-2">
                     {/* pretty formatted field description */}
                     <p className="text-sm text-gray-500">
-                      {field.description}
+                      {field.info_field.description}
                     </p>
                     <Card className="p-2">
                       <p>{field.value}</p>
                     </Card>
-
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -545,7 +533,10 @@ function LeftSidebar({
   return (
     <Tabs defaultValue="info">
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="controls" className="flex items-center gap-2 mx-auto">
+        <TabsTrigger
+          value="controls"
+          className="flex items-center gap-2 mx-auto"
+        >
           <LuSettings2 className="h-5 w-5" />
           <span className="hidden md:block">Controls</span>
         </TabsTrigger>

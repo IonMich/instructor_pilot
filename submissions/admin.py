@@ -2,7 +2,8 @@ from django.contrib import admin
 
 from .models import (CanvasQuizSubmission, PaperSubmission,
                      PaperSubmissionImage, ScantronSubmission,
-                     SubmissionComment)
+                     SubmissionComment, AssignmentInfoField, 
+                     ExtractedInfoField)
 
 # # Register your models here.
 
@@ -55,3 +56,6 @@ class SubmissionCommentAdmin(admin.ModelAdmin):
     ]
 
 admin.site.register(SubmissionComment, SubmissionCommentAdmin)
+
+admin.site.register(AssignmentInfoField)
+admin.site.register(ExtractedInfoField)
