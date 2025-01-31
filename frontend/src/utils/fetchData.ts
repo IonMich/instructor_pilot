@@ -82,7 +82,16 @@ export interface Assignment {
   assignment_group_object: AssignmentGroup
   assignment_group: string
   max_page_number: number
+  saved_comments: AssignmentSavedComment[]
   canvas_id?: string
+}
+
+export interface AssignmentSavedComment {
+  id: number
+  title: string
+  text: string
+  assignment_id: number
+  position: number
 }
 
 export interface PaperSubmissionImage {

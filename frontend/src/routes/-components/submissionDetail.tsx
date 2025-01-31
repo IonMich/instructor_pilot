@@ -7,6 +7,7 @@ import {
   Assignment,
   Student,
   PaperSubmissionImage,
+  AssignmentSavedComment,
 } from "@/utils/fetchData"
 import {
   submissionQueryOptions,
@@ -52,6 +53,7 @@ import {
   LuImage,
   LuSettings2,
   LuBot,
+  LuStar,
 } from "react-icons/lu"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -71,6 +73,9 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  // CommandShortcut,
+  // CommandSeparator,
+  CommandDialog,
 } from "@/components/ui/command"
 import {
   Popover,
@@ -143,6 +148,8 @@ export function SubmissionDetail({
         studentsInCourseQueryOptions(courseId),
       ],
     })
+
+  console.log(assignment)
 
   // navigation
   const prevSubmission = findPrevSubmission(submission, submissions)
@@ -298,7 +305,10 @@ export function SubmissionDetail({
             )}
             {/* comments */}
             {submission && assignment && (
-              <CommentsChat submission={submission} />
+              <CommentsChat
+                submission={submission}
+                starredComments={assignment.saved_comments || []}
+              />
             )}
             {/* student form */}
             {submission && assignment && students && !anonymousGrading && (
@@ -786,11 +796,20 @@ export function GradeForm({
   )
 }
 
-function CommentsChat({ submission }: { submission: Submission }) {
+function CommentsChat({
+  submission,
+  starredComments,
+}: {
+  submission: Submission
+  starredComments: AssignmentSavedComment[]
+}) {
   return (
     <Card className="hidden md:block">
       <div className="text-sm border-gray-200 flex flex-row p-4 justify-between">
-        <p>Comments</p>
+        <div className="flex gap-2">
+          <span>Comments</span>
+          <SavedCommentsDialog starredComments={starredComments} />
+        </div>
         {submission.submission_comments.length > 0 && (
           <div className="flex gap-2 items-center">
             <span>{submission.submission_comments.length}</span>
@@ -931,6 +950,55 @@ function ChatForm({ submission }: { submission: Submission }) {
         </div>
       </form>
     </Form>
+  )
+}
+
+export function SavedCommentsDialog({
+  starredComments,
+}: {
+  starredComments: AssignmentSavedComment[]
+}) {
+  const [open, setOpen] = React.useState(false)
+
+  React.useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "j" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setOpen((open) => !open)
+      }
+    }
+
+    document.addEventListener("keydown", down)
+    return () => document.removeEventListener("keydown", down)
+  }, [])
+
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">
+        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+          <span className="text-xs">⌘</span>J
+        </kbd>
+      </p>
+      <CommandDialog open={open} onOpenChange={setOpen}>
+        <CommandInput placeholder="Search for saved comments or type a command..." />
+        {/* <CommandSeparator /> */}
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandGroup heading="Saved comments">
+            {starredComments.map((comment) => (
+              <CommandItem key={comment.id}>
+                <LuStar />
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">{comment.title}</span>
+                  <span>{comment.text}</span>
+                </div>
+                {/* <CommandShortcut>⌘S</CommandShortcut> */}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
+    </>
   )
 }
 
