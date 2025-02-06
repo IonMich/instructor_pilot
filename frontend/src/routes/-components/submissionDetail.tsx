@@ -84,10 +84,9 @@ import {
 } from "@/components/ui/popover"
 import { toast } from "@/components/ui/use-toast"
 import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
+import { PagesScrollArea } from "@/components/pages-scroll-area"
 import { PdfViewer } from "@/components/pdf-viewer"
-import { useTheme } from "@/components/theme-provider"
 import { FaRegFilePdf } from "react-icons/fa"
-import { useDebounceCallback, useResizeObserver } from "usehooks-ts"
 
 function findPrevSubmission(submission: Submission, submissions: Submission[]) {
   const currentSubmissionIndex = submissions.findIndex(
@@ -230,6 +229,7 @@ export function SubmissionDetail({
             setRenderer={setRenderer}
             images={images}
             submission={submission}
+            containerRef={pagesContainerRef} // new prop passed here
           />
         </Card>
         <div className="lg:col-span-5 md:col-span-7 col-span-9 md:py-2 py-0">
@@ -327,69 +327,6 @@ export function SubmissionDetail({
   )
 }
 
-function PagesScrollArea({
-  images,
-  zoomImgPercent,
-  allImgsLoaded,
-  setFullRenderSuccess,
-}: {
-  images: PaperSubmissionImage[]
-  zoomImgPercent: number
-  allImgsLoaded: boolean
-  setFullRenderSuccess: (loaded: boolean) => void
-}) {
-  const { theme } = useTheme()
-
-  const [numloadedImages, setNumLoadedImages] = React.useState(0)
-  type Size = {
-    width?: number
-    height?: number
-  }
-  // New zoom functionality (mirroring PdfViewer)
-  const containerRef = React.useRef<HTMLDivElement>(null)
-  const [containerWidth, setContainerWidth] = React.useState(800)
-  const onResize = useDebounceCallback((size: Size) => {
-    if (size.width !== undefined) {
-      setContainerWidth(size.width)
-    }
-  }, 100)
-  useResizeObserver({ ref: containerRef, onResize })
-  const maxWidth = 800
-  const effectiveWidth = Math.min(maxWidth, containerWidth) * (zoomImgPercent / 100)
-
-  const handleImageLoad = () => {
-    setNumLoadedImages((prev) => prev + 1)
-  }
-  React.useEffect(() => {
-    if (numloadedImages === images.length) {
-      setFullRenderSuccess(true)
-    }
-  }, [numloadedImages, images.length, setFullRenderSuccess])
-
-  React.useEffect(() => {
-    setNumLoadedImages(0)
-  }, [images])
-  return (
-    <div ref={containerRef} className="flex flex-col gap-2">
-      {images.map((image) => (
-        <img
-          key={image.id}
-          src={image.image}
-          alt={`Page ${image.page}`}
-          onLoad={handleImageLoad}
-          // Removed fixed width/height and conditional zoom classes
-          style={{ width: effectiveWidth }}
-          className={cn(
-            allImgsLoaded ? "block" : "hidden",
-            theme === "dark" && "invert brightness-[0.9] contrast-[0.9]",
-            "mx-auto"
-          )}
-        />
-      ))}
-    </div>
-  )
-}
-
 function SubmissionSettingsSidebar({
   pageValue,
   setPageValue,
@@ -402,6 +339,7 @@ function SubmissionSettingsSidebar({
   rendeder,
   setRenderer,
   images,
+  containerRef, // new prop
 }: {
   pageValue: number
   setPageValue: (value: number) => void
@@ -414,6 +352,7 @@ function SubmissionSettingsSidebar({
   rendeder: "pdf" | "images"
   setRenderer: (value: "pdf" | "images") => void
   images: PaperSubmissionImage[]
+  containerRef: React.RefObject<HTMLDivElement> // added prop type
 }) {
   return (
     <>
@@ -423,13 +362,9 @@ function SubmissionSettingsSidebar({
         onClick={() => {
           const newPageValue = (pageValue % images.length) + 1
           setPageValue(newPageValue)
-          const canvasContainer =
-            document.querySelector("canvas")?.parentElement?.parentElement
-          const numImages = canvasContainer?.childElementCount
-          const imgCard = canvasContainer?.parentElement?.parentElement
-          if (imgCard && numImages) {
-            imgCard.scrollTop =
-              (imgCard.scrollHeight / numImages) * (newPageValue - 1)
+          if (containerRef.current) {
+            const cardDiv = containerRef.current
+            cardDiv.scrollTop = (cardDiv.scrollHeight / images.length) * (newPageValue - 1)
           }
         }}
       >
@@ -535,6 +470,7 @@ function LeftSidebar({
   setRenderer,
   images,
   submission,
+  containerRef, // new prop
 }: {
   pageValue: number
   setPageValue: (value: number) => void
@@ -548,6 +484,7 @@ function LeftSidebar({
   setRenderer: (value: "pdf" | "images") => void
   images: PaperSubmissionImage[]
   submission: Submission
+  containerRef: React.RefObject<HTMLDivElement> // added prop type
 }) {
   return (
     <Tabs defaultValue="info">
@@ -577,6 +514,7 @@ function LeftSidebar({
           rendeder={rendeder}
           setRenderer={setRenderer}
           images={images}
+          containerRef={containerRef} // pass container ref
         />
       </TabsContent>
       <TabsContent value="info">
