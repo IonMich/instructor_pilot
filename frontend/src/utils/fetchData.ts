@@ -246,7 +246,7 @@ export async function fetchCourseById(courseId: number) {
         })
         .then((response) => response.data)
         .catch((error) => {
-          if (error.status === 404) {
+          if (error.response.status === 404) {
             throw new Error(`Course ${courseId} not found`)
           }
           throw error
