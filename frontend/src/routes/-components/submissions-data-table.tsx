@@ -395,6 +395,16 @@ function RenderTableAsCards({
                 loading="lazy"
               />
             </Link>
+            <div className="p-2">
+              <p className="text-sm font-semibold">
+                {row.original.student?.last_name
+                  ? `${row.original.student.first_name} ${row.original.student.last_name}`
+                  : "No student"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {row.original.grade ? `Grade: ${row.original.grade}` : "No total grade"}
+              </p>
+            </div>
           </div>
         ))
       ) : (

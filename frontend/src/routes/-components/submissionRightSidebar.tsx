@@ -116,7 +116,6 @@ export function RightSidebar({
         {/* Grade form */}
         {submission && assignment && (
           <>
-            {/* ...existing GradeForm component code... */}
             <GradeForm
               submission={submission}
               assignment={assignment}
@@ -127,7 +126,6 @@ export function RightSidebar({
         {/* Comments */}
         {submission && assignment && (
           <>
-            {/* ...existing CommentsChat component code... */}
             <CommentsChat
               submission={submission}
               starredComments={assignment.saved_comments || []}
@@ -137,7 +135,6 @@ export function RightSidebar({
         {/* Student combobox */}
         {submission && assignment && students && !anonymousGrading && (
           <Card className="p-4 md:order-first">
-            {/* ...existing StudentComboboxForm component code... */}
             <StudentComboboxForm submission={submission} students={students} />
           </Card>
         )}
