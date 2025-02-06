@@ -87,6 +87,7 @@ import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
 import { PdfViewer } from "@/components/pdf-viewer"
 import { useTheme } from "@/components/theme-provider"
 import { FaRegFilePdf } from "react-icons/fa"
+import { useDebounceCallback, useResizeObserver } from "usehooks-ts"
 
 function findPrevSubmission(submission: Submission, submissions: Submission[]) {
   const currentSubmissionIndex = submissions.findIndex(
@@ -340,7 +341,22 @@ function PagesScrollArea({
   const { theme } = useTheme()
 
   const [numloadedImages, setNumLoadedImages] = React.useState(0)
-  console.log(numloadedImages, images.length)
+  type Size = {
+    width?: number
+    height?: number
+  }
+  // New zoom functionality (mirroring PdfViewer)
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = React.useState(800)
+  const onResize = useDebounceCallback((size: Size) => {
+    if (size.width !== undefined) {
+      setContainerWidth(size.width)
+    }
+  }, 100)
+  useResizeObserver({ ref: containerRef, onResize })
+  const maxWidth = 800
+  const effectiveWidth = Math.min(maxWidth, containerWidth) * (zoomImgPercent / 100)
+
   const handleImageLoad = () => {
     setNumLoadedImages((prev) => prev + 1)
   }
@@ -354,26 +370,19 @@ function PagesScrollArea({
     setNumLoadedImages(0)
   }, [images])
   return (
-    <div className="flex flex-col gap-2">
+    <div ref={containerRef} className="flex flex-col gap-2">
       {images.map((image) => (
         <img
           key={image.id}
           src={image.image}
           alt={`Page ${image.page}`}
           onLoad={handleImageLoad}
-          height="110"
-          width="80"
+          // Removed fixed width/height and conditional zoom classes
+          style={{ width: effectiveWidth }}
           className={cn(
             allImgsLoaded ? "block" : "hidden",
             theme === "dark" && "invert brightness-[0.9] contrast-[0.9]",
-            "mx-auto",
-            zoomImgPercent === 5
-              ? "w-5/6"
-              : zoomImgPercent === 4
-                ? "w-4/6"
-                : zoomImgPercent === 3
-                  ? "w-3/6"
-                  : "w-full"
+            "mx-auto"
           )}
         />
       ))}
