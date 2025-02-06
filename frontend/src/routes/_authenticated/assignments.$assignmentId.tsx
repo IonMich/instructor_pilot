@@ -6,7 +6,6 @@ import {
   submissionsQueryOptions,
 } from "@/utils/queryOptions"
 import { SubmissionsTable } from "../-components/assignmentDetailLists"
-import { seo } from "@/utils/utils"
 import { Assignment, Course } from "@/utils/types"
 import { TBreadcrumbItem } from "../-components/breadcrumbs"
 import { fallback, zodSearchValidator } from "@tanstack/router-zod-adapter"
@@ -45,6 +44,9 @@ function getBreadcrumbItems(
 export const Route = createFileRoute(
   "/_authenticated/assignments/$assignmentId"
 )({
+  staticData: {
+    title: "Assignment",
+  },
   parseParams: (params) => ({
     assignmentId: parseInt(params.assignmentId),
   }),
@@ -98,10 +100,5 @@ export const Route = createFileRoute(
       ...subData,
     }
   },
-  meta: ({ loaderData }) => [
-    ...seo({
-      title: loaderData?.title,
-    }),
-  ],
   component: SubmissionsTable,
 })

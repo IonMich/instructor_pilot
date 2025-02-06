@@ -24,7 +24,6 @@ import {
   canvasCourseQueryOptions,
   announcementsQueryOptions,
 } from "@/utils/queryOptions"
-import { seo } from "@/utils/utils"
 import { CanvasCourse, Course, Section } from "@/utils/types"
 import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
 import { TBreadcrumbItem } from "../-components/breadcrumbs"
@@ -45,6 +44,9 @@ import {
 } from "../-components/syncCanvasCourse"
 
 export const Route = createFileRoute("/_authenticated/courses/$courseId/")({
+  staticData: {
+    title: "Course",
+  },
   parseParams: (params) => ({
     courseId: parseInt(params.courseId),
   }),
@@ -86,10 +88,6 @@ export const Route = createFileRoute("/_authenticated/courses/$courseId/")({
       breadcrumbItems: getBreadcrumbItems(course),
     }
   },
-  meta: ({ loaderData }) =>
-    seo({
-      title: loaderData?.title,
-    }),
   component: CourseDashboard,
 })
 

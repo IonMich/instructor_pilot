@@ -14,6 +14,9 @@ import { SubmissionDetail } from "../-components/submissionDetail"
 export const Route = createFileRoute(
   "/_authenticated/submissions/$submissionId"
 )({
+  staticData: {
+    title: "Submission",
+  },
   parseParams: (params) => ({
     submissionId: params.submissionId,
   }),
@@ -48,15 +51,10 @@ export const Route = createFileRoute(
       assignment,
       submissions,
       students,
-      title: `Submission ${submission.id.split("-")[0]}` ?? "Submission",
+      title: `Submission ${submission.id.split("-")[0]}`,
       breadcrumbItems: getBreadcrumbItems(submission, assignment, course),
     }
   },
-  meta: ({ loaderData }) => [
-    {
-      title: loaderData?.title,
-    },
-  ],
   component: SubmissionDetailPage,
 })
 

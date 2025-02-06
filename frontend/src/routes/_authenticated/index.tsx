@@ -20,13 +20,15 @@ import {
   SelectCanvasCourse,
   SelectCourseSections,
 } from "../-components/syncCanvasCourse"
-import { seo } from "@/utils/utils"
 
 function getBreadcrumbItems() {
   return []
 }
 
 export const Route = createFileRoute("/_authenticated/")({
+  staticData: {
+    title: "Instructor Pilot",
+  },
   loader: async (opts) => {
     const coursesPromise = opts.context.queryClient.ensureQueryData({
       ...coursesQueryOptions(),
@@ -41,10 +43,6 @@ export const Route = createFileRoute("/_authenticated/")({
       breadcrumbItems: getBreadcrumbItems(),
     }
   },
-  meta: ({ loaderData }) =>
-    seo({
-      title: loaderData?.title,
-    }),
   component: Index,
 })
 

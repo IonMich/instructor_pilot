@@ -15,7 +15,7 @@ export const Route = createRootRouteWithContext<{
   auth: Auth
   queryClient: QueryClient
 }>()({
-  meta: () => [
+  staticData: () => [
     ...seo({
       title: "Instructor Pilot",
       description: `An open source software project for instructors and teaching assistants to manage and automate their course work.`,
@@ -28,8 +28,8 @@ export const Route = createRootRouteWithContext<{
 
 function RootComponent() {
   const matches = useMatches()
-  const meta = matches[matches.length - 1]?.meta ?? []
-  const title = meta.find((m) => m.title)?.title
+  const staticData = matches[matches.length - 1]?.staticData
+  const title = staticData?.title ?? "Instructor Pilot"
   if (title) {
     document.title = title
   }

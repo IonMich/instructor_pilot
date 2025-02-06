@@ -6,7 +6,6 @@ import {
   submissionsOfStudentInCourseQueryOptions,
 } from "@/utils/queryOptions"
 
-import { seo } from "@/utils/utils"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { columns } from "@/routes/-components/columns"
@@ -48,6 +47,9 @@ function getBreadcrumbItems(
 export const Route = createFileRoute(
   "/_authenticated/courses/$courseId/students/$studentId"
 )({
+  staticData: {
+    title: "Student",
+  },
   parseParams: (params) => ({
     courseId: parseInt(params.courseId),
     studentId: parseInt(params.studentId),
@@ -88,11 +90,6 @@ export const Route = createFileRoute(
       breadcrumbItems: getBreadcrumbItems(course, section, student),
     }
   },
-  meta: ({ loaderData }) => [
-    ...seo({
-      title: loaderData?.title,
-    }),
-  ],
   component: StudentDetail,
 })
 

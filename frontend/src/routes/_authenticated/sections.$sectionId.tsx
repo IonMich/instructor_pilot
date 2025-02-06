@@ -31,6 +31,9 @@ function getBreadcrumbItems(
 }
 
 export const Route = createFileRoute("/_authenticated/sections/$sectionId")({
+  staticData: {
+    title: "Section",
+  },
   parseParams: (params) => ({
     sectionId: parseInt(params.sectionId),
   }),
