@@ -275,6 +275,22 @@ export async function fetchSubmissionById(submissionId: string) {
   return fetchData<Submission>(urlMapper.submission(submissionId), `Submission ${submissionId} not found`)
 }
 
+export async function fetchAnnouncementsOfCourse(courseId: number) {
+  return fetchData<Announcement[]>(urlMapper.announcementsOfCourse(courseId), "Announcements not found")
+}
+
+export async function fetchCanvasCourses() {
+  return fetchData<CanvasCourse[]>(`${baseAPIUrl}canvas/courses/`, "Canvas courses not found")
+}
+
+export async function fetchCanvasCourse(canvasId: string) {
+  return fetchData<CanvasCourse>(`${baseAPIUrl}canvas/courses/${canvasId}/`, `Canvas course ${canvasId} not found`)
+}
+
+export async function fetchCanvasSectionsOfCourse(courseId: number) {
+  return fetchData<CanvasSection[]>(`${baseAPIUrl}canvas/courses/${courseId}/sections/`, `Canvas sections for course ${courseId} not found`)
+}
+
 export async function patchSubmission({
   id,
   ...updatedSubmissionFields
@@ -423,77 +439,6 @@ export async function createCommentOnSubmission({
       )
       .then((response) => response.data)
   )
-}
-
-export async function fetchAnnouncementsOfCourse(courseId: number) {
-  console.log("Fetching announcements")
-  const announcements = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const items = await axios
-        .get<Announcement[]>(urlMapper.announcementsOfCourse(courseId), {
-          headers: {
-            Authorization: `Bearer ${auth.getToken()}`,
-          },
-        })
-        .then((response) => response.data)
-        .catch((error) => {
-          throw error
-        })
-      return items
-    })
-  )
-  return announcements
-}
-
-export async function fetchCanvasCourses() {
-  console.log("Fetching Canvas Courses of user")
-  const canvas_courses = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const items = await axios
-        .get<CanvasCourse[]>(`${baseAPIUrl}canvas/courses/`)
-        .then((response) => response.data)
-        .catch((error) => {
-          throw error
-        })
-      return items
-    })
-  )
-  return canvas_courses
-}
-
-export async function fetchCanvasCourse(canvasId: string) {
-  console.log("Fetching Canvas Course", canvasId)
-  const canvas_course = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const item = await axios
-        .get<CanvasCourse>(`${baseAPIUrl}canvas/courses/${canvasId}/`)
-        .then((response) => response.data)
-        .catch((error) => {
-          throw error
-        })
-      return item
-    })
-  )
-  return canvas_course
-}
-
-// fetchCanvasSectionsOfCourse
-export async function fetchCanvasSectionsOfCourse(courseId: number) {
-  console.log("Fetching Canvas Sections of course", courseId)
-  const canvas_sections = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const items = await axios
-        .get<CanvasSection[]>(
-          `${baseAPIUrl}canvas/courses/${courseId}/sections/`
-        )
-        .then((response) => response.data)
-        .catch((error) => {
-          throw error
-        })
-      return items
-    })
-  )
-  return canvas_sections
 }
 
 export async function createCourseWithSectionsCanvas({
