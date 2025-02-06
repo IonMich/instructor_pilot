@@ -178,336 +178,101 @@ const studentsPromise: Record<number, Promise<void>> = {}
 
 const baseAPIUrl = "http://127.0.0.1:8000/api/"
 
-const sectionsOfCourseUrlMapper = (courseId: number) => {
-  return `${baseAPIUrl}courses/${courseId}/sections/`
+const urlMapper = {
+  sectionsOfCourse: (courseId: number) => `${baseAPIUrl}courses/${courseId}/sections/`,
+  section: (sectionId: number) => `${baseAPIUrl}sections/${sectionId}/`,
+  assignments: (courseId: number) => `${baseAPIUrl}courses/${courseId}/assignments/`,
+  assignment: (assignmentId: number) => `${baseAPIUrl}assignments/${assignmentId}/`,
+  studentsInSection: (sectionId: number) => `${baseAPIUrl}sections/${sectionId}/students/`,
+  studentsInCourse: (courseId: number) => `${baseAPIUrl}courses/${courseId}/students/`,
+  submissions: (assignmentId: number) => `${baseAPIUrl}assignments/${assignmentId}/submissions/`,
+  submission: (submissionId: string) => `${baseAPIUrl}submissions/${submissionId}/`,
+  announcementsOfCourse: (courseId: number) => `${baseAPIUrl}courses/${courseId}/announcements/`,
 }
 
-const sectionUrlMapper = (sectionId: number) => {
-  return `${baseAPIUrl}sections/${sectionId}/`
-}
-
-const assignmentsUrlMapper = (courseId: number) => {
-  return `${baseAPIUrl}courses/${courseId}/assignments/`
-}
-
-const assignmentUrlMapper = (assignmentId: number) => {
-  return `${baseAPIUrl}assignments/${assignmentId}/`
-}
-
-const studentsInSectionUrlMapper = (sectionId: number) => {
-  return `${baseAPIUrl}sections/${sectionId}/students/`
-}
-
-const studentsInCourseUrlMapper = (courseId: number) => {
-  return `${baseAPIUrl}courses/${courseId}/students/`
-}
-
-const submissionsUrlMapper = (assignmentId: number) => {
-  return `${baseAPIUrl}assignments/${assignmentId}/submissions/`
-}
-
-const submissionUrlMapper = (submissionId: string) => {
-  return `${baseAPIUrl}submissions/${submissionId}/`
-}
-
-const announcementsOfCourseUrlMapper = (courseId: number) => {
-  return `${baseAPIUrl}courses/${courseId}/announcements/`
+async function fetchData<T>(url: string, errorMessage: string): Promise<T> {
+  console.log(`Fetching data from ${url}`)
+  return loaderFn(() =>
+    axios.get<T>(url, {
+      headers: {
+        Authorization: `Bearer ${auth.getToken()}`,
+      },
+    })
+    .then((response) => response.data)
+    .catch((error) => {
+      if (error.response?.status === 404) {
+        throw new Error(errorMessage)
+      }
+      throw error
+    })
+  )
 }
 
 export async function fetchRequesterUser() {
-  console.log("Fetching requester user")
-  const user = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const item = await axios
-        .get<User>(`${baseAPIUrl}requester/`, {
-          headers: {
-            Authorization: `Bearer ${auth.getToken()}`,
-          },
-        })
-        .then((response) => response.data)
-        .catch((error) => {
-          throw error
-        })
-      return item
-    })
-  )
-  return user
+  return fetchData<User>(`${baseAPIUrl}requester/`, "Requester user not found")
 }
 
 export async function fetchCourseById(courseId: number) {
-  console.log("Fetching course by Id", courseId)
-  const course = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const item = await axios
-        .get<Course>(`${baseAPIUrl}courses/${courseId}/`, {
-          headers: {
-            Authorization: `Bearer ${auth.getToken()}`,
-          },
-        })
-        .then((response) => response.data)
-        .catch((error) => {
-          if (error.response.status === 404) {
-            throw new Error(`Course ${courseId} not found`)
-          }
-          throw error
-        })
-      return item
-    })
-  )
-  return course
+  return fetchData<Course>(`${baseAPIUrl}courses/${courseId}/`, `Course ${courseId} not found`)
 }
 
 export async function fetchCourses() {
-  console.log("Fetching courses")
-  const courses = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const items = await axios
-        .get<Course[]>(`${baseAPIUrl}courses/`, {
-          headers: {
-            Authorization: `Bearer ${auth.getToken()}`,
-          },
-        })
-        .then((response) => response.data)
-        .catch((error) => {
-          throw error
-        })
-      return items
-    })
-  )
-  return courses
+  return fetchData<Course[]>(`${baseAPIUrl}courses/`, "Courses not found")
 }
 
 export async function fetchSectionsOfCourse(courseId: number) {
-  console.log("Fetching sections of course", courseId)
-  const sections = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const items = await axios
-        .get<Section[]>(sectionsOfCourseUrlMapper(courseId), {
-          headers: {
-            Authorization: `Bearer ${auth.getToken()}`,
-          },
-        })
-        .then((response) => response.data)
-        .catch((error) => {
-          if (error.response?.status === 404) {
-            throw new Error(`Course ${courseId} not found`)
-          }
-          throw error
-        })
-      return items
-    })
-  )
-  return sections
+  return fetchData<Section[]>(urlMapper.sectionsOfCourse(courseId), `Course ${courseId} not found`)
 }
 
 export async function fetchSectionById(sectionId: number) {
-  console.log("Fetching sections by Id", sectionId)
-  const section = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const item = await axios
-        .get<Section>(sectionUrlMapper(sectionId), {
-          headers: {
-            Authorization: `Bearer ${auth.getToken()}`,
-          },
-        })
-        .then((response) => response.data)
-        .catch((error) => {
-          if (error.response?.status === 404) {
-            throw new Error(`Section ${sectionId} not found`)
-          }
-          throw error
-        })
-      return item
-    })
-  )
-  return section
+  return fetchData<Section>(urlMapper.section(sectionId), `Section ${sectionId} not found`)
 }
 
 export async function fetchAssignmentsOfCourse(courseId: number) {
-  console.log("Fetching assignments of course", courseId)
-  const assignments = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const result = await axios
-        .get<Assignment[]>(assignmentsUrlMapper(courseId), {
-          headers: {
-            Authorization: `Bearer ${auth.getToken()}`,
-          },
-        })
-        .then((response) => response.data)
-        .catch((error) => {
-          if (error.response?.status === 404) {
-            throw new Error(`Course ${courseId} not found`)
-          }
-          throw error
-        })
-      return result
-    })
-  )
-  return assignments
+  return fetchData<Assignment[]>(urlMapper.assignments(courseId), `Course ${courseId} not found`)
 }
 
 export async function fetchAssignmentById(assignmentId: number) {
-  console.log("Fetching assignment by Id", assignmentId)
-  const assignment = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const result = await axios
-        .get<Assignment>(assignmentUrlMapper(assignmentId), {
-          headers: {
-            Authorization: `Bearer ${auth.getToken()}`,
-          },
-        })
-        .then((response) => response.data)
-        .catch((error) => {
-          if (error.response?.status === 404) {
-            throw new Error(`Assignment ${assignmentId} not found`)
-          }
-          throw error
-        })
-      return result
-    })
-  )
-  return assignment
+  return fetchData<Assignment>(urlMapper.assignment(assignmentId), `Assignment ${assignmentId} not found`)
 }
 
 export async function fetchAssignmentScoresById(assignmentId: number) {
-  console.log("Fetching assignment scores by Id", assignmentId)
-  const assignmentScores = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const result = await axios
-        .get<number[]>(`${assignmentUrlMapper(assignmentId)}scores/`, {
-          headers: {
-            Authorization: `Bearer ${auth.getToken()}`,
-          },
-        })
-        .then((response) => response.data)
-        .catch((error) => {
-          if (error.response?.status === 404) {
-            throw new Error(`Assignment ${assignmentId} not found`)
-          }
-          throw error
-        })
-      return result
-    })
-  )
-  return assignmentScores
+  return fetchData<number[]>(`${urlMapper.assignment(assignmentId)}scores/`, `Assignment ${assignmentId} not found`)
 }
 
 export const ensureStudents = async (sectionId: number) => {
   if (!studentsPromise[sectionId]) {
-    studentsPromise[sectionId] = Promise.resolve().then(async () => {
-      const { data } = await axios.get(studentsInSectionUrlMapper(sectionId))
-      students[sectionId] = data
-    })
+    studentsPromise[sectionId] = axios.get(urlMapper.studentsInSection(sectionId))
+      .then((response) => {
+        students[sectionId] = response.data
+      })
   }
   await studentsPromise[sectionId]
 }
 
 export async function fetchStudents(sectionId: number) {
-  return await loaderFn(() =>
-    ensureStudents(sectionId).then(() => students[sectionId] ?? [])
-  )
+  await ensureStudents(sectionId)
+  return students[sectionId] ?? []
 }
 
 export async function fetchStudentsOfCourse(courseId: number) {
-  console.log("Fetching students of course", courseId)
-  const studs = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const fetch_result = await axios
-        .get<Student[]>(studentsInCourseUrlMapper(courseId))
-        .then((response) => response.data)
-        .catch((error) => {
-          if (error.response?.status === 404) {
-            throw new Error(`Course ${courseId} not found`)
-          }
-          throw error
-        })
-      return fetch_result
-    })
-  )
-  return studs
+  return fetchData<Student[]>(urlMapper.studentsInCourse(courseId), `Course ${courseId} not found`)
 }
 
 export async function fetchStudentOfCourseById(courseId: number, id: number) {
-  console.log(`Fetching student of course ${courseId} by Id`, id)
-  const student = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const fetch_result = await axios
-        .get<Student>(`${studentsInCourseUrlMapper(courseId)}${id}/`)
-        .then((response) => response.data)
-        .catch((error) => {
-          if (error.response?.status === 404) {
-            throw new Error(`Student ${id} not found`)
-          }
-          throw error
-        })
-      return fetch_result
-    })
-  )
-  return student
+  return fetchData<Student>(`${urlMapper.studentsInCourse(courseId)}${id}/`, `Student ${id} not found`)
 }
 
 export async function fetchSubmissionsOfAssignment(assignmentId: number) {
-  console.log("Fetching submissions of assignment", assignmentId)
-  const submissions = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const subs = await axios
-        .get<Submission[]>(submissionsUrlMapper(assignmentId))
-        .then((response) => response.data)
-        .catch((error) => {
-          if (error.response?.status === 404) {
-            throw new Error(`Assignment ${assignmentId} not found`)
-          }
-          throw error
-        })
-      return subs
-    })
-  )
-  return submissions
+  return fetchData<Submission[]>(urlMapper.submissions(assignmentId), `Assignment ${assignmentId} not found`)
 }
 
-export async function fetchSubmissionsOfStudentInCourse(
-  courseId: number,
-  studentId: number
-) {
-  console.log("Fetching submissions of student in course", courseId, studentId)
-  const submissions = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const subs = await axios
-        .get<Submission[]>(
-          `${studentsInCourseUrlMapper(courseId)}${studentId}/submissions/`
-        )
-        .then((response) => response.data)
-        .catch((error) => {
-          if (error.response?.status === 404) {
-            throw new Error(
-              `Student ${studentId} not found in course ${courseId}`
-            )
-          }
-          throw error
-        })
-      return subs
-    })
-  )
-  return submissions
+export async function fetchSubmissionsOfStudentInCourse(courseId: number, studentId: number) {
+  return fetchData<Submission[]>(`${urlMapper.studentsInCourse(courseId)}${studentId}/submissions/`, `Student ${studentId} not found in course ${courseId}`)
 }
 
 export async function fetchSubmissionById(submissionId: string) {
-  console.log("Fetching submissions by Id", submissionId)
-  const submission = loaderFn(() =>
-    Promise.resolve().then(async () => {
-      const sub = await axios
-        .get<Submission>(submissionUrlMapper(submissionId))
-        .then((response) => response.data)
-        .catch((error) => {
-          if (error.response?.status === 404) {
-            throw new Error(`Submission ${submissionId} not found`)
-          }
-          throw error
-        })
-      return sub
-    })
-  )
-  return submission
+  return fetchData<Submission>(urlMapper.submission(submissionId), `Submission ${submissionId} not found`)
 }
 
 export async function patchSubmission({
@@ -523,7 +288,7 @@ export async function patchSubmission({
   const token = auth.getToken()
   return loaderFn(() =>
     axios
-      .patch(submissionUrlMapper(id), updatedSubmissionFields, {
+      .patch(urlMapper.submission(id), updatedSubmissionFields, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -543,7 +308,7 @@ export async function identifySubmissionsWorkflow({
   return loaderFn(() =>
     axios
       .patch(
-        `${assignmentUrlMapper(assignmentId)}identify_submissions/`,
+        `${urlMapper.assignment(assignmentId)}identify_submissions/`,
         data,
         {
           headers: {
@@ -565,7 +330,7 @@ export async function versionSubmissionsWorkflow({
   const token = auth.getToken()
   return loaderFn(() =>
     axios
-      .patch(`${assignmentUrlMapper(assignmentId)}version_submissions/`, data, {
+      .patch(`${urlMapper.assignment(assignmentId)}version_submissions/`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -585,7 +350,7 @@ export async function extractInfoSubmissionsWorkflow({
   const token = auth.getToken()
   return loaderFn(() =>
     axios
-      .patch(`${assignmentUrlMapper(assignmentId)}extract_info/`, data, {
+      .patch(`${urlMapper.assignment(assignmentId)}extract_info/`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -611,7 +376,7 @@ export async function createSubmissionsBySplittingPDFs({
   formData.append("num_pages_per_submission", pagesPerSubmission.toString())
   return loaderFn(() =>
     axios
-      .post(submissionsUrlMapper(assignmentId), formData, {
+      .post(urlMapper.submissions(assignmentId), formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -625,7 +390,7 @@ export async function deleteSubmission(submissionId: string) {
   const token = auth.getToken()
   return await loaderFn(() =>
     axios
-      .delete(submissionUrlMapper(submissionId), {
+      .delete(urlMapper.submission(submissionId), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -665,7 +430,7 @@ export async function fetchAnnouncementsOfCourse(courseId: number) {
   const announcements = loaderFn(() =>
     Promise.resolve().then(async () => {
       const items = await axios
-        .get<Announcement[]>(announcementsOfCourseUrlMapper(courseId), {
+        .get<Announcement[]>(urlMapper.announcementsOfCourse(courseId), {
           headers: {
             Authorization: `Bearer ${auth.getToken()}`,
           },
