@@ -4,6 +4,7 @@ import { useDebounceCallback, useResizeObserver } from "usehooks-ts"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 import "react-pdf/dist/Page/TextLayer.css"
 import { cn } from "@/lib/utils"
+import { useTheme } from "@/components/theme-provider"
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
 
@@ -25,6 +26,7 @@ export const PdfViewer = ({
   anonymousGrading: boolean
   setFullRenderSuccess: (value: boolean) => void
 }) => {
+  const { theme } = useTheme() // new theme hook
   const docContainerRef = React.useRef<HTMLDivElement>(null)
   const [numPages, setNumPages] = React.useState<number>(0)
   const [successRenderCount, setSuccessRenderCount] = React.useState<number>(0)
@@ -96,7 +98,8 @@ export const PdfViewer = ({
                 isLoading ? "hidden" : "",
                 anonymousGrading
                   ? "[clip-path:polygon(0%_15%,0%_100%,100%_100%,100%_0%,50%_0%,50%_15%);]"
-                  : ""
+                  : "",
+                theme === "dark" && "invert brightness-[0.9] contrast-[0.9]" // new dark mode class
               )}
             />
           )
