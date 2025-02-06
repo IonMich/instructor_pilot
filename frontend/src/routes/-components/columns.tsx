@@ -19,7 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-import { Assignment, Submission } from "@/utils/fetchData"
+import { Assignment, Submission } from "@/utils/types"
 import { Link, useRouter } from "@tanstack/react-router"
 import { LuArrowUpRight, LuMoreHorizontal } from "react-icons/lu"
 

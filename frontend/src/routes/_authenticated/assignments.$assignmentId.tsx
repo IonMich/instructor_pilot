@@ -7,7 +7,7 @@ import {
 } from "@/utils/queryOptions"
 import { SubmissionsTable } from "../-components/assignmentDetailLists"
 import { seo } from "@/utils/utils"
-import { Assignment, Course } from "@/utils/fetchData"
+import { Assignment, Course } from "@/utils/types"
 import { TBreadcrumbItem } from "../-components/breadcrumbs"
 import { fallback, zodSearchValidator } from "@tanstack/router-zod-adapter"
 import { z } from "zod"

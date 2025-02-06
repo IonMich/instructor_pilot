@@ -2,7 +2,7 @@ import { queryOptions, useMutation } from "@tanstack/react-query"
 
 import { queryClient } from "../app"
 
-import { CanvasStudent } from "./types"
+import { CanvasStudent, Submission, InfoField } from "./types"
 
 import {
   fetchRequesterUser,
@@ -27,8 +27,6 @@ import {
   identifySubmissionsWorkflow,
   versionSubmissionsWorkflow,
   extractInfoSubmissionsWorkflow,
-  Submission,
-  InfoField,
   fetchCanvasCourses,
   fetchCanvasSectionsOfCourse,
   createCourseWithSectionsCanvas,

@@ -1,4 +1,4 @@
-import { Course, Student } from "@/utils/fetchData"
+import { Course, Student } from "@/utils/types"
 import { Card, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Link, getRouteApi } from "@tanstack/react-router"

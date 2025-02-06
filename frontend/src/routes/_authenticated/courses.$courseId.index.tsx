@@ -25,7 +25,7 @@ import {
   announcementsQueryOptions,
 } from "@/utils/queryOptions"
 import { seo } from "@/utils/utils"
-import { CanvasCourse, Course, Section } from "@/utils/fetchData"
+import { CanvasCourse, Course, Section } from "@/utils/types"
 import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
 import { TBreadcrumbItem } from "../-components/breadcrumbs"
 import { Button } from "@/components/ui/button"

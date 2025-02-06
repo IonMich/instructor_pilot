@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { useRouter } from "@tanstack/react-router"
-import { Assignment } from "@/utils/fetchData"
+import { Assignment } from "@/utils/types"
 import { useCreateSubmissionsInAssignmentMutation } from "@/utils/queryOptions"
 
 const ACCEPTED_FILE_TYPES = ["application/pdf"]

@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
 // import { useTheme } from "@/components/theme-provider"
-import { Submission, Assignment, Course } from "@/utils/fetchData"
+import { Submission, Assignment, Course } from "@/utils/types"
 import {
   submissionQueryOptions,
   assignmentQueryOptions,

@@ -8,7 +8,7 @@ import {
   Student,
   PaperSubmissionImage,
   AssignmentSavedComment,
-} from "@/utils/fetchData"
+} from "@/utils/types"
 import {
   submissionQueryOptions,
   assignmentQueryOptions,

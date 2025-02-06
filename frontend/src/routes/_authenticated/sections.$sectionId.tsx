@@ -4,7 +4,7 @@ import {
   studentsOfSectionQueryOptions,
 } from "@/utils/queryOptions"
 import { StudentDeck } from "@/routes/-components/sectionDetailLists"
-import { Course, Section } from "@/utils/fetchData"
+import { Course, Section } from "@/utils/types"
 import { TBreadcrumbItem } from "../-components/breadcrumbs"
 
 function getBreadcrumbItems(

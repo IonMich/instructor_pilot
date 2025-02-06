@@ -4,7 +4,7 @@ import { LuPlus } from "react-icons/lu"
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { coursesQueryOptions, userQueryOptions } from "@/utils/queryOptions"
 import { useSuspenseQueries } from "@tanstack/react-query"
-import { CanvasCourse, Course, User } from "@/utils/fetchData"
+import { CanvasCourse, Course, User } from "@/utils/types"
 import {
   Dialog,
   DialogContent,

@@ -11,7 +11,7 @@ import {
   canvasCoursesQueryOptions,
 } from "@/utils/queryOptions"
 import { useQuery } from "@tanstack/react-query"
-import { CanvasCourse, Section } from "@/utils/fetchData"
+import { CanvasCourse, Section } from "@/utils/types"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"

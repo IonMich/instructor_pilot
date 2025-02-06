@@ -49,7 +49,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Assignment, Submission, Version } from "@/utils/fetchData"
+import { Assignment, Submission, Version } from "@/utils/types"
 import { Separator } from "@/components/ui/separator"
 import { SubmissionPDFsForm } from "./assignmentDetailForms"
 import { useSuspenseQueries } from "@tanstack/react-query"
@@ -1585,6 +1585,7 @@ function InfoExtractForm({
   const defaultEmptyInfoField = {
     title: "",
     description: "",
+    assignment_id: assignment.id,
     pattern: "",
     pages: [1,],
   }
@@ -1594,6 +1595,7 @@ function InfoExtractForm({
       z.object({
         title: z.string(),
         description: z.string(),
+        assignment_id: z.number(),
         pattern: z.string().optional(),
         pages: z.array(z.number()).optional(),
       })
@@ -1753,6 +1755,7 @@ function CreateInfoField({
     info_fields: {
       title: string
       description: string
+      assignment_id: number
       pattern: string
       pages: number[]
     }[]
