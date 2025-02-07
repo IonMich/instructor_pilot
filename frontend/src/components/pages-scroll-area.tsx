@@ -9,6 +9,7 @@ interface PagesScrollAreaProps {
   zoomImgPercent: number
   allImgsLoaded: boolean
   setFullRenderSuccess: (loaded: boolean) => void
+  anonymousGrading?: boolean // new prop
 }
 
 export function PagesScrollArea({
@@ -16,6 +17,7 @@ export function PagesScrollArea({
   zoomImgPercent,
   allImgsLoaded,
   setFullRenderSuccess,
+  anonymousGrading,
 }: PagesScrollAreaProps) {
   const { theme } = useTheme()
   const [numLoadedImages, setNumLoadedImages] = React.useState(0)
@@ -28,7 +30,8 @@ export function PagesScrollArea({
   }, 100)
   useResizeObserver({ ref: containerRef, onResize })
   const maxWidth = 800
-  const effectiveWidth = Math.min(maxWidth, containerWidth) * (zoomImgPercent / 100)
+  const effectiveWidth =
+    Math.min(maxWidth, containerWidth) * (zoomImgPercent / 100)
 
   const handleImageLoad = () => {
     setNumLoadedImages((prev) => prev + 1)
@@ -56,6 +59,8 @@ export function PagesScrollArea({
           className={cn(
             allImgsLoaded ? "block" : "hidden",
             theme === "dark" && "invert brightness-[0.9] contrast-[0.9]",
+            anonymousGrading &&
+              "[clip-path:polygon(0%_15%,0%_100%,100%_100%,100%_0%,50%_0%,50%_15%)]",
             "mx-auto"
           )}
         />

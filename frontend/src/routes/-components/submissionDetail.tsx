@@ -155,7 +155,7 @@ export function SubmissionDetail({
             setRenderer={setRenderer}
             images={images}
             submission={submission}
-            containerRef={pagesContainerRef} // new prop passed here
+            containerRef={pagesContainerRef}
           />
         </Card>
         <div className="lg:col-span-5 md:col-span-7 col-span-9 md:py-2 py-0">
@@ -172,6 +172,7 @@ export function SubmissionDetail({
                 images={images}
                 zoomImgPercent={zoomImgPercent}
                 allImgsLoaded={allImgsLoaded}
+                anonymousGrading={anonymousGrading}
                 setFullRenderSuccess={setFullRenderSuccess}
               />
             ) : (

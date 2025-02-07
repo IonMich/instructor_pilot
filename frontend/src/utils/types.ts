@@ -117,7 +117,7 @@ export interface InfoField {
 
 export interface ExtractedField {
   info_field: InfoField
-  submission_image_id: string
+  paper_submission_image_id: string
   value: string
 }
 

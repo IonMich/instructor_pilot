@@ -13,7 +13,111 @@ import { FaRegFilePdf } from "react-icons/fa"
 import { PaperSubmissionImage, Submission } from "@/utils/types"
 import { FaRobot } from "react-icons/fa6"
 
-// Component: SubmissionSettingsSidebar
+function PageIcon({ page }: { page: number | string }) {
+  return (
+    <div className="flex items-center justify-center border border-gray-300 bg-slate-200 text-gray-700 text-xs font-bold rounded-none rounded-tl-sm rounded-br-sm h-8 aspect-[0.77]">
+      {page}
+    </div>
+  )
+}
+
+export function InfoExtractedSidebar({
+  submission,
+  containerRef,
+}: {
+  submission: Submission
+  containerRef: React.RefObject<HTMLDivElement>
+}) {
+  const extractedFields = submission.extracted_fields
+  if (!extractedFields) {
+    return null
+  }
+
+  // Create map for images keyed by id (as string)
+  const imagesMap = new Map(
+    submission.papersubmission_images.map((img) => [img.id.toString(), img])
+  )
+
+  // Group items by title
+  const groupedFields = extractedFields.reduce(
+    (acc, field) => {
+      const key = field.info_field.title
+      if (!acc[key]) {
+        acc[key] = []
+      }
+      acc[key].push(field)
+      return acc
+    },
+    {} as Record<string, typeof extractedFields>
+  )
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Accordion
+          type="multiple"
+          className="w-full"
+          defaultValue={Object.keys(groupedFields)}
+        >
+          {Object.entries(groupedFields).map(([title, fields]) => (
+            <AccordionItem key={title} value={title}>
+              <AccordionTrigger>
+                {title.replace(/_/g, " ").toUpperCase()}
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="flex flex-col gap-2">
+                  {fields
+                    .slice()
+                    .sort((a, b) => {
+                      const aPage =
+                        imagesMap.get(a.paper_submission_image_id)?.page ??
+                        Number.MAX_VALUE
+                      const bPage =
+                        imagesMap.get(b.paper_submission_image_id)?.page ??
+                        Number.MAX_VALUE
+                      return aPage - bPage
+                    })
+                    .map((field, index) => {
+                      const image = imagesMap.get(
+                        field.paper_submission_image_id
+                      )
+                      const handleScroll = () => {
+                        if (containerRef.current) {
+                          const totalPages =
+                            submission.papersubmission_images.length
+                          const page = image ? image.page : 1
+                          containerRef.current.scrollTop =
+                            (containerRef.current.scrollHeight / totalPages) *
+                            (page - 1)
+                        }
+                      }
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 cursor-pointer"
+                          onClick={handleScroll}
+                        >
+                          {image ? (
+                            <PageIcon page={image.page} />
+                          ) : (
+                            <PageIcon page="N/A" />
+                          )}
+                          <Card className="p-2">
+                            <p>{field.value}</p>
+                          </Card>
+                        </div>
+                      )
+                    })}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </div>
+    </div>
+  )
+}
+
 export function SubmissionSettingsSidebar({
   pageValue,
   setPageValue,
@@ -101,55 +205,6 @@ export function SubmissionSettingsSidebar({
   )
 }
 
-// Component: InfoExtractedSidebar
-export function InfoExtractedSidebar({
-  submission,
-}: {
-  submission: Submission
-}) {
-  const extractedFields = submission.extracted_fields
-  if (!extractedFields) {
-    return null
-  }
-  return (
-    extractedFields && (
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Accordion
-            type="multiple"
-            className="w-full"
-            defaultValue={extractedFields.map(
-              (field) => field.info_field.title
-            )}
-          >
-            {extractedFields.map((field) => (
-              <AccordionItem
-                key={field.info_field.title}
-                value={field.info_field.title}
-              >
-                <AccordionTrigger>
-                  {field.info_field.title.replace(/_/g, " ").toUpperCase()}
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm text-gray-500">
-                      {field.info_field.description}
-                    </p>
-                    <Card className="p-2">
-                      <p>{field.value}</p>
-                    </Card>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
-      </div>
-    )
-  )
-}
-
-// Component: LeftSidebar
 export function LeftSidebar({
   pageValue,
   setPageValue,
@@ -163,7 +218,7 @@ export function LeftSidebar({
   setRenderer,
   images,
   submission,
-  containerRef, // new prop
+  containerRef,
 }: {
   pageValue: number
   setPageValue: (value: number) => void
@@ -189,7 +244,7 @@ export function LeftSidebar({
           <LuSettings2 className="h-5 w-5" />
           <span className="hidden md:block">Controls</span>
         </TabsTrigger>
-        <TabsTrigger value="info" className="flex items-center gap-2 mx-auto">  
+        <TabsTrigger value="info" className="flex items-center gap-2 mx-auto">
           <FaRobot className="h-5 w-5" />
           <span className="hidden md:block">Info</span>
         </TabsTrigger>
@@ -211,7 +266,10 @@ export function LeftSidebar({
         />
       </TabsContent>
       <TabsContent value="info">
-        <InfoExtractedSidebar submission={submission} />
+        <InfoExtractedSidebar
+          submission={submission}
+          containerRef={containerRef}
+        />
       </TabsContent>
     </Tabs>
   )
