@@ -8,9 +8,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Card } from "@/components/ui/card"
-import { LuVenetianMask, LuCheck, LuImage } from "react-icons/lu"
+import { LuVenetianMask, LuCheck, LuImage, LuSettings2 } from "react-icons/lu"
 import { FaRegFilePdf } from "react-icons/fa"
 import { PaperSubmissionImage, Submission } from "@/utils/types"
+import { FaRobot } from "react-icons/fa6"
 
 // Component: SubmissionSettingsSidebar
 export function SubmissionSettingsSidebar({
@@ -185,10 +186,11 @@ export function LeftSidebar({
           value="controls"
           className="flex items-center gap-2 mx-auto"
         >
-          <LuVenetianMask className="h-5 w-5" />
+          <LuSettings2 className="h-5 w-5" />
           <span className="hidden md:block">Controls</span>
         </TabsTrigger>
-        <TabsTrigger value="info" className="flex items-center gap-2 mx-auto">
+        <TabsTrigger value="info" className="flex items-center gap-2 mx-auto">  
+          <FaRobot className="h-5 w-5" />
           <span className="hidden md:block">Info</span>
         </TabsTrigger>
       </TabsList>
