@@ -575,6 +575,7 @@ interface StudentSectionLabelVal {
   value: string
   section_id: number
   section_name: string
+  uni_id: string // added field
 }
 
 export function StudentComboboxForm({
@@ -615,6 +616,7 @@ export function StudentComboboxForm({
         value: student.id.toString(),
         section_id: section.id,
         section_name: section.name,
+        uni_id: student.uni_id, // map uni_id
       }
     }
   )
@@ -713,9 +715,23 @@ export function StudentComboboxForm({
                       )}
                     >
                       {field.value
-                        ? studentsSectionsLabelVals.find(
-                            (student) => student.value === field.value
-                          )?.label
+                        ? (() => {
+                            const sel = studentsSectionsLabelVals.find(
+                              (s) => s.value === field.value
+                            )
+                            // warp to a new line if the text is too long
+                            return sel ? (
+                              <span className="flex flex-row flex-wrap gap-1 items-center">
+                                <span>{sel.label}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {" "}
+                                  {sel.uni_id}
+                                </span>
+                              </span>
+                            ) : (
+                              "No Student"
+                            )
+                          })()
                         : "No Student"}
                       <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -740,7 +756,6 @@ export function StudentComboboxForm({
                               {students[0].section_name}
                             </CommandItem>
                             {students.map((student) => (
-                              // if submission.student.id === student.id, then the student is selected
                               <CommandItem
                                 value={student.label}
                                 key={student.value}
@@ -750,7 +765,12 @@ export function StudentComboboxForm({
                                   setOpen(false)
                                 }}
                               >
-                                {student.label}
+                                <span className="flex flex-row items-center gap-1">
+                                  <span>{student.label}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {student.uni_id}
+                                  </span>
+                                </span>
                                 <CheckIcon
                                   className={cn(
                                     "ml-auto h-4 w-4",
