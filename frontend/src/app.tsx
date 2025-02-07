@@ -12,11 +12,14 @@ import { Spinner } from "./components/ui/loader"
 
 const retryOnUnauthorized = (failureCount: number, error: AxiosError) => {
   console.log("retryOnUnauthorized", failureCount, error, error.response?.status)
-  if (failureCount === 0 && error.response?.status === 401) {
-    auth.generateFromRefresh()
-    return true
+  if (error.response?.status === 401) {
+    if (failureCount == 0) {
+      auth.generateFromRefresh()
+      return true
+    }
+    auth.logout()
+    return false
   }
-  auth.logout()
   return false
 }
 
