@@ -113,16 +113,17 @@ export function SubmissionsTable() {
   const columnsOfAssignment = columnsForAssignment(assignment).filter(
     (column) => column.id !== "assignment" && column.id !== "assignmentgroup"
   )
+  const lenSubsGraded =
+    submissions.filter((submission) => submission.grade !== null).length
   return (
     <>
       <div className="container mx-auto py-2">
         {locationListType !== "detail" && (
           <div className="grid gap-8 md:grid-cols-4 grid-cols-1">
-            {/* <div className="flex flex-row flex-wrap justify-between items-center"> */}
             <div className={
               cn(
                 "flex flex-row flex-wrap justify-evenly items-center col-span-2",
-                assignment.submission_count === 0 && "md:col-span-4 justify-center gap-8"
+                lenSubsGraded === 0 && "md:col-span-4 justify-center gap-8"
               )
             }
             >
@@ -134,7 +135,7 @@ export function SubmissionsTable() {
                 />
               )}
             </div>
-            {assignment.submission_count > 0 && (
+            {lenSubsGraded !== 0 && (
               <Card className="p-8 sm:p-10 md:mt-8 col-span-2 md:row-span-3 md:col-start-3 md:col-end-5 md:row-start-1 order-last">
                 <AssignmentScoresHistogram
                   assignmentId={assignment.id}
@@ -145,7 +146,6 @@ export function SubmissionsTable() {
                 />
               </Card>
             )}
-            {/* </div> */}
             <AssignmentDetailCards
               assignment={assignment}
               submissions={submissions}
