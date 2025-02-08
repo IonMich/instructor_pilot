@@ -66,6 +66,10 @@ export function InfoExtractedSidebar({
               </AccordionTrigger>
               <AccordionContent>
                 <div className="flex flex-col gap-2">
+                  {/* Write the description only once under the title */}
+                  <p className="text-xs text-gray-500">
+                    {fields[0].info_field.description}
+                  </p>
                   {fields
                     .slice()
                     .sort((a, b) => {

@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge"
 import { assignmentScoresQueryOptions } from "@/utils/queryOptions"
 
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
-import { Bar, BarChart } from "recharts"
+import { Bar, BarChart, CartesianGrid } from "recharts"
 import { useSuspenseQuery } from "@tanstack/react-query"
+import { cn } from "@/lib/utils"
 
 export function SectionList({ sections }: { sections: Section[] }) {
   return (
@@ -164,7 +165,11 @@ function AssignmentListElement({ assignment }: { assignment: Assignment }) {
         </p>
       </div>
       {assignment.submission_count > 0 && (
-        <AssignmentScoresHistogram assignmentId={assignment.id} />
+        <AssignmentScoresHistogram
+          assignmentId={assignment.id}
+          className="h-[40px] w-1/2 mx-auto"
+          maxGrade={assignment.max_score}
+        />
       )}
       <div className="ml-auto font-medium mr-4 flex items-center gap-1">
         {assignment.submission_count > 0 && (
@@ -202,26 +207,111 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-function AssignmentScoresHistogram({ assignmentId }: { assignmentId: number }) {
+export function AssignmentScoresHistogram({
+  assignmentId,
+  className,
+  showXTicks = false, // existing optional prop
+  showYTicks = false, // new optional prop
+  filled = true,
+  maxGrade,
+}: {
+  assignmentId: number
+  className?: string
+  showXTicks?: boolean
+  showYTicks?: boolean
+  filled?: boolean
+  maxGrade?: number
+}) {
   const { data: scores } = useSuspenseQuery(
     assignmentScoresQueryOptions(assignmentId)
   )
-  if (!scores) {
-    return null
+  // if scores is null or undefined, return null
+  if (!scores) return null
+
+  const scoresEmpty = scores.length === 0
+  let scoreCountsData: { total: number; score: number }[]
+  let yTicks: number[] = []
+
+  if (scoresEmpty) {
+    // When there are no grades, use the provided maxGrade or a fallback of 10.
+    const effectiveMaxScore = maxGrade ?? 10
+    const bins = effectiveMaxScore + 1
+    scoreCountsData = Array.from({ length: bins }, (_, index) => ({
+      total: 0,
+      score: index,
+    }))
+    // No yTicks when there are no grades
+    yTicks = []
+  } else {
+    const maxScore = Math.max(...scores)
+    const bins = Math.min(maxScore + 1, 10)
+    const scoreCounts = Array.from({ length: bins }, () => 0)
+    scores.forEach((score) => {
+      const bin = Math.floor((score / maxScore) * bins)
+      scoreCounts[bin] = (scoreCounts[bin] || 0) + 1
+    })
+    scoreCountsData = scoreCounts.map((total, index) => ({
+      total,
+      score: index,
+    }))
+    // Compute Y ticks if enabled - using 5 tick marks (from max to 0)
+    const maxCount = Math.max(...scoreCounts)
+    const tickCount = 5
+    yTicks = Array.from({ length: tickCount }, (_, i) =>
+      Math.round((maxCount * (tickCount - i - 1)) / (tickCount - 1))
+    )
   }
-  // should be replaced with assignment.max_score
-  const maxScore = Math.max(...scores)
-  // should be replaced with (a max of) ten bins
-  const scoreCounts = Array.from({ length: maxScore + 1 }, () => 0)
-  scores.forEach((score) => {
-    scoreCounts[score] += 1
-  })
-  const scoreCountsData = scoreCounts.map((total, score) => ({ total, score }))
+
   return (
-    <ChartContainer config={chartConfig} className="h-[40px] w-1/4 ml-auto">
-      <BarChart accessibilityLayer data={scoreCountsData}>
-        <Bar dataKey="total" fill="var(--color-total)" radius={4} />
-      </BarChart>
-    </ChartContainer>
+    <div className={className}>
+      {showYTicks && !scoresEmpty ? (
+        <div className="flex h-full">
+          <div className="flex flex-col justify-between pr-2">
+            {yTicks.map((tick, i) => (
+              <span key={i} className="text-xs">
+                {tick}
+              </span>
+            ))}
+          </div>
+          <ChartContainer
+            config={chartConfig}
+            className={cn("h-[40px]", className)}
+          >
+            <BarChart accessibilityLayer data={scoreCountsData}>
+              <CartesianGrid vertical={false} />
+              <Bar
+                dataKey="total"
+                fill={chartConfig.total.color}
+                opacity={filled ? 1 : 0.5}
+                radius={4}
+              />
+            </BarChart>
+          </ChartContainer>
+        </div>
+      ) : (
+        <ChartContainer
+          config={chartConfig}
+          className={cn("h-[40px]", className)}
+        >
+          <BarChart accessibilityLayer data={scoreCountsData}>
+            {/* Show grid only if there are grades */}
+            {!scoresEmpty && <CartesianGrid vertical={false} />}
+            <Bar
+              dataKey="total"
+              fill={chartConfig.total.color}
+              opacity={filled ? 1 : 0.4}
+              radius={4}
+            />
+          </BarChart>
+        </ChartContainer>
+      )}
+      {showXTicks && (
+        <div className="flex justify-between text-xs mt-2">
+          {scoreCountsData.map((data) => (
+            <span key={data.score}>{data.score}</span>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

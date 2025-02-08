@@ -87,6 +87,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Textarea } from "@/components/ui/textarea"
+import { AssignmentScoresHistogram } from "./courseDetailLists"
+import { cn } from "@/lib/utils"
 
 const route = getRouteApi("/_authenticated/assignments/$assignmentId")
 
@@ -115,9 +117,16 @@ export function SubmissionsTable() {
     <>
       <div className="container mx-auto py-2">
         {locationListType !== "detail" && (
-          <>
-            <div className="flex flex-row flex-wrap justify-between items-end">
-              <h1 className="text-5xl font-bold my-8">{assignment?.name}</h1>
+          <div className="grid gap-8 md:grid-cols-4 grid-cols-1">
+            {/* <div className="flex flex-row flex-wrap justify-between items-center"> */}
+            <div className={
+              cn(
+                "flex flex-row flex-wrap justify-evenly items-center col-span-2",
+                assignment.submission_count === 0 && "md:col-span-4 justify-center gap-8"
+              )
+            }
+            >
+              <h1 className="text-5xl font-bold md:my-8">{assignment.name}</h1>
               {assignment.canvas_id && (
                 <CanvasDialogWithTrigger
                   assignment={assignment}
@@ -125,11 +134,23 @@ export function SubmissionsTable() {
                 />
               )}
             </div>
+            {assignment.submission_count > 0 && (
+              <Card className="p-8 sm:p-10 md:mt-8 col-span-2 md:row-span-3 md:col-start-3 md:col-end-5 md:row-start-1 order-last">
+                <AssignmentScoresHistogram
+                  assignmentId={assignment.id}
+                  className="mx-auto w-[100%] h-[100%]"
+                  showXTicks={true}
+                  showYTicks={true}
+                  filled={false}
+                />
+              </Card>
+            )}
+            {/* </div> */}
             <AssignmentDetailCards
               assignment={assignment}
               submissions={submissions}
             />
-          </>
+          </div>
         )}
         <DataTable
           columns={columnsOfAssignment}
@@ -158,7 +179,7 @@ function CanvasDialogWithTrigger({
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="mb-8 border border-primary">
+        <Button variant="outline" className="border border-primary my-auto">
           Canvas
         </Button>
       </DialogTrigger>
@@ -351,8 +372,8 @@ function AssignmentDetailCards({
   } satisfies ChartConfig
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-      <Card>
+    <>
+      <Card className="md:col-span-2 lg:col-span-1">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Submissions</CardTitle>
           <LuFile className="h-4 w-4 text-muted-foreground" />
@@ -369,7 +390,7 @@ function AssignmentDetailCards({
           </div>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="md:col-span-2 lg:col-span-1">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Grades</CardTitle>
           <LuFileBarChart2 className="h-4 w-4 text-muted-foreground" />
@@ -407,7 +428,7 @@ function AssignmentDetailCards({
           </div>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="col-span-2 lg:col-span-1">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Tasks</CardTitle>
           <FaTasks className="h-4 w-4 text-muted-foreground" />
@@ -435,7 +456,7 @@ function AssignmentDetailCards({
           )}
         </CardContent>
       </Card>
-      <Card>
+      <Card className="col-span-2 lg:col-span-1">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Automations</CardTitle>
           <LuFileScan className="h-4 w-4 text-muted-foreground" />
@@ -468,7 +489,7 @@ function AssignmentDetailCards({
           </div>
         </CardContent>
       </Card>
-    </div>
+    </>
   )
 }
 
@@ -1587,7 +1608,7 @@ function InfoExtractForm({
     description: "",
     assignment_id: assignment.id,
     pattern: "",
-    pages: [1,],
+    pages: [1],
   }
   // array of InfoField objects
   const formSchema = z.object({
