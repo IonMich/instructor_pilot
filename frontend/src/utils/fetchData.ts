@@ -351,6 +351,24 @@ export async function createCommentOnSubmission({
   )
 }
 
+export async function exportSubmissionPDF(
+  submissionId: string
+): Promise<Blob> {
+  const response = await fetch(
+    `${urlMapper.submission(submissionId)}export_pdf/`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${auth.getToken()}`,
+      },
+    }
+  )
+  if (!response.ok) {
+    throw new Error("Failed to export PDF")
+  }
+  return await response.blob()
+}
+
 export async function exportSubmissionsPDFs(
   assignmentId: number
 ): Promise<Blob> {

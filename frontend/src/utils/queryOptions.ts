@@ -31,6 +31,7 @@ import {
   fetchCanvasSectionsOfCourse,
   createCourseWithSectionsCanvas,
   fetchCanvasCourse,
+  exportSubmissionPDF,
   exportSubmissionsPDFs,
 } from "./fetchData"
 
@@ -168,6 +169,13 @@ export const useExportSubmissionsPDFsQueryOptions = (assignmentId: number) => {
   return queryOptions({
     queryKey: ["submissions", "pdf-export", `assignmentId=${assignmentId}`],
     queryFn: () => exportSubmissionsPDFs(assignmentId),
+  })
+}
+
+export const useExportSubmissionPDFQueryOptions = (submissionId: string) => {
+  return queryOptions({
+    queryKey: ["submissions", "pdf-export", `submissionId=${submissionId}`],
+    queryFn: () => exportSubmissionPDF(submissionId),
   })
 }
 

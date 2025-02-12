@@ -25,14 +25,18 @@ import { LuArrowUpRight, LuMoreHorizontal } from "react-icons/lu"
 
 import {
   useDeleteSubmissionMutation,
+  useExportSubmissionPDFQueryOptions,
   useIdentifySubmissionMutation,
 } from "@/utils/queryOptions"
 import * as React from "react"
 import { queryClient } from "@/app"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { Loader } from "@/components/ui/loader"
 
 enum Dialogs {
   dialog1 = "dialog1",
   dialog2 = "dialog2",
+  dialog3 = "dialog3",
 }
 
 export const columns: ColumnDef<Submission>[] = [
@@ -67,7 +71,10 @@ export const columns: ColumnDef<Submission>[] = [
   },
   {
     id: "assignmentgroup",
-    accessorFn: (submission) => submission.assignment.assignment_group_object?.name ?? `(${submission.assignment.assignment_group})` ?? "None",
+    accessorFn: (submission) =>
+      submission.assignment.assignment_group_object?.name ??
+      `(${submission.assignment.assignment_group})` ??
+      "None",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Group" />
     ),
@@ -199,7 +206,14 @@ function SubmissionDropdownMenu({ submission }: { submission: Submission }) {
           </DialogTrigger>
           <DropdownMenuItem>Version</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Export PDF</DropdownMenuItem>
+          <DialogTrigger
+            asChild
+            onClick={() => {
+              setDialog(Dialogs.dialog3)
+            }}
+          >
+            <DropdownMenuItem>Export PDF</DropdownMenuItem>
+          </DialogTrigger>
           <DropdownMenuItem>Export Images</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem>
@@ -212,9 +226,14 @@ function SubmissionDropdownMenu({ submission }: { submission: Submission }) {
       </DropdownMenu>
       {dialog === Dialogs.dialog1 ? (
         <DeleteDialogContent submission={submission} setDialog={setDialog} />
-      ) : (
+      ) : dialog === Dialogs.dialog2 ? (
         <IdentifyDialogContent submission={submission} />
-      )}
+      ) : dialog === Dialogs.dialog3 ? (
+        <ExportSubmissionPDFDialogContent
+          submission={submission}
+          setDialog={setDialog}
+        />
+      ) : null}
     </Dialog>
   )
 }
@@ -281,6 +300,60 @@ function IdentifyDialogContent({ submission }: { submission: Submission }) {
           Identify
         </Button>
       </DialogFooter>
+    </DialogContent>
+  )
+}
+
+function ExportSubmissionPDFDialogContent({
+  submission,
+  setDialog,
+}: {
+  submission: Submission
+  setDialog: React.Dispatch<React.SetStateAction<Dialogs | null>>
+}) {
+  const {
+    data: blob,
+    isLoading,
+    isError,
+  } = useSuspenseQuery(useExportSubmissionPDFQueryOptions(submission.id))
+  const [downloadUrl, setDownloadUrl] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (blob) {
+      const url = window.URL.createObjectURL(blob)
+      setDownloadUrl(url)
+      return () => window.URL.revokeObjectURL(url)
+    }
+  }, [blob])
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Export PDFs</DialogTitle>
+      </DialogHeader>
+      {isLoading ? (
+        <div className="flex flex-col items-center gap-2">
+          <Loader wait="delay-0" />
+          <p>Preparing PDF file...</p>
+        </div>
+      ) : isError ? (
+        <div>
+          <p>Failed to export PDF file.</p>
+          <Button onClick={() => setDialog(null)}>Close</Button>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-4">
+          <p>Export ready! Click the link below to download:</p>
+          <a
+            href={downloadUrl || ""}
+            download={`submission_${submission.id}.pdf`}
+            className="text-blue-500 underline"
+          >
+            Download PDF
+          </a>
+          <Button onClick={() => setDialog(null)}>Close</Button>
+        </div>
+      )}
     </DialogContent>
   )
 }

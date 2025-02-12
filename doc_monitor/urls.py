@@ -54,7 +54,7 @@ from assignments.views import (
     AssignmentIdentifySubmissions,
     AssignmentVersionSubmissions,
     AssignmentExtractInfoSubmissions,
-    ExportSubmissionsPDFsView
+    ExportSubmissionsPDFsView,
 )
 from students.views import StudentInSectionViewSet, StudentInCourseViewSet
 from submissions.views import (
@@ -62,6 +62,7 @@ from submissions.views import (
     PaperSubmissionInAssignmentViewSet,
     PaperSubmissionOfStudentInCourseViewSet,
     CommentViewSet,
+    ExportSubmissionPDFView,
 )
 
 # Routers provide an easy way of automatically determining the URL conf.
@@ -146,6 +147,11 @@ urlpatterns = [
         "api/assignments/<int:assignment_id>/export_pdfs/",
         ExportSubmissionsPDFsView.as_view(),
         name="export-submissions-pdfs",
+    ),
+    path(
+        "api/submissions/<str:submission_id>/export_pdf/",
+        ExportSubmissionPDFView.as_view(),
+        name="export-submission-pdf",
     ),
     # canvas api
     path("api/canvas/courses/", ListCanvasCourses.as_view(), name="canvas-courses"),

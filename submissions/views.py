@@ -22,6 +22,10 @@ from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework import permissions
 from submissions.serializers import PaperSubmissionSerializer, SubmissionCommentSerializer
+from rest_framework.views import APIView
+import zipfile
+from io import BytesIO
+from django.http import HttpResponse
 
 class AuthenticatedHttpRequest(HttpRequest):
     user: User
@@ -105,6 +109,32 @@ class CommentViewSet(viewsets.ModelViewSet):
         )
         comment.save()
         return Response(status=200, data={"comment_id": comment.pk})
+
+class ExportSubmissionPDFView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, submission_id):
+        # Retrieve the assignment
+        submission = get_object_or_404(PaperSubmission, pk=submission_id)
+        
+        # Create in-memory ZIP archive
+        buffer = BytesIO()
+        num_files = 0
+        with zipfile.ZipFile(buffer, "w") as zip_file:
+            if hasattr(submission, "pdf") and submission.pdf:
+                num_files += 1
+                # Write the file into the zip archive with a simple name
+                zip_file.write(submission.pdf.path, arcname=f"submission_{submission.pk}.pdf")
+        buffer.seek(0)
+        print(f"num_files: {num_files}")
+        if num_files == 0:
+            return Response(
+                {"message": "No PDF files found for submissions"},
+                status=400,
+            )
+        response = HttpResponse(buffer, content_type="application/zip")
+        response["Content-Disposition"] = f'attachment; filename="submissions_{submission_id}.zip"'
+        return response
 
 def _random1000():
     yield random.randint(0, 100)
