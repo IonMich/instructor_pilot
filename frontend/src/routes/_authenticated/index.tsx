@@ -62,6 +62,8 @@ function Index() {
 }
 
 function CoursesDeck({ courses, user }: { courses: Course[]; user: User }) {
+  // reverse the order of courses
+  const reversedCourses = courses.slice().reverse()
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div className="hidden lg:block"></div>
@@ -78,7 +80,7 @@ function CoursesDeck({ courses, user }: { courses: Course[]; user: User }) {
       <div className="flex items-center justify-end">
         <AddCourseDialogWithTrigger />
       </div>
-      {courses.map((course) => (
+      {reversedCourses.map((course) => (
         <Link
           key={course.id}
           to={"/courses/$courseId"}

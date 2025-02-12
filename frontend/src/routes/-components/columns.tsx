@@ -200,13 +200,14 @@ function SubmissionDropdownMenu({ submission }: { submission: Submission }) {
           <DropdownMenuSeparator />
           <DialogTrigger
             asChild
+            disabled
             onClick={() => {
               setDialog(Dialogs.dialog2)
             }}
           >
             <DropdownMenuItem>Identify</DropdownMenuItem>
           </DialogTrigger>
-          <DropdownMenuItem>Version</DropdownMenuItem>
+          <DropdownMenuItem disabled>Version</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DialogTrigger
             asChild
@@ -225,7 +226,7 @@ function SubmissionDropdownMenu({ submission }: { submission: Submission }) {
             <DropdownMenuItem>Export Images</DropdownMenuItem>
           </DialogTrigger>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem disabled>
             <p>
               Sync &nbsp;<code>canvas_id</code>
             </p>
