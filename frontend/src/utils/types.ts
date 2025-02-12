@@ -179,3 +179,9 @@ export interface Announcement {
   title: string
   date: string
 }
+
+export enum DialogsGrades {
+  dialog1 = "dialog1",
+  dialog2 = "dialog2",
+  dialog3 = "dialog3",
+}

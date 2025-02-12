@@ -43,7 +43,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Assignment, Submission } from "@/utils/types"
+import { Assignment, Submission, DialogsGrades } from "@/utils/types"
 import { Separator } from "@/components/ui/separator"
 import { SubmissionPDFsForm } from "./assignmentDetailForms"
 import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
@@ -84,15 +84,11 @@ import { Loader } from "@/components/ui/loader"
 import { InfoExtractDialogWithTrigger } from "./infoExtractionDialog"
 import { VersioningDialogWithTrigger } from "./groupVersionsDialog"
 import { IdentifySubmissionsDialogWithTrigger } from "./identifySubsDialog"
+import { ExportGradesCSVDialogContent } from "./exportGradesCSVDialogContent"
 
 const route = getRouteApi("/_authenticated/assignments/$assignmentId")
 
 enum DialogsSubs {
-  dialog1 = "dialog1",
-  dialog2 = "dialog2",
-}
-
-enum DialogsGrades {
   dialog1 = "dialog1",
   dialog2 = "dialog2",
 }
@@ -660,8 +656,13 @@ function GradesDropdownMenu({
           >
             <DropdownMenuItem>Compare</DropdownMenuItem>
           </DialogTrigger>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem disabled>Export Grades CSV</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setDialog(DialogsGrades.dialog3)
+            }}
+          >
+            Export Grades CSV
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       {dialog === DialogsGrades.dialog1 ? (
@@ -670,13 +671,18 @@ function GradesDropdownMenu({
           submissions={submissions}
           setDialog={setDialog}
         />
-      ) : (
+      ) : dialog === DialogsGrades.dialog2 ? (
         <ComparisonDialogContent
           assignment={assignment}
           submissions={submissions}
           setDialog={setDialog}
         />
-      )}
+      ) : dialog === DialogsGrades.dialog3 ? (
+        <ExportGradesCSVDialogContent
+          assignment={assignment}
+          setDialog={setDialog}
+        />
+      ) : null}
     </Dialog>
   )
 }

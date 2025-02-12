@@ -34,6 +34,7 @@ import {
   exportSubmissionPDF,
   exportSubmissionImages,
   exportSubmissionsPDFs,
+  exportGradesCSV,
 } from "./fetchData"
 
 import {
@@ -184,6 +185,13 @@ export const useExportSubmissionsPDFsQueryOptions = (assignmentId: number) => {
   return queryOptions({
     queryKey: ["submissions", "pdf-export", `assignmentId=${assignmentId}`],
     queryFn: () => exportSubmissionsPDFs(assignmentId),
+  })
+}
+
+export const useExportGradesCSVQueryOptions = (assignmentId: number) => {
+  return queryOptions({
+    queryKey: ["grades", "csv-export", `assignmentId=${assignmentId}`],
+    queryFn: () => exportGradesCSV(assignmentId),
   })
 }
 

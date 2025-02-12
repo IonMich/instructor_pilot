@@ -351,9 +351,7 @@ export async function createCommentOnSubmission({
   )
 }
 
-export async function exportSubmissionPDF(
-  submissionId: string
-): Promise<Blob> {
+export async function exportSubmissionPDF(submissionId: string): Promise<Blob> {
   const response = await fetch(
     `${urlMapper.submission(submissionId)}export_pdf/`,
     {
@@ -402,6 +400,22 @@ export async function exportSubmissionsPDFs(
   console.log(response)
   if (!response.ok) {
     throw new Error("Failed to export PDFs")
+  }
+  return await response.blob()
+}
+
+export async function exportGradesCSV(assignmentId: number): Promise<Blob> {
+  const response = await fetch(
+    `${urlMapper.assignment(assignmentId)}export_grades_csv/`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${auth.getToken()}`,
+      },
+    }
+  )
+  if (!response.ok) {
+    throw new Error("Failed to export CSV")
   }
   return await response.blob()
 }

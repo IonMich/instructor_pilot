@@ -160,6 +160,42 @@ class ExportSubmissionsPDFsView(APIView):
         response["Content-Disposition"] = f'attachment; filename="{assignment.name}-submissions.zip"'
         return response
 
+class ExportGradesCSVView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, assignment_id):
+        import pandas as pd
+        # Retrieve the assignment
+        assignment = get_object_or_404(Assignment, pk=assignment_id)
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        
+        # create a pandas dataframe
+        data = []
+        for submission in submissions:
+            question_grades = submission.get_question_grades()
+            question_grades_dict = dict()
+            for i, qg in enumerate(question_grades):
+                question_grades_dict[f'question_{i+1}_grade'] = qg
+            row = {
+                'submission_id': submission.pk,
+                'submission_canvas_id': submission.canvas_id,
+                'student_last_name': submission.student.last_name if submission.student else '',
+                'student_first_name': submission.student.first_name if submission.student else '',
+                'student_canvas_id': submission.canvas_id,
+                'student_uni_id': submission.student.uni_id if submission.student else '',
+                'version': submission.version.name if submission.version else '',
+                'grade': submission.grade,
+                **question_grades_dict,
+            }
+            data.append(row)
+        df = pd.DataFrame(data)
+        # create the response
+        from django.http import HttpResponse
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="grades.csv"'
+        df.to_csv(response, index=False)
+        return response
+
 @login_required
 def assignment_detail_view(request,  course_pk, assignment_pk):
     # course = get_object_or_404(Course, pk=course_pk)
