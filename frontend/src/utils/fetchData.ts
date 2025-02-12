@@ -351,6 +351,25 @@ export async function createCommentOnSubmission({
   )
 }
 
+export async function exportSubmissionsPDFs(
+  assignmentId: number
+): Promise<Blob> {
+  const response = await fetch(
+    `${urlMapper.assignment(assignmentId)}export_pdfs/`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${auth.getToken()}`,
+      },
+    }
+  )
+  console.log(response)
+  if (!response.ok) {
+    throw new Error("Failed to export PDFs")
+  }
+  return await response.blob()
+}
+
 export async function createCourseWithSectionsCanvas({
   courseCanvasId,
   sectionCanvasIds,

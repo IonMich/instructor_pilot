@@ -4,6 +4,7 @@ import { Link, useRouter } from "@tanstack/react-router"
 import {
   assignmentQueryOptions,
   submissionsQueryOptions,
+  useExportSubmissionsPDFsQueryOptions,
   useDeleteAllSubmissionsMutation,
   useIdentifyAutomationWorkflowMutation,
   useVersionAutomationWorkflowMutation,
@@ -52,7 +53,7 @@ import {
 import { Assignment, Submission, Version } from "@/utils/types"
 import { Separator } from "@/components/ui/separator"
 import { SubmissionPDFsForm } from "./assignmentDetailForms"
-import { useSuspenseQueries } from "@tanstack/react-query"
+import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query"
 import { getRouteApi } from "@tanstack/react-router"
 import {
   Form,
@@ -89,11 +90,13 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { AssignmentScoresHistogram } from "./courseDetailLists"
 import { cn } from "@/lib/utils"
+import { Loader, Spinner } from "@/components/ui/loader"
 
 const route = getRouteApi("/_authenticated/assignments/$assignmentId")
 
 enum DialogsSubs {
   dialog1 = "dialog1",
+  dialog2 = "dialog2",
 }
 
 enum DialogsGrades {
@@ -113,19 +116,20 @@ export function SubmissionsTable() {
   const columnsOfAssignment = columnsForAssignment(assignment).filter(
     (column) => column.id !== "assignment" && column.id !== "assignmentgroup"
   )
-  const lenSubsGraded =
-    submissions.filter((submission) => submission.grade !== null).length
+  const lenSubsGraded = submissions.filter(
+    (submission) => submission.grade !== null
+  ).length
+
   return (
     <>
       <div className="container mx-auto py-2">
         {locationListType !== "detail" && (
-          <div className="grid gap-8 md:grid-cols-4 grid-cols-1">
-            <div className={
-              cn(
-                "flex flex-row flex-wrap justify-evenly items-center col-span-2",
+          <div className="mt-8 grid gap-8 md:grid-cols-4 grid-cols-1">
+            <div
+              className={cn(
+                "bt-8 flex flex-row flex-wrap justify-evenly items-center col-span-2",
                 lenSubsGraded === 0 && "md:col-span-4 justify-center gap-8"
-              )
-            }
+              )}
             >
               <h1 className="text-5xl font-bold md:my-8">{assignment.name}</h1>
               {assignment.canvas_id && (
@@ -136,7 +140,7 @@ export function SubmissionsTable() {
               )}
             </div>
             {lenSubsGraded !== 0 && (
-              <Card className="p-8 sm:p-10 md:mt-8 col-span-2 md:row-span-3 md:col-start-3 md:col-end-5 md:row-start-1 order-last">
+              <Card className="p-8 sm:p-10 col-span-2 md:row-span-3 md:col-start-3 md:col-end-5 md:row-start-1 order-last">
                 <AssignmentScoresHistogram
                   assignmentId={assignment.id}
                   className="mx-auto w-[100%] h-[100%]"
@@ -524,11 +528,23 @@ function AllSubmissionsDropdownMenu({
             <DropdownMenuItem>Delete All</DropdownMenuItem>
           </DialogTrigger>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Export PDFs</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setDialog(DialogsSubs.dialog2)
+            }}
+          >
+            Export PDFs
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       {dialog === DialogsSubs.dialog1 ? (
         <DeleteAllDialogContent assignment={assignment} setDialog={setDialog} />
+      ) : null}
+      {dialog === DialogsSubs.dialog2 ? (
+        <ExportPDFsDialogContent
+          assignment={assignment}
+          setDialog={setDialog}
+        />
       ) : null}
     </Dialog>
   )
@@ -800,7 +816,7 @@ function GradingSchemeForm({
                     <FormDescription>
                       Enter the maximum score for each question:
                     </FormDescription>
-                    <div className="flex flex-row gap-2 flex-wrap justify-center">
+                    <div className="flex flex-row gap-4 items-center">
                       {[...Array(num_questions)].map((_, i) => (
                         <FormField
                           key={i}
@@ -1659,8 +1675,9 @@ function InfoExtractForm({
         This pipeline will extract information from all documents for the
         specified fields. More information can be found in the{" "}
         <a
-          href="github.com/IonMich/instructor_pilot/wiki/Grading-Workflow"
+          href="https://github.com/IonMich/instructor_pilot/wiki/Grading-Workflow"
           className="text-blue-500"
+          target="blank"
         >
           wiki
         </a>
@@ -2010,5 +2027,59 @@ export function ProgressPieChart({
         </PolarRadiusAxis>
       </RadialBarChart>
     </ChartContainer>
+  )
+}
+
+function ExportPDFsDialogContent({
+  assignment,
+  setDialog,
+}: {
+  assignment: Assignment
+  setDialog: React.Dispatch<React.SetStateAction<DialogsSubs | null>>
+}) {
+  const {
+    data: blob,
+    isLoading,
+    isError,
+  } = useSuspenseQuery(useExportSubmissionsPDFsQueryOptions(assignment.id))
+  const [downloadUrl, setDownloadUrl] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (blob) {
+      const url = window.URL.createObjectURL(blob)
+      setDownloadUrl(url)
+      return () => window.URL.revokeObjectURL(url)
+    }
+  }, [blob])
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Export PDFs</DialogTitle>
+      </DialogHeader>
+      {isLoading ? (
+        <div className="flex flex-col items-center gap-2">
+          <Loader wait="delay-0" />
+          <p>Preparing ZIP file...</p>
+        </div>
+      ) : isError ? (
+        <div>
+          <p>Failed to export PDFs.</p>
+          <Button onClick={() => setDialog(null)}>Close</Button>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-4">
+          <p>Export ready! Click the link below to download:</p>
+          <a
+            href={downloadUrl || ""}
+            download={`${assignment.name}-submission-PDFs.zip`}
+            className="text-blue-500 underline"
+          >
+            Download ZIP
+          </a>
+          <Button onClick={() => setDialog(null)}>Close</Button>
+        </div>
+      )}
+    </DialogContent>
   )
 }

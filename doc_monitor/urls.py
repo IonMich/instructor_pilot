@@ -53,7 +53,8 @@ from assignments.views import (
     ListAssignmentScoresViewSet,
     AssignmentIdentifySubmissions,
     AssignmentVersionSubmissions,
-    AssignmentExtractInfoSubmissions
+    AssignmentExtractInfoSubmissions,
+    ExportSubmissionsPDFsView
 )
 from students.views import StudentInSectionViewSet, StudentInCourseViewSet
 from submissions.views import (
@@ -140,6 +141,11 @@ urlpatterns = [
         "api/assignments/<int:assignment_id>/extract_info/",
         AssignmentExtractInfoSubmissions.as_view(),
         name="assignment-extract-submissions",
+    ),
+    path(
+        "api/assignments/<int:assignment_id>/export_pdfs/",
+        ExportSubmissionsPDFsView.as_view(),
+        name="export-submissions-pdfs",
     ),
     # canvas api
     path("api/canvas/courses/", ListCanvasCourses.as_view(), name="canvas-courses"),

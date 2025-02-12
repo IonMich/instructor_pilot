@@ -8,7 +8,7 @@ from django.core import serializers
 from django.core.files.base import ContentFile
 from django.db.models import Max, Q
 from django.forms.models import model_to_dict
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -31,6 +31,9 @@ from rest_framework import permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from assignments.serializers import AssignmentSerializer
+from io import BytesIO
+import zipfile
+
 # Create your views here.
 
 class AssignmentViewSet(viewsets.ModelViewSet):
@@ -128,6 +131,35 @@ class AssignmentExtractInfoSubmissions(APIView):
             }
         )
     
+class ExportSubmissionsPDFsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, assignment_id):
+        # Retrieve the assignment
+        assignment = get_object_or_404(Assignment, pk=assignment_id)
+        submissions = PaperSubmission.objects.filter(assignment=assignment)
+        print(f"assignment: {assignment}")
+        
+        # Create in-memory ZIP archive
+        buffer = BytesIO()
+        num_files = 0
+        with zipfile.ZipFile(buffer, "w") as zip_file:
+            for submission in submissions:
+                if hasattr(submission, "pdf") and submission.pdf:
+                    num_files += 1
+                    # Write the file into the zip archive with a simple name
+                    zip_file.write(submission.pdf.path, arcname=f"submission_{submission.pk}.pdf")
+        buffer.seek(0)
+        print(f"num_files: {num_files}")
+        if num_files == 0:
+            return Response(
+                {"message": "No PDF files found for submissions"},
+                status=400,
+            )
+        response = HttpResponse(buffer, content_type="application/zip")
+        response["Content-Disposition"] = f'attachment; filename="{assignment.name}-submissions.zip"'
+        return response
+
 @login_required
 def assignment_detail_view(request,  course_pk, assignment_pk):
     # course = get_object_or_404(Course, pk=course_pk)
