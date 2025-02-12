@@ -32,6 +32,7 @@ import {
   createCourseWithSectionsCanvas,
   fetchCanvasCourse,
   exportSubmissionPDF,
+  exportSubmissionImages,
   exportSubmissionsPDFs,
 } from "./fetchData"
 
@@ -165,17 +166,24 @@ export const announcementsQueryOptions = (courseId: number) => {
   })
 }
 
-export const useExportSubmissionsPDFsQueryOptions = (assignmentId: number) => {
-  return queryOptions({
-    queryKey: ["submissions", "pdf-export", `assignmentId=${assignmentId}`],
-    queryFn: () => exportSubmissionsPDFs(assignmentId),
-  })
-}
-
 export const useExportSubmissionPDFQueryOptions = (submissionId: string) => {
   return queryOptions({
     queryKey: ["submissions", "pdf-export", `submissionId=${submissionId}`],
     queryFn: () => exportSubmissionPDF(submissionId),
+  })
+}
+
+export const useExportSubmissionImagesQueryOptions = (submissionId: string) => {
+  return queryOptions({
+    queryKey: ["submissions", "images-export", `submissionId=${submissionId}`],
+    queryFn: () => exportSubmissionImages(submissionId),
+  })
+}
+
+export const useExportSubmissionsPDFsQueryOptions = (assignmentId: number) => {
+  return queryOptions({
+    queryKey: ["submissions", "pdf-export", `assignmentId=${assignmentId}`],
+    queryFn: () => exportSubmissionsPDFs(assignmentId),
   })
 }
 
@@ -281,7 +289,9 @@ export const useVersionAutomationWorkflowMutation = (assignmentId: number) => {
   })
 }
 
-export const useExtractInfoAutomationWorkflowMutation = (assignmentId: number) => {
+export const useExtractInfoAutomationWorkflowMutation = (
+  assignmentId: number
+) => {
   return useMutation({
     mutationKey: ["submissions", "extract", `assignmentId=${assignmentId}`],
     mutationFn: async (info_fields: InfoField[]) => {

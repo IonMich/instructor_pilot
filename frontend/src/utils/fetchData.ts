@@ -369,6 +369,24 @@ export async function exportSubmissionPDF(
   return await response.blob()
 }
 
+export async function exportSubmissionImages(
+  submissionId: string
+): Promise<Blob> {
+  const response = await fetch(
+    `${urlMapper.submission(submissionId)}export_images/`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${auth.getToken()}`,
+      },
+    }
+  )
+  if (!response.ok) {
+    throw new Error("Failed to export images")
+  }
+  return await response.blob()
+}
+
 export async function exportSubmissionsPDFs(
   assignmentId: number
 ): Promise<Blob> {

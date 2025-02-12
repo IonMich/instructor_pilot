@@ -26,6 +26,7 @@ import { LuArrowUpRight, LuMoreHorizontal } from "react-icons/lu"
 import {
   useDeleteSubmissionMutation,
   useExportSubmissionPDFQueryOptions,
+  useExportSubmissionImagesQueryOptions,
   useIdentifySubmissionMutation,
 } from "@/utils/queryOptions"
 import * as React from "react"
@@ -37,6 +38,7 @@ enum Dialogs {
   dialog1 = "dialog1",
   dialog2 = "dialog2",
   dialog3 = "dialog3",
+  dialog4 = "dialog4",
 }
 
 export const columns: ColumnDef<Submission>[] = [
@@ -214,7 +216,14 @@ function SubmissionDropdownMenu({ submission }: { submission: Submission }) {
           >
             <DropdownMenuItem>Export PDF</DropdownMenuItem>
           </DialogTrigger>
-          <DropdownMenuItem>Export Images</DropdownMenuItem>
+          <DialogTrigger
+            asChild
+            onClick={() => {
+              setDialog(Dialogs.dialog4)
+            }}
+          >
+            <DropdownMenuItem>Export Images</DropdownMenuItem>
+          </DialogTrigger>
           <DropdownMenuSeparator />
           <DropdownMenuItem>
             <p>
@@ -230,6 +239,11 @@ function SubmissionDropdownMenu({ submission }: { submission: Submission }) {
         <IdentifyDialogContent submission={submission} />
       ) : dialog === Dialogs.dialog3 ? (
         <ExportSubmissionPDFDialogContent
+          submission={submission}
+          setDialog={setDialog}
+        />
+      ) : dialog === Dialogs.dialog4 ? (
+        <ExportSubmissionImagesDialogContent
           submission={submission}
           setDialog={setDialog}
         />
@@ -319,6 +333,8 @@ function ExportSubmissionPDFDialogContent({
   const [downloadUrl, setDownloadUrl] = React.useState<string | null>(null)
 
   React.useEffect(() => {
+    // NOTE: the blob is a ZIP file, but by setting the filename to .pdf,
+    // the browser will treat it as a PDF
     if (blob) {
       const url = window.URL.createObjectURL(blob)
       setDownloadUrl(url)
@@ -350,6 +366,62 @@ function ExportSubmissionPDFDialogContent({
             className="text-blue-500 underline"
           >
             Download PDF
+          </a>
+          <Button onClick={() => setDialog(null)}>Close</Button>
+        </div>
+      )}
+    </DialogContent>
+  )
+}
+
+function ExportSubmissionImagesDialogContent({
+  submission,
+  setDialog,
+}: {
+  submission: Submission
+  setDialog: React.Dispatch<React.SetStateAction<Dialogs | null>>
+}) {
+  const {
+    data: blob,
+    isLoading,
+    isError,
+  } = useSuspenseQuery(useExportSubmissionImagesQueryOptions(submission.id))
+  const [downloadUrl, setDownloadUrl] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    // NOTE: the blob is a ZIP file, but by setting the filename to .pdf,
+    // the browser will treat it as a PDF
+    if (blob) {
+      const url = window.URL.createObjectURL(blob)
+      setDownloadUrl(url)
+      return () => window.URL.revokeObjectURL(url)
+    }
+  }, [blob])
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Export Images</DialogTitle>
+      </DialogHeader>
+      {isLoading ? (
+        <div className="flex flex-col items-center gap-2">
+          <Loader wait="delay-0" />
+          <p>Preparing image files...</p>
+        </div>
+      ) : isError ? (
+        <div>
+          <p>Failed to export image files.</p>
+          <Button onClick={() => setDialog(null)}>Close</Button>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-4">
+          <p>Export ready! Click the link below to download:</p>
+          <a
+            href={downloadUrl || ""}
+            download={`submission_${submission.id}.zip`}
+            className="text-blue-500 underline"
+          >
+            Download Images
           </a>
           <Button onClick={() => setDialog(null)}>Close</Button>
         </div>
