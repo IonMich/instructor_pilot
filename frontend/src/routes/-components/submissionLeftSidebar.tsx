@@ -199,6 +199,7 @@ export function SubmissionSettingsSidebar({
               <Button
                 size="sm"
                 variant="outline"
+                disabled={imgDivScrollHeights[i] === null || imgDivScrollHeights[i] === 0}
                 onClick={() => {
                   if (imgDivScrollHeights[i] === null || imgDivScrollHeights[i] === 0) {
                     return

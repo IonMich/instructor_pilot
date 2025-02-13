@@ -29,9 +29,8 @@ export function PagesCardToolbar({
   }
   return (
     <div
-      // Added frosted glass effect on hover with backdrop-blur and semi-transparent background
       className={`absolute top-[5px] left-1/2 transform -translate-x-1/2 rounded-xl py-2 px-8 text-center backdrop-blur-md bg-white/30 transition-all duration-300 flex items-center justify-center 
-     ${isScrolling ? "opacity-50" : "opacity-0 hover:opacity-100"}`}
+     ${isScrolling ? "opacity-70" : "opacity-0 hover:opacity-100"}`}
     >
       <button
         onClick={() => {
@@ -44,7 +43,7 @@ export function PagesCardToolbar({
       >
         <LuArrowUp />
       </button>
-      <span className="mx-2">
+      <span className="mx-2 whitespace-nowrap">
         Page <span className="w-[2ch] inline-block text-center">{pageValue}</span> of {numImages}
       </span>
       <button

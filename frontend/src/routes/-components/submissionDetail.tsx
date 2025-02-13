@@ -190,15 +190,6 @@ export function SubmissionDetail({
                 allImgsLoaded ? "bg-gray-500" : "bg-accent"
               )}
             >
-              <PagesCardToolbar
-                pageValue={pageValue}
-                setPageValue={setPageValue}
-                numImages={numImages}
-                pagesContainerRef={pagesContainerRef}
-                zoomImgPercent={zoomImgPercent}
-                setZoomImgPercent={setZoomImgPercent}
-                isScrolling={isScrolling}
-              />
               {rendeder === "images" ? (
                 // ----Image Rendering----
                 <PagesScrollArea
@@ -217,6 +208,15 @@ export function SubmissionDetail({
                   setFullRenderSuccess={setFullRenderSuccess}
                 />
               )}
+              <PagesCardToolbar
+                pageValue={pageValue}
+                setPageValue={setPageValue}
+                numImages={numImages}
+                pagesContainerRef={pagesContainerRef}
+                zoomImgPercent={zoomImgPercent}
+                setZoomImgPercent={setZoomImgPercent}
+                isScrolling={isScrolling}
+              />
             </Card>
           </div>
         </div>
