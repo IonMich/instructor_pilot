@@ -13,6 +13,7 @@ import {
   submissionQueryOptions,
   submissionsQueryOptions,
 } from "@/utils/queryOptions"
+import { PagesCardToolbar } from "@/components/pages-card-toolbar"
 
 function findPrevSubmission(submission: Submission, submissions: Submission[]) {
   const currentSubmissionIndex = submissions.findIndex(
@@ -104,6 +105,15 @@ export function SubmissionDetail({
   const images = submission?.papersubmission_images ?? []
   const numImages = images.length
 
+  const [isScrolling, setIsScrolling] = React.useState(false)
+
+  React.useEffect(() => {
+    if (isScrolling) {
+      const timer = setTimeout(() => setIsScrolling(false), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [isScrolling])
+
   React.useEffect(() => {
     setFullRenderSuccess(false)
   }, [submission.id, rendeder])
@@ -143,8 +153,6 @@ export function SubmissionDetail({
       >
         <Card className="md:h-[85vh] col-span-2 p-4 hidden lg:flex my-2 flex-col gap-4">
           <LeftSidebar
-            pageValue={pageValue}
-            setPageValue={setPageValue}
             initialQuestionFocus={initialQuestionFocus}
             setInitialQuestionFocus={setInitialQuestionFocus}
             zoomImgPercent={zoomImgPercent}
@@ -153,38 +161,61 @@ export function SubmissionDetail({
             setAnonymousGrading={setAnonymousGrading}
             rendeder={rendeder}
             setRenderer={setRenderer}
-            images={images}
             submission={submission}
             containerRef={pagesContainerRef}
           />
         </Card>
         <div className="lg:col-span-5 md:col-span-7 col-span-9 md:py-2 py-0">
-          <Card
-            ref={pagesContainerRef}
-            className={cn(
-              "h-[70vh] md:h-[85vh] overflow-y-auto",
-              allImgsLoaded ? "bg-gray-500" : "bg-accent"
-            )}
-          >
-            {rendeder === "images" ? (
-              // ----Image Rendering----
-              <PagesScrollArea
-                images={images}
+          <div className="relative group">
+            <Card
+              ref={pagesContainerRef}
+              onScroll={(e) => {
+                setIsScrolling(true)
+                const scrollTop = e.currentTarget.scrollTop
+                const scrollHeight = e.currentTarget.scrollHeight
+                const pageHeight = numImages ? scrollHeight / numImages : 0
+                const newPage =
+                  numImages && pageHeight
+                    ? Math.floor((scrollTop + pageHeight / 3) / pageHeight) + 1
+                    : 1
+                if (newPage !== pageValue) {
+                  setPageValue(newPage)
+                }
+              }}
+              className={cn(
+                "h-[70vh] md:h-[85vh] overflow-y-auto",
+                allImgsLoaded ? "bg-gray-500" : "bg-accent"
+              )}
+            >
+              <PagesCardToolbar
+                pageValue={pageValue}
+                setPageValue={setPageValue}
+                numImages={numImages}
+                pagesContainerRef={pagesContainerRef}
                 zoomImgPercent={zoomImgPercent}
-                allImgsLoaded={allImgsLoaded}
-                anonymousGrading={anonymousGrading}
-                setFullRenderSuccess={setFullRenderSuccess}
+                setZoomImgPercent={setZoomImgPercent}
+                isScrolling={isScrolling}
               />
-            ) : (
-              // ----PDF Rendering----
-              <PdfViewer
-                url={submission.pdf}
-                zoom_percent={zoomImgPercent}
-                anonymousGrading={anonymousGrading}
-                setFullRenderSuccess={setFullRenderSuccess}
-              />
-            )}
-          </Card>
+              {rendeder === "images" ? (
+                // ----Image Rendering----
+                <PagesScrollArea
+                  images={images}
+                  zoomImgPercent={zoomImgPercent}
+                  allImgsLoaded={allImgsLoaded}
+                  anonymousGrading={anonymousGrading}
+                  setFullRenderSuccess={setFullRenderSuccess}
+                />
+              ) : (
+                // ----PDF Rendering----
+                <PdfViewer
+                  url={submission.pdf}
+                  zoom_percent={zoomImgPercent}
+                  anonymousGrading={anonymousGrading}
+                  setFullRenderSuccess={setFullRenderSuccess}
+                />
+              )}
+            </Card>
+          </div>
         </div>
         {/* Right sidebar */}
         <RightSidebar

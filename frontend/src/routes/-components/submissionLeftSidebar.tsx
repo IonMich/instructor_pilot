@@ -123,8 +123,6 @@ export function InfoExtractedSidebar({
 }
 
 export function SubmissionSettingsSidebar({
-  pageValue,
-  setPageValue,
   initialQuestionFocus,
   setInitialQuestionFocus,
   zoomImgPercent,
@@ -133,11 +131,7 @@ export function SubmissionSettingsSidebar({
   setAnonymousGrading,
   rendeder,
   setRenderer,
-  images,
-  containerRef,
 }: {
-  pageValue: number
-  setPageValue: (value: number) => void
   initialQuestionFocus: number | null
   setInitialQuestionFocus: (value: number | null) => void
   zoomImgPercent: number
@@ -146,26 +140,9 @@ export function SubmissionSettingsSidebar({
   setAnonymousGrading: (value: boolean) => void
   rendeder: "pdf" | "images"
   setRenderer: (value: "pdf" | "images") => void
-  images: PaperSubmissionImage[]
-  containerRef: React.RefObject<HTMLDivElement>
 }) {
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => {
-          const newPageValue = (pageValue % images.length) + 1
-          setPageValue(newPageValue)
-          if (containerRef.current) {
-            const cardDiv = containerRef.current
-            cardDiv.scrollTop =
-              (cardDiv.scrollHeight / images.length) * (newPageValue - 1)
-          }
-        }}
-      >
-        Page {pageValue} of {images.length}
-      </Button>
       <Button
         variant="outline"
         size="sm"
@@ -210,8 +187,6 @@ export function SubmissionSettingsSidebar({
 }
 
 export function LeftSidebar({
-  pageValue,
-  setPageValue,
   initialQuestionFocus,
   setInitialQuestionFocus,
   zoomImgPercent,
@@ -220,12 +195,9 @@ export function LeftSidebar({
   setAnonymousGrading,
   rendeder,
   setRenderer,
-  images,
   submission,
   containerRef,
 }: {
-  pageValue: number
-  setPageValue: (value: number) => void
   initialQuestionFocus: number | null
   setInitialQuestionFocus: (value: number | null) => void
   zoomImgPercent: number
@@ -234,7 +206,6 @@ export function LeftSidebar({
   setAnonymousGrading: (value: boolean) => void
   rendeder: "pdf" | "images"
   setRenderer: (value: "pdf" | "images") => void
-  images: PaperSubmissionImage[]
   submission: Submission
   containerRef: React.RefObject<HTMLDivElement>
 }) {
@@ -255,8 +226,6 @@ export function LeftSidebar({
       </TabsList>
       <TabsContent value="controls" className="flex flex-col gap-4">
         <SubmissionSettingsSidebar
-          pageValue={pageValue}
-          setPageValue={setPageValue}
           initialQuestionFocus={initialQuestionFocus}
           setInitialQuestionFocus={setInitialQuestionFocus}
           zoomImgPercent={zoomImgPercent}
@@ -265,8 +234,6 @@ export function LeftSidebar({
           setAnonymousGrading={setAnonymousGrading}
           rendeder={rendeder}
           setRenderer={setRenderer}
-          images={images}
-          containerRef={containerRef}
         />
       </TabsContent>
       <TabsContent value="info">
