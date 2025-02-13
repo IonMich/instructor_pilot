@@ -8,9 +8,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Card } from "@/components/ui/card"
-import { LuVenetianMask, LuCheck, LuImage, LuSettings2 } from "react-icons/lu"
+import {
+  LuVenetianMask,
+  LuImage,
+  LuSettings2,
+  LuCheck,
+  LuBan,
+} from "react-icons/lu"
 import { FaRegFilePdf } from "react-icons/fa"
-import { PaperSubmissionImage, Submission } from "@/utils/types"
+import { Submission } from "@/utils/types"
 import { FaRobot } from "react-icons/fa6"
 
 function PageIcon({ page }: { page: number | string }) {
@@ -125,63 +131,121 @@ export function InfoExtractedSidebar({
 export function SubmissionSettingsSidebar({
   initialQuestionFocus,
   setInitialQuestionFocus,
-  zoomImgPercent,
-  setZoomImgPercent,
   anonymousGrading,
   setAnonymousGrading,
   rendeder,
   setRenderer,
+  submission,
+  // New props for scroll height adjustment
+  imgDivScrollHeights,
+  setImgDivScrollHeights,
 }: {
   initialQuestionFocus: number | null
   setInitialQuestionFocus: (value: number | null) => void
-  zoomImgPercent: number
-  setZoomImgPercent: (value: number) => void
   anonymousGrading: boolean
   setAnonymousGrading: (value: boolean) => void
   rendeder: "pdf" | "images"
   setRenderer: (value: "pdf" | "images") => void
+  submission: Submission
+  imgDivScrollHeights: (number | null)[]
+  setImgDivScrollHeights: (heights: (number | null)[]) => void
 }) {
+  const questionCount =
+    submission.assignment.max_question_scores.split(",").length
+
+  // Helper to update scroll height for a specific question
+  const updateScrollHeight = (index: number, delta: number) => {
+    const newHeights = [...imgDivScrollHeights]
+    const current = newHeights[index] || 0
+    newHeights[index] = parseFloat((current + delta).toFixed(2))
+    setImgDivScrollHeights(newHeights)
+  }
+
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() =>
-          setInitialQuestionFocus(initialQuestionFocus === 0 ? 1 : 0)
-        }
-      >
-        Q {initialQuestionFocus ? initialQuestionFocus + 1 : 1}
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => {
-          const newZoom = zoomImgPercent === 50 ? 100 : zoomImgPercent - 10
-          setZoomImgPercent(newZoom)
-        }}
-      >
-        Zoom {zoomImgPercent.toFixed(0)}%
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className="space-x-2"
-        onClick={() => setAnonymousGrading(!anonymousGrading)}
-      >
-        <LuVenetianMask size={20} title="Anonymous Grading" />
-        {anonymousGrading ? <LuCheck size={20} /> : null}
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setRenderer(rendeder === "images" ? "pdf" : "images")}
-      >
-        {rendeder === "images" ? (
+      <p className="text-sm text-center">Question Focus</p>
+      <div className="flex gap-2 flex-wrap justify-center">
+        {[...Array(questionCount)].map((_, i) => (
+          <Button
+            key={i}
+            variant={initialQuestionFocus === i ? "default" : "outline"}
+            size="sm"
+            onClick={() => setInitialQuestionFocus(i)}
+            disabled={questionCount === 1}
+          >
+            Q {i + 1}
+          </Button>
+        ))}
+      </div>
+      {/* New Scroll Height Adjustment Section */}
+      <p className="text-sm text-center mt-2">Scroll Height Adjustment</p>
+      <div className="flex gap-8 flex-wrap justify-center">
+        {[...Array(questionCount)].map((_, i) => (
+          <div key={i} className="flex flex-col items-center">
+            <span>{`Q${i + 1}: ${
+              imgDivScrollHeights[i] !== null ? imgDivScrollHeights[i] : "unset"
+            }`}</span>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setInitialQuestionFocus(i)
+                  updateScrollHeight(i, 0.05)
+                }}
+              >
+                +
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (imgDivScrollHeights[i] === null || imgDivScrollHeights[i] === 0) {
+                    return
+                  }
+                  setInitialQuestionFocus(i)
+                  updateScrollHeight(i, -0.05)
+                }}
+              >
+                -
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Anonymous Grading Toggle: single button */}
+      <p className="text-sm text-center mt-2">Grading Mode</p>
+      <div className="flex gap-2 justify-center">
+        <Button
+          variant="outline"
+          size="sm"
+          className="space-x-2"
+          onClick={() => setAnonymousGrading(!anonymousGrading)}
+        >
+          <LuVenetianMask size={20} title="Anonymous Grading" />
+          {anonymousGrading ? <LuCheck size={20} /> : <LuBan size={20} />}
+        </Button>
+      </div>
+      {/* Renderer Toggle: remains as two buttons */}
+      <p className="text-sm text-center mt-2">Render Mode</p>
+      <div className="flex gap-2 justify-center">
+        <Button
+          variant={rendeder === "images" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setRenderer("images")}
+        >
           <LuImage size={20} />
-        ) : (
+          <span>Images</span>
+        </Button>
+        <Button
+          variant={rendeder === "pdf" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setRenderer("pdf")}
+        >
           <FaRegFilePdf size={20} />
-        )}
-      </Button>
+          <span>PDF</span>
+        </Button>
+      </div>
     </>
   )
 }
@@ -189,29 +253,31 @@ export function SubmissionSettingsSidebar({
 export function LeftSidebar({
   initialQuestionFocus,
   setInitialQuestionFocus,
-  zoomImgPercent,
-  setZoomImgPercent,
   anonymousGrading,
   setAnonymousGrading,
   rendeder,
   setRenderer,
   submission,
   containerRef,
+  imgDivScrollHeights,
+  setImgDivScrollHeights,
 }: {
   initialQuestionFocus: number | null
   setInitialQuestionFocus: (value: number | null) => void
-  zoomImgPercent: number
-  setZoomImgPercent: (value: number) => void
   anonymousGrading: boolean
   setAnonymousGrading: (value: boolean) => void
   rendeder: "pdf" | "images"
   setRenderer: (value: "pdf" | "images") => void
   submission: Submission
   containerRef: React.RefObject<HTMLDivElement>
+  imgDivScrollHeights: (number | null)[]
+  setImgDivScrollHeights: (heights: (number | null)[]) => void
 }) {
   return (
     <Tabs defaultValue="info">
-      <TabsList className="grid w-full grid-cols-2">
+      <TabsList
+        className="grid w-full grid-cols-2"
+      >
         <TabsTrigger
           value="controls"
           className="flex items-center gap-2 mx-auto"
@@ -228,12 +294,13 @@ export function LeftSidebar({
         <SubmissionSettingsSidebar
           initialQuestionFocus={initialQuestionFocus}
           setInitialQuestionFocus={setInitialQuestionFocus}
-          zoomImgPercent={zoomImgPercent}
-          setZoomImgPercent={setZoomImgPercent}
           anonymousGrading={anonymousGrading}
           setAnonymousGrading={setAnonymousGrading}
           rendeder={rendeder}
           setRenderer={setRenderer}
+          submission={submission}
+          imgDivScrollHeights={imgDivScrollHeights}
+          setImgDivScrollHeights={setImgDivScrollHeights}
         />
       </TabsContent>
       <TabsContent value="info">

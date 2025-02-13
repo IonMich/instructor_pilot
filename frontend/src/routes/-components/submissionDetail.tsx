@@ -60,7 +60,6 @@ export function SubmissionDetail({
   submissionId: string
   enableNavigation: boolean
 }) {
-  // const { theme } = useTheme()
   const [allImgsLoaded, setFullRenderSuccess] = React.useState(false)
   const { data: submission } = useSuspenseQuery(
     submissionQueryOptions(submissionId)
@@ -89,13 +88,17 @@ export function SubmissionDetail({
     : undefined
 
   // scrolling
-  const imgDivScrollHeights = [2.2, 3.2]
+  const questionCount = submission.assignment.max_question_scores.split(",").length
+  const [imgDivScrollHeights, setImgDivScrollHeights] = React.useState<(number | null)[]>(
+    Array(questionCount).fill(null)
+  )
   const [initialQuestionFocus, setInitialQuestionFocus] = React.useState(
     enableNavigation ? 0 : null
   )
-  const scrollHeightImgDiv = initialQuestionFocus
-    ? imgDivScrollHeights[initialQuestionFocus]
-    : 0
+  const scrollHeightImgDiv =
+    initialQuestionFocus !== null && imgDivScrollHeights[initialQuestionFocus] !== null
+      ? (imgDivScrollHeights[initialQuestionFocus] as number)
+      : 0
   const [pageValue, setPageValue] = React.useState(1)
   const [zoomImgPercent, setZoomImgPercent] = React.useState(100)
   const [anonymousGrading, setAnonymousGrading] = React.useState(false)
@@ -155,14 +158,14 @@ export function SubmissionDetail({
           <LeftSidebar
             initialQuestionFocus={initialQuestionFocus}
             setInitialQuestionFocus={setInitialQuestionFocus}
-            zoomImgPercent={zoomImgPercent}
-            setZoomImgPercent={setZoomImgPercent}
             anonymousGrading={anonymousGrading}
             setAnonymousGrading={setAnonymousGrading}
             rendeder={rendeder}
             setRenderer={setRenderer}
             submission={submission}
             containerRef={pagesContainerRef}
+            imgDivScrollHeights={imgDivScrollHeights}
+            setImgDivScrollHeights={setImgDivScrollHeights}
           />
         </Card>
         <div className="lg:col-span-5 md:col-span-7 col-span-9 md:py-2 py-0">
