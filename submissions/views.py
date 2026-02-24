@@ -624,10 +624,19 @@ def api_grades_list_view(request, assignment_pk):
         question_grades_dict = dict()
         for i, qg in enumerate(question_grades):
             question_grades_dict[f'question_{i+1}_grade'] = qg
+        section = None
+        if submission.student:
+            try:
+                section = submission.student.get_section_in_course(assignment.course)
+            except ValueError as e:
+                print(f"ValueError: {e}")
+                section = None
         row = {
             'submission_id': submission.pk,
             'version': submission.version.name if submission.version else '',
             'grade': submission.grade,
+            'section_id': section.pk if section else '',
+            'section_name': section.name if section else 'Unassigned',
             **question_grades_dict,
         }
         data.append(row)
