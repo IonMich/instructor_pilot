@@ -17,7 +17,7 @@
     {{ assignment.pk|json_script:"assignment_id"}}
     {{ course_pk|json_script:"course_id"}}
     <script type="module" src="{% static 'assignments/renderVersionModal.js' %}" defer></script>
-    <script type="module" src="{% static 'assignments/detail.js' %}?v=20260222-2" defer></script>
+    <script type="module" src="{% static 'assignments/detail.js' %}?v=20260224-1" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 {% endblock scripts %}
 

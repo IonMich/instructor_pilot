@@ -1189,18 +1189,6 @@ if (chart) {
         chart.dataset.chartInit = "1";
 
         const chartContainer = chart.parentElement;
-        // Remove legacy dynamically injected chart control rows from older JS versions.
-        const legacyControlRows = document.querySelectorAll(
-            '.d-flex.justify-content-end.my-2, .d-flex.justify-content-end.mb-2'
-        );
-        legacyControlRows.forEach((row) => {
-            if (row.id === 'chart-controls') {
-                return;
-            }
-            if (row.querySelector('input[name="chart-type"]')) {
-                row.remove();
-            }
-        });
 
         const groupButtonContainer = chartContainer.querySelector('#chart-controls');
         if (!groupButtonContainer) {
