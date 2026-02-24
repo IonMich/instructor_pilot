@@ -626,9 +626,11 @@ def api_grades_list_view(request, assignment_pk):
             question_grades_dict[f'question_{i+1}_grade'] = qg
         section = None
         if submission.student:
-            section = submission.student.sections.filter(
-                course=assignment.course
-            ).first()
+            try:
+                section = submission.student.get_section_in_course(assignment.course)
+            except ValueError as e:
+                print(f"ValueError: {e}")
+                section = None
         row = {
             'submission_id': submission.pk,
             'version': submission.version.name if submission.version else '',
